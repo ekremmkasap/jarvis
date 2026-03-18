@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Harrison & Cole Hukuk</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            gold: {
+              300: '#f7d58b',
+              500: '#d4af37',
+              700: '#8f6b1e'
+            }
+          },
+          fontFamily: {
+            display: ['Georgia', 'serif'],
+            body: ['Trebuchet MS', 'sans-serif']
+          },
+          boxShadow: {
+            luxe: '0 20px 40px rgba(0,0,0,0.45)'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background: radial-gradient(circle at top, #2a2a2a, #0f0f10 45%, #060607 100%);
+    }
+    .gold-line {
+      background: linear-gradient(90deg, transparent, #d4af37, transparent);
+      height: 1px;
+    }
+    .card-glow {
+      border: 1px solid rgba(212,175,55,.25);
+      background: linear-gradient(145deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+      backdrop-filter: blur(3px);
+    }
+    .fade-up {
+      opacity: 0;
+      transform: translateY(14px);
+      transition: all .8s ease;
+    }
+    .fade-up.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body class="text-zinc-100 font-body">
+  <header class="max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
+    <div class="font-display text-xl tracking-wide text-gold-300">Harrison & Cole Hukuk</div>
+    <a href="#iletisim" class="px-4 py-2 border border-gold-500 text-gold-300 hover:bg-gold-500 hover:text-black transition">Hemen Danışın</a>
+  </header>
+
+  <section class="max-w-6xl mx-auto px-6 py-20 md:py-28">
+    <div class="fade-up">
+      <p class="text-gold-300 uppercase tracking-[0.35em] text-xs mb-4">Corporate & Luxury Law</p>
+      <h1 class="font-display text-4xl md:text-6xl leading-tight max-w-4xl">Kurumsal riskleri asil bir stratejiye dönüştüren hukuk danışmanlığı.</h1>
+      <p class="mt-6 text-zinc-300 max-w-2xl">Ticaret hukuku, ceza hukuku ve yüksek profilli dava süreçlerinde stratejik temsil.</p>
+      <div class="mt-8 flex gap-4">
+        <a href="#iletisim" class="px-6 py-3 bg-gold-500 text-black font-semibold">Randevu Al</a>
+        <a href="#alanlar" class="px-6 py-3 border border-zinc-500 text-zinc-200">Uzmanlıklar</a>
+      </div>
+    </div>
+  </section>
+
+  <div class="gold-line max-w-6xl mx-auto"></div>
+
+  <section class="max-w-6xl mx-auto px-6 py-16 fade-up" id="hakkimizda">
+    <h2 class="font-display text-3xl text-gold-300">Hakkımızda</h2>
+    <p class="mt-4 text-zinc-300 leading-7">Harrison & Cole, yüksek ölçekli şirket birleşmeleri, ticari uyuşmazlıklar ve itibar hassasiyeti yüksek davalarda bütüncül hukuk stratejisi sunar.</p>
+  </section>
+
+  <section class="max-w-6xl mx-auto px-6 py-16" id="alanlar">
+    <h2 class="font-display text-3xl text-gold-300 mb-8 fade-up">Uzmanlık Alanlarımız</h2>
+    <div class="grid md:grid-cols-3 gap-6">
+      <article class="card-glow p-6 fade-up"><h3 class="font-display text-xl text-gold-300">Ticaret Hukuku</h3><p class="mt-3 text-zinc-300">Sözleşme, birleşme, uyum ve uluslararası ticaret süreçleri.</p></article>
+      <article class="card-glow p-6 fade-up"><h3 class="font-display text-xl text-gold-300">Ceza Hukuku</h3><p class="mt-3 text-zinc-300">Kritik dosyalarda hızlı savunma kurgusu ve risk minimizasyonu.</p></article>
+      <article class="card-glow p-6 fade-up"><h3 class="font-display text-xl text-gold-300">Regülasyon</h3><p class="mt-3 text-zinc-300">Sektörel düzenlemelere uyum ve denetim hazırlığı danışmanlığı.</p></article>
+    </div>
+  </section>
+
+  <section class="max-w-6xl mx-auto px-6 py-16" id="yorumlar">
+    <h2 class="font-display text-3xl text-gold-300 mb-6 fade-up">Müvekkil Yorumları</h2>
+    <div class="card-glow p-6 shadow-luxe fade-up">
+      <p id="testimonialText" class="text-zinc-200 italic">"İlk toplantıdan itibaren dosyamızın kaderi değişti."</p>
+      <p id="testimonialName" class="mt-4 text-gold-300">— Yönetim Kurulu Üyesi, Finans Şirketi</p>
+    </div>
+  </section>
+
+  <section class="max-w-6xl mx-auto px-6 py-16" id="iletisim">
+    <h2 class="font-display text-3xl text-gold-300 mb-6 fade-up">İletişim ve Randevu</h2>
+    <form class="grid md:grid-cols-2 gap-4 fade-up">
+      <input class="bg-zinc-900 border border-zinc-700 p-3" placeholder="Ad Soyad" />
+      <input class="bg-zinc-900 border border-zinc-700 p-3" placeholder="E-posta" />
+      <input class="bg-zinc-900 border border-zinc-700 p-3 md:col-span-2" placeholder="Konu" />
+      <textarea class="bg-zinc-900 border border-zinc-700 p-3 md:col-span-2" rows="5" placeholder="Mesajınız"></textarea>
+      <button class="md:col-span-2 bg-gold-500 text-black px-6 py-3 font-semibold hover:bg-gold-300 transition">Talep Gönder</button>
+    </form>
+  </section>
+
+  <script src="main.js"></script>
+</body>
+</html>

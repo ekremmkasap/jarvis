@@ -1,0 +1,104 @@
+Skywork AI: Profesyonel İçerik Üretimi ve Akademik Araştırma Platformu İncelemesi
+Yönetici Özeti
+Skywork AI, doküman oluşturma, sunum hazırlama, veri analizi, web sitesi tasarımı ve multimedya içerik üretimini tek bir çatı altında toplayan kapsamlı bir yapay zeka ekosistemidir. Geleneksel sohbet botlarından farklı olarak, akademik veriler (Google Scholar) ve derin araştırma (Deep Research) odaklı çalışması sayesinde yapay zekada sıkça rastlanan "halüsinasyon" (yanlış bilgi üretme) riskini minimize etmeyi hedefler. Platform, özellikle "beyaz yakalı" profesyoneller, ajanslar ve akademik çalışma yürüten kullanıcılar için tasarlanmış, yüksek kaliteli görsel üretim motoru Nano Banana Pro ile desteklenmiş çok fonksiyonlu bir araç setidir.
+Temel Felsefe ve Ayırt Edici Özellikler
+Skywork AI'yı piyasadaki diğer yapay zeka araçlarından ayıran temel unsurlar şunlardır:
+Akademik Veri Temeli: Sistem, 400'den fazla uzmanlık alanını kapsayan akademik araştırmalar ve Google Akademik verileriyle eğitilmiştir. Bu durum, sunulan bilgilerin güvenilirliğini ve derinliğini artırır.
+Profesyonel Odak: Basit kullanıcı etkileşiminden ziyade; iş raporları, profesyonel sunumlar, kurumsal kimlik çalışmaları ve web sitesi kurulumu gibi profesyonel çıktıları hedefler.
+Entegre Ekosistem: Bir projenin ihtiyaç duyabileceği Excel tabloları, slaytlar, posterler ve web siteleri tek bir platform üzerinden, birbiriyle uyumlu şablonlarla yönetilebilir.
+--------------------------------------------------------------------------------
+Fonksiyonel Modüller ve Yetenekler
+1. Nano Banana Pro ve Görsel Tasarım
+Skywork AI'nın görsel üretim motoru olan Nano Banana Pro, profesyonel düzeyde afiş, logo ve sosyal medya içerikleri üretmek için kullanılır.
+Ajans Mantığı: Sadece görsel üretmekle kalmaz, bu görselleri profesyonel bir teslimat formatına (PDF vb.) dönüştürebilir.
+Bağlamsal Tasarım: Örneğin, bir hamburgerci için hazırlanan afişte ürün detaylarını (bol çedarlı olması vb.) ve kampanya metinlerini (yılbaşı indirimi vb.) doğru font ve kompozisyonla birleştirir.
+2. Derin Araştırma (Deep Research) ve Dokümantasyon
+Bu modül, internet üzerindeki güncel kaynakları ve akademik makaleleri tarayarak detaylı raporlar hazırlar.
+Mod Seçenekleri: Kullanıcılar "Hızlı" (Fast) veya "Derin" (Deep) mod seçeneklerini kullanabilir.
+Çıktı Formatları: Sonuçlar sadece düz metin olarak değil, akademik kağıt, iş raporu veya kullanıcı kılavuzu formatında PDF veya Word dosyası olarak sunulur.
+Kaynak Gösterimi: Hazırlanan raporların sonunda, bilgilerin hangi web kaynaklarından alındığı tarih belirtilerek şeffaf bir şekilde sunulur.
+3. Web Sitesi Oluşturma
+Platform, kullanıcıların tanımlamalarına göre işlevsel ve estetik web siteleri tasarlayabilir.
+Şablon Entegrasyonu: Mevcut şablonlar üzerinden renk teması ve içerik özelleştirmesi yapılabilir.
+İçerik Araştırması: Site içeriği oluşturulurken yapay zeka ilgili konu hakkında internette araştırma yaparak (örneğin bir kütüphane yazılımı tanıtımı için) doğru teknik detayları ve kullanıcı değerlendirmelerini siteye ekler.
+4. Akıllı Tablolar ve Sunumlar (Sheets & Slides)
+Sheets: Belirli şablonlar ve veriler üzerinden Excel benzeri analiz tabloları oluşturur.
+Slides: Nano Banana Pro motorunu kullanarak, yüksek kaliteli fontlar ve görsellerle desteklenmiş profesyonel PowerPoint dosyaları hazırlar. Örneğin, "2026 Türkiye e-ticaret trendleri" gibi spesifik konularda pazar analizi içeren sunumlar yapabilir.
+--------------------------------------------------------------------------------
+Multimedya ve Araç Ajanları (Tools Agent)
+Skywork AI, metin ve görselin ötesine geçerek sesli ve videolu içerik analizi de sunmaktadır:
+Özellik
+Açıklama
+Podcast Oluşturma
+Belirli bir konu hakkında (örneğin spor analizleri) araştırma yaparak, çoklu konuşmacı formatında, teknik analiz içeren podcast senaryoları ve kayıtları hazırlar.
+YouTube Video Learning
+Verilen bir YouTube linkini analiz eder; videodan slaytlar, raporlar veya zihin haritaları (mind maps) oluşturur.
+Logo Tasarımı
+Referans görselleri ve metinsel tanımları kullanarak kurumsal kimliğe uygun logolar üretir.
+--------------------------------------------------------------------------------
+Kullanım Modeli ve Erişilebilirlik
+Platform, kullanıcıların sistemi test edebilmesi için cömert bir kredi sistemi sunmaktadır:
+Ücretsiz Başlangıç: Yeni üyeliklerde yaklaşık 1000 kredi tanımlanmaktadır. Karmaşık işlemler (video analizi, derin araştırma vb.) işlem başına ortalama 100 kredi tüketirken, standart işlemler daha az maliyetlidir.
+Abonelik Seçenekleri: Aylık, çeyreklik (3 aylık) ve yıllık paketler mevcuttur. Ücretli planlar "sınırsız recharge" (kredi yenileme) gibi ek avantajlar sağlar.
+Dosya Entegrasyonu: Kullanıcılar kendi yerel dosyalarını veya Google Drive içeriklerini sisteme yükleyerek yapay zekanın bu veriler üzerinde çalışmasını sağlayabilirler.
+Sonuç
+Skywork AI, içerik üretim sürecini "çocuk oyuncağı" olmaktan çıkarıp profesyonel bir üretim bandına dönüştürmeyi amaçlayan bir araçtır. Özellikle akademik veri entegrasyonu ve Google Scholar desteğiyle, bilgi kirliliğinin ve yapay zeka hatalarının önüne geçmeye çalışan yapısı, onu iş dünyası ve akademik çevreler için güvenilir bir alternatif haline getirmektedir. Web sitesinden podcast'e, Excel tablolarından profesyonel sunumlara kadar geniş bir yelpazede çıktı verebilmesi, platformun en güçlü yönüdür.
+NotebookLM yanlış bilgiler gösterebilir. Bu nedenle, verdiği yanıtları doğrulayın.
+raç Adı
+Temel İşlev
+Öne Çıkan Özellikler
+Kullanılan Yapay Zeka Modeli
+Hedef Kullanıcı Kitlesi
+Desteklenen Çıktı Formatları
+Akademik Veri Desteği (Durum)
+Kaynak
+Skywork AI (Genel Platform)
+Doküman, slayt, web sitesi ve veri analizi süreçlerini birleştiren çok yönlü yapay zeka ekosistemi.
+Düşük halüsinasyon payı, 1000 ücretsiz kredi imkanı ve tüm ofis/tasarım araçlarını tek bir arayüzde toplama.
+Nano Banana Pro ve Skywork tabanlı modeller
+Beyaz yakalı profesyoneller, ajanslar, akademisyenler ve öğrenciler.
+PDF, Word (Doküman), PowerPoint (Slayt), Excel (Sheets), Web Sitesi.
+Google Akademik (Scholar) üzerinden 400'den fazla uzmanlık alanında veri desteği.
+[1]
+Deep Research (Derin Araştırma)
+İnternet ve akademik kaynaklar üzerinden detaylı rapor ve doküman hazırlama.
+Deep Mode ve Search özellikleri ile güncel web kaynaklarına dayalı, halüsinasyonsuz veri analizi.
+Skywork AI
+Araştırmacılar, öğrenciler ve proje yöneticileri.
+PDF, Word.
+Google Akademik verileriyle desteklenen yüksek akademik güvenilirlik.
+[1]
+YouTube Learning & Creation (UPE)
+YouTube videolarını analiz ederek slayt, podcast veya zihin haritası oluşturma.
+Video linkinden otomatik analiz raporu çıkarma ve karmaşık konuları özetleyebilme yeteneği.
+Skywork AI
+Öğrenciler, eğitmenler ve araştırmacılar.
+Slayt, Analiz Raporu, Podcast, Zihin Haritası.
+Video içeriğini akademik ve analitik bir yaklaşımla raporlama.
+[1]
+Nano Banana Pro
+Görsel tasarım ve profesyonel poster/afiş üretimi.
+Yüksek kaliteli font kullanımı ve profesyonel ajans mantığıyla çalışan gelişmiş poster üretim modeli.
+Nano Banana Pro
+Tasarımcılar, reklam ajansları ve işletme sahipleri.
+Görsel (Poster/Afiş), PDF.
+Kaynakta belirtilmedi (Görsel odaklı).
+[1]
+Web Site Builder
+Yapay zeka yardımıyla özelleştirilebilir web sitesi tasarımı.
+Şık şablonlar, spesifik tasarım isteklerine yanıt verme ve .com uzantılı kullanım desteği.
+Skywork AI
+Girişimciler ve dijital içerik üreticileri.
+Canlı Web Sitesi (HTML/Web).
+İnternet araştırma modülü ile güncel veri çekme özelliği.
+[1]
+Tools Agent (Podcast Vibe)
+Verilen konularda senaryolu ve çok sesli podcast içerikleri oluşturma.
+İki kişilik tartışma formatı, mod seçimi ve Transfermarkt gibi spesifik veri kaynaklarını kullanabilme.
+Skywork AI
+İçerik üreticileri ve medya profesyonelleri.
+Ses ve Metin tabanlı podcast akışı.
+Güncel medya ve transfer verileriyle entegrasyon.
+[1]
+[1] BİLMEDİĞİNİZ ÜCRETSİZ YAPAY ZEKAYI DENEDİM! 🔥 (Skywork AI ile Para Kazan, İçerik Üret ve Site Yap)
+NotebookLM yanlış bilgiler gösterebilir. Bu nedenle, verdiği yanıtları doğrulayın.

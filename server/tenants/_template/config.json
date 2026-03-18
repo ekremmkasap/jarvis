@@ -1,0 +1,18 @@
+{
+  "tenant_id": "TENANT_ID",
+  "name": "Musteri Adi",
+  "plan": "starter",
+  "telegram_token": "BOT_TOKEN_BURAYA",
+  "authorized_chat_id": 0,
+  "active": false,
+  "stripe_customer_id": null,
+  "expires_at": null,
+  "created_at": "YYYY-MM-DD",
+  "features": [
+    "ebay",
+    "trendyol"
+  ],
+  "memory_dir": "/opt/jarvis/tenants/TENANT_ID/memory",
+  "soul_md": "/opt/jarvis/tenants/TENANT_ID/soul.md",
+  "web_port": null
+}

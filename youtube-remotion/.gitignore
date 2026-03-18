@@ -1,0 +1,6 @@
+.env
+node_modules/
+my-video/node_modules/
+my-video/out/
+*.mp4
+*.mp3

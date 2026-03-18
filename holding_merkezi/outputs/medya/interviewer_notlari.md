@@ -1,0 +1,1 @@
+Interviewer: Hedef acı noktaları netleştirildi.

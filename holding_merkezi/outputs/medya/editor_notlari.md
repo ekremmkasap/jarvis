@@ -1,0 +1,1 @@
+Editor: Ton birliği ve CTA standardı uygulandı.

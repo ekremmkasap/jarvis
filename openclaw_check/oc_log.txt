@@ -1,0 +1,11 @@
+Feb 28 17:48:49 userk systemd[1]: /etc/systemd/system/openclaw.service:12: Standard output type syslog is obsolete, automatically updating to journal. Please update your unit file, and consider removing the setting altogether.
+Feb 28 17:48:49 userk systemd[1]: /etc/systemd/system/openclaw.service:13: Standard output type syslog is obsolete, automatically updating to journal. Please update your unit file, and consider removing the setting altogether.
+Feb 28 17:48:49 userk systemd[1]: Started openclaw.service - OpenClaw AI Orchestrator Service.
+Feb 28 17:59:09 userk systemd[1]: /etc/systemd/system/openclaw.service:12: Standard output type syslog is obsolete, automatically updating to journal. Please update your unit file, and consider removing the setting altogether.
+Feb 28 17:59:09 userk systemd[1]: /etc/systemd/system/openclaw.service:13: Standard output type syslog is obsolete, automatically updating to journal. Please update your unit file, and consider removing the setting altogether.
+Feb 28 17:59:10 userk systemd[1]: /etc/systemd/system/openclaw.service:12: Standard output type syslog is obsolete, automatically updating to journal. Please update your unit file, and consider removing the setting altogether.
+Feb 28 17:59:10 userk systemd[1]: /etc/systemd/system/openclaw.service:13: Standard output type syslog is obsolete, automatically updating to journal. Please update your unit file, and consider removing the setting altogether.
+-- Boot 1a986726fb6d48ffadead1c6bc9a7ed4 --
+Mar 01 15:15:51 userk systemd[1]: Started openclaw.service - OpenClaw AI Orchestrator Service.
+Mar 01 16:54:30 userk systemd[1]: /etc/systemd/system/openclaw.service:12: Standard output type syslog is obsolete, automatically updating to journal. Please update your unit file, and consider removing the setting altogether.
+Mar 01 16:54:30 userk systemd[1]: /etc/systemd/system/openclaw.service:13: Standard output type syslog is obsolete, automatically updating to journal. Please update your unit file, and consider removing the setting altogether.

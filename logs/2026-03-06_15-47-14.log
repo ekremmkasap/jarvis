@@ -1,0 +1,168 @@
+2026-03-06 15:47:14 | INFO | application.py:128 | start | Init ReMe with config: {"backend":"cmd","app_name":"ReMe","working_dir":"C:/pinokio/api/ekrem/app/.reme","enable_logo":false,"language":"","thread_pool_max_workers":16,"ray_max_workers":-1,"log_to_console":false,"disabled_flows":[],"enabled_flows":[],"mcp_servers":{},"mcp":{"transport":"stdio","host":"0.0.0.0","port":8001},"http":{"host":"0.0.0.0","port":8001,"timeout_keep_alive":3600,"limit_concurrency":1000},"cmd":{"flow":""},"ops":{},"flows":{},"llms":{"default":{"backend":"openai","model_name":"llama3.2:latest","request_interval":1,"base_url":"http://127.0.0.1:11434/v1","api_key":"ollama"},"qwen3_max_instruct":{"backend":"openai","model_name":"qwen3-max","request_interval":2},"qwen-plus-thinking":{"backend":"openai","model_name":"qwen-plus","request_interval":1,"extra_body":{"enable_thinking":true}}},"embedding_models":{"default":{"backend":"openai","model_name":"llama3.2:latest","dimensions":1024,"enable_cache":false,"base_url":"http://127.0.0.1:11434/v1","api_key":"ollama"}},"vector_stores":{"default":{"backend":"local","collection_name":"reme","embedding_model":"default"}},"file_stores":{},"token_counters":{"default":{"backend":"base","model_name":""},"hf":{"backend":"hf","model_name":"Qwen/Qwen3-Coder-30B-A3B-Instruct","use_mirror":true}},"file_watchers":{},"metadata":{}}
+2026-03-06 15:47:14 | INFO | local_vector_store.py:137 | create_collection | Created collection reme at C:\pinokio\api\ekrem\app\.reme\vector_store\reme
+2026-03-06 15:47:14 | INFO | local_vector_store.py:335 | start | Local vector store loaded 0 nodes from reme
+2026-03-06 15:47:15 | INFO | local_vector_store.py:187 | insert | Inserted 1 nodes into reme
+2026-03-06 15:47:15 | INFO | base_react.py:156 | execute | [ReMeRetriever] 0.tool_call={"type": "function", "function": {"name": "delegate_task", "description": "Delegate tasks to appropriate agents.", "parameters": {"type": "object", "properties": {"tasks": {"type": "array", "description": "List of tasks to delegate to specific memory agents", "items": {"type": "object", "description": "A task item", "properties": {"memory_target": {"type": "string", "description": "The memory_target identifier to delegate to the corresponding agent"}}, "required": ["memory_target"]}}}, "required": ["tasks"]}}}
+2026-03-06 15:47:15 | INFO | base_react.py:162 | execute | [ReMeRetriever] role=system {"role": "system", "content": "You are a Memory Orchestrator responsible for routing memory retrieval tasks to specialized agents based on the context.\n\n# Context\nkullanici kim\n\n## Available Memory Agents\nEach line below is a JSON object representing a specialized Memory Agent:\n- `agent`: Description of what this agent specializes in\n- `memory_target`: The unique identifier for this agent (THIS IS WHAT YOU MUST USE)\n\n{\"agent\": \"Agent managing personal memories for ekrem\", \"memory_target\": \"ekrem\"}\n\n## Your Task\nAnalyze the context and delegate retrieval tasks to appropriate specialized agents:\n1. Examine the context content and identify which memory_target(s) from the \"Available Memory Agents\" list above should be queried for relevant information\n2. For each relevant memory_target, delegate the retrieval task to its corresponding specialized agent\n   - **CRITICAL**: The memory_target must be EXACTLY one of the `memory_target` field values from the JSON objects listed in \"Available Memory Agents\" above\n   - **DO NOT** extract or create new memory_target names from the context content\n   - **DO NOT** use topic names, entity names, descriptions, or any other identifiers from the context as memory_targets\n   - **DO NOT** use the agent description text as memory_target\n   - **ONLY** use the exact string values from the `memory_target` fields in the JSON objects above\n   - Each memory_target should be assigned **only once** - do not duplicate assignments\n3. Use the `delegate_task` tool **once** with all relevant memory_target(s) to enable parallel processing by specialized agents"}
+2026-03-06 15:47:15 | INFO | base_react.py:162 | execute | [ReMeRetriever] role=user {"role": "user", "content": "Please analyze the context and delegate retrieval tasks to the appropriate specialized agents."}
+2026-03-06 15:47:15 | INFO | openai_llm.py:72 | _build_stream_kwargs | llm_kwargs={'model': 'llama3.2:latest', 'messages': 2, 'tools': 1, 'stream': True}
+2026-03-06 15:47:18 | INFO | base_react.py:74 | _reasoning_step | [ReMeRetriever  step0] assistant={"role": "assistant", "content": "", "tool_calls": [{"index": 0, "id": "call_cpebc0xj", "function": {"arguments": "{\"tasks\":\"[{\\\"memory_target\\\": \\\"ekrem\\\"}]\"}", "name": "delegate_task"}, "type": "function"}]}
+2026-03-06 15:47:18 | INFO | base_react.py:103 | _acting_step | [ReMeRetriever  step0.0] submit tool_call[delegate_task] arguments={"tasks":"[{\"memory_target\": \"ekrem\"}]"}
+2026-03-06 15:47:18 | ERROR | base_op.py:105 | _handle_failure | [DelegateTask] failed (attempt 1): string indices must be integers
+Traceback (most recent call last):
+
+  File "<string>", line 41, in <module>
+
+  File "C:\pinokio\bin\miniconda\lib\asyncio\runners.py", line 44, in run
+    return loop.run_until_complete(main)
+           │    │                  └ <coroutine object test_reme at 0x00000159298B6C00>
+           │    └ <function BaseEventLoop.run_until_complete at 0x0000015929924F70>
+           └ <ProactorEventLoop running=True closed=False debug=False>
+
+  File "C:\pinokio\bin\miniconda\lib\asyncio\base_events.py", line 636, in run_until_complete
+    self.run_forever()
+    │    └ <function ProactorEventLoop.run_forever at 0x00000159299D0C10>
+    └ <ProactorEventLoop running=True closed=False debug=False>
+
+  File "C:\pinokio\bin\miniconda\lib\asyncio\windows_events.py", line 321, in run_forever
+    super().run_forever()
+
+  File "C:\pinokio\bin\miniconda\lib\asyncio\base_events.py", line 603, in run_forever
+    self._run_once()
+    │    └ <function BaseEventLoop._run_once at 0x00000159299269E0>
+    └ <ProactorEventLoop running=True closed=False debug=False>
+
+  File "C:\pinokio\bin\miniconda\lib\asyncio\base_events.py", line 1909, in _run_once
+    handle._run()
+    │      └ <function Handle._run at 0x000001592985E3B0>
+    └ <Handle <TaskStepMethWrapper object at 0x000001592C095B40>()>
+
+  File "C:\pinokio\bin\miniconda\lib\asyncio\events.py", line 80, in _run
+    self._context.run(self._callback, *self._args)
+    │    │            │    │           │    └ <member '_args' of 'Handle' objects>
+    │    │            │    │           └ <Handle <TaskStepMethWrapper object at 0x000001592C095B40>()>
+    │    │            │    └ <member '_callback' of 'Handle' objects>
+    │    │            └ <Handle <TaskStepMethWrapper object at 0x000001592C095B40>()>
+    │    └ <member '_context' of 'Handle' objects>
+    └ <Handle <TaskStepMethWrapper object at 0x000001592C095B40>()>
+
+  File "<string>", line 35, in test_reme
+  File "C:\Users\sergen\AppData\Roaming\Python\Python310\site-packages\reme\reme.py", line 450, in retrieve_memory
+    result = await reme_retriever.call(
+                   │              └ <function BaseOp.call at 0x0000015948836C20>
+                   └ <reme.memory.vector_based.reme_retriever.ReMeRetriever object at 0x000001594ACF8F40>
+  File "C:\Users\sergen\AppData\Roaming\Python\Python310\site-packages\reme\core\utils\time.py", line 63, in async_wrapper
+    return await func(*args, **kwargs)
+                 │     │       └ {'query': 'kullanici kim', 'messages': None, 'description': '', 'service_context': {'service_config': ServiceConfig(backend='...
+                 │     └ (<reme.memory.vector_based.reme_retriever.ReMeRetriever object at 0x000001594ACF8F40>,)
+                 └ <function BaseOp.call at 0x0000015948836A70>
+  File "C:\Users\sergen\AppData\Roaming\Python\Python310\site-packages\reme\core\op\base_op.py", line 265, in call
+    response = await self.execute()
+                     │    └ <function ReMeRetriever.execute at 0x00000159491F51B0>
+                     └ <reme.memory.vector_based.reme_retriever.ReMeRetriever object at 0x000001594ACF8F40>
+  File "C:\Users\sergen\AppData\Roaming\Python\Python310\site-packages\reme\memory\vector_based\reme_retriever.py", line 69, in execute
+    result = await super().execute()
+  File "C:\Users\sergen\AppData\Roaming\Python\Python310\site-packages\reme\core\op\base_react.py", line 165, in execute
+    t_tools, messages, success = await self.react(messages, self.tools)
+             │                         │    │     │         │    └ <property object at 0x0000015948827D80>
+             │                         │    │     │         └ <reme.memory.vector_based.reme_retriever.ReMeRetriever object at 0x000001594ACF8F40>
+             │                         │    │     └ [Message(name=None, role=<Role.SYSTEM: 'system'>, content='You are a Memory Orchestrator responsible for routing memory retri...
+             │                         │    └ <function ReMeRetriever.react at 0x00000159491F5120>
+             │                         └ <reme.memory.vector_based.reme_retriever.ReMeRetriever object at 0x000001594ACF8F40>
+             └ [Message(name=None, role=<Role.SYSTEM: 'system'>, content='You are a Memory Orchestrator responsible for routing memory retri...
+  File "C:\Users\sergen\AppData\Roaming\Python\Python310\site-packages\reme\memory\vector_based\reme_retriever.py", line 62, in react
+    t_tools, tool_messages = await self._acting_step(assistant_message, tools, step=0, stage=stage)
+                                   │    │            │                  │                    └ ''
+                                   │    │            │                  └ [<reme.memory.tools.delegate_task.DelegateTask object at 0x000001594ACF91E0>]
+                                   │    │            └ Message(name=None, role=<Role.ASSISTANT: 'assistant'>, content='', reasoning_content='', tool_calls=[ToolCall(index=0, id='ca...
+                                   │    └ <function ReMeRetriever._acting_step at 0x00000159491F5090>
+                                   └ <reme.memory.vector_based.reme_retriever.ReMeRetriever object at 0x000001594ACF8F40>
+  File "C:\Users\sergen\AppData\Roaming\Python\Python310\site-packages\reme\memory\vector_based\reme_retriever.py", line 44, in _acting_step
+    return await super()._acting_step(
+  File "C:\Users\sergen\AppData\Roaming\Python\Python310\site-packages\reme\core\op\base_react.py", line 117, in _acting_step
+    await self.join_async_tasks()
+          │    └ <function BaseOp.join_async_tasks at 0x0000015948836E60>
+          └ <reme.memory.vector_based.reme_retriever.ReMeRetriever object at 0x000001594ACF8F40>
+  File "C:\Users\sergen\AppData\Roaming\Python\Python310\site-packages\reme\core\op\base_op.py", line 311, in join_async_tasks
+    result = await task
+                   └ <coroutine object BaseOp.call at 0x000001594AC75850>
+  File "C:\Users\sergen\AppData\Roaming\Python\Python310\site-packages\reme\core\utils\time.py", line 63, in async_wrapper
+    return await func(*args, **kwargs)
+                 │     │       └ {'service_context': {'service_config': ServiceConfig(backend='cmd', app_name='ReMe', working_dir='C:/pinokio/api/ekrem/app/.r...
+                 │     └ (<reme.memory.tools.delegate_task.DelegateTask object at 0x000001594AD54730>,)
+                 └ <function BaseOp.call at 0x0000015948836A70>
+> File "C:\Users\sergen\AppData\Roaming\Python\Python310\site-packages\reme\core\op\base_op.py", line 265, in call
+    response = await self.execute()
+                     │    └ <function DelegateTask.execute at 0x00000159491F5BD0>
+                     └ <reme.memory.tools.delegate_task.DelegateTask object at 0x000001594AD54730>
+  File "C:\Users\sergen\AppData\Roaming\Python\Python310\site-packages\reme\memory\tools\delegate_task.py", line 59, in execute
+    memory_target_tasks = sorted(set(task["memory_target"] for task in tasks))
+                                                                       └ '[{"memory_target": "ekrem"}]'
+  File "C:\Users\sergen\AppData\Roaming\Python\Python310\site-packages\reme\memory\tools\delegate_task.py", line 59, in <genexpr>
+    memory_target_tasks = sorted(set(task["memory_target"] for task in tasks))
+                                     │                         └ '['
+                                     └ '['
+
+TypeError: string indices must be integers
+2026-03-06 15:47:18 | INFO | C:\Users\sergen\AppData\Roaming\Python\Python310\site-packages\reme\core\op\base_op.py:257 | DelegateTask.call | ========== cost=0.008780s ==========
+2026-03-06 15:47:18 | INFO | base_react.py:129 | _acting_step | [ReMeRetriever  step0.0] join tool=delegate_task result=
+2026-03-06 15:47:18 | ERROR | base_op.py:105 | _handle_failure | [ReMeRetriever] failed (attempt 1): 'agents'
+Traceback (most recent call last):
+
+  File "<string>", line 41, in <module>
+
+  File "C:\pinokio\bin\miniconda\lib\asyncio\runners.py", line 44, in run
+    return loop.run_until_complete(main)
+           │    │                  └ <coroutine object test_reme at 0x00000159298B6C00>
+           │    └ <function BaseEventLoop.run_until_complete at 0x0000015929924F70>
+           └ <ProactorEventLoop running=True closed=False debug=False>
+
+  File "C:\pinokio\bin\miniconda\lib\asyncio\base_events.py", line 636, in run_until_complete
+    self.run_forever()
+    │    └ <function ProactorEventLoop.run_forever at 0x00000159299D0C10>
+    └ <ProactorEventLoop running=True closed=False debug=False>
+
+  File "C:\pinokio\bin\miniconda\lib\asyncio\windows_events.py", line 321, in run_forever
+    super().run_forever()
+
+  File "C:\pinokio\bin\miniconda\lib\asyncio\base_events.py", line 603, in run_forever
+    self._run_once()
+    │    └ <function BaseEventLoop._run_once at 0x00000159299269E0>
+    └ <ProactorEventLoop running=True closed=False debug=False>
+
+  File "C:\pinokio\bin\miniconda\lib\asyncio\base_events.py", line 1909, in _run_once
+    handle._run()
+    │      └ <function Handle._run at 0x000001592985E3B0>
+    └ <Handle <TaskStepMethWrapper object at 0x000001592C095B40>()>
+
+  File "C:\pinokio\bin\miniconda\lib\asyncio\events.py", line 80, in _run
+    self._context.run(self._callback, *self._args)
+    │    │            │    │           │    └ <member '_args' of 'Handle' objects>
+    │    │            │    │           └ <Handle <TaskStepMethWrapper object at 0x000001592C095B40>()>
+    │    │            │    └ <member '_callback' of 'Handle' objects>
+    │    │            └ <Handle <TaskStepMethWrapper object at 0x000001592C095B40>()>
+    │    └ <member '_context' of 'Handle' objects>
+    └ <Handle <TaskStepMethWrapper object at 0x000001592C095B40>()>
+
+  File "<string>", line 35, in test_reme
+  File "C:\Users\sergen\AppData\Roaming\Python\Python310\site-packages\reme\reme.py", line 450, in retrieve_memory
+    result = await reme_retriever.call(
+                   │              └ <function BaseOp.call at 0x0000015948836C20>
+                   └ <reme.memory.vector_based.reme_retriever.ReMeRetriever object at 0x000001594ACF8F40>
+  File "C:\Users\sergen\AppData\Roaming\Python\Python310\site-packages\reme\core\utils\time.py", line 63, in async_wrapper
+    return await func(*args, **kwargs)
+                 │     │       └ {'query': 'kullanici kim', 'messages': None, 'description': '', 'service_context': {'service_config': ServiceConfig(backend='...
+                 │     └ (<reme.memory.vector_based.reme_retriever.ReMeRetriever object at 0x000001594ACF8F40>,)
+                 └ <function BaseOp.call at 0x0000015948836A70>
+> File "C:\Users\sergen\AppData\Roaming\Python\Python310\site-packages\reme\core\op\base_op.py", line 265, in call
+    response = await self.execute()
+                     │    └ <function ReMeRetriever.execute at 0x00000159491F51B0>
+                     └ <reme.memory.vector_based.reme_retriever.ReMeRetriever object at 0x000001594ACF8F40>
+  File "C:\Users\sergen\AppData\Roaming\Python\Python310\site-packages\reme\memory\vector_based\reme_retriever.py", line 80, in execute
+    agents: list[BaseMemoryAgent] = delegate_task_tool.response.metadata["agents"]
+                 │                  │                  └ <property object at 0x0000015948825800>
+                 │                  └ <reme.memory.tools.delegate_task.DelegateTask object at 0x000001594AD54730>
+                 └ <class 'reme.memory.vector_based.base_memory_agent.BaseMemoryAgent'>
+
+KeyError: 'agents'
+2026-03-06 15:47:18 | INFO | C:\Users\sergen\AppData\Roaming\Python\Python310\site-packages\reme\core\op\base_op.py:257 | ReMeRetriever.call | ========== cost=3.230802s ==========

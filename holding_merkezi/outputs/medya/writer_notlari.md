@@ -1,0 +1,1 @@
+Writer: Ana metinler üretildi ve kanala göre optimize edildi.

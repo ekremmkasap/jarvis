@@ -1,0 +1,8 @@
+# Web Brief - Hukuk Burosu
+FIRMA_ADI: Yilmaz Hukuk Burosu
+TUR: Hukuk Burosu
+RENKLER: Lacivert (#1B2A4A), Altin (#C9A84C), Beyaz
+SLOGAN: "Haklarinizi Birlikte Savunuyoruz"
+HIZMETLER: Ticaret hukuku, Is hukuku, Gayrimenkul, Ceza hukuku
+HEDEF_KITLE: Kurumsal musteriler, 35-60 yas, Istanbul
+TONALITE: Guvenir, profesyonel, ciddiyeti

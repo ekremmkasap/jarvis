@@ -1,0 +1,14 @@
+{
+  "title": "Video",
+  "fps": 30,
+  "scenes": [
+    {
+      "id": "1",
+      "title": "Ornek",
+      "videoFile": "scene_1_giris.mp4",
+      "audioFile": "scene_1_giris.mp3",
+      "durationFrames": 180,
+      "subtitle": "Ornek sahne"
+    }
+  ]
+}

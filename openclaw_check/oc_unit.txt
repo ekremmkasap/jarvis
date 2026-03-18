@@ -1,0 +1,17 @@
+[Unit]
+Description=OpenClaw AI Orchestrator Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/jarvis/openclaw
+ExecStart=/usr/bin/python3 /opt/jarvis/openclaw/bridge.py
+Restart=always
+RestartSec=5
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=openclaw
+
+[Install]
+WantedBy=multi-user.target

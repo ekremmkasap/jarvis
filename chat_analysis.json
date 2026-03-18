@@ -1,0 +1,490 @@
+{
+  "total_convs": 69,
+  "total_user": 530,
+  "total_ai": 703,
+  "convs": [
+    [
+      "2023-01-23",
+      "New chat",
+      1,
+      0,
+      "can you create a profile for me on upwork"
+    ],
+    [
+      "2023-04-08",
+      "Shopify eCommerce setup.",
+      2,
+      2,
+      "bana sporla alakalı evde yapılabilecek en kolay 5 haraketi söylermisin"
+    ],
+    [
+      "2023-01-23",
+      "New chat",
+      1,
+      1,
+      "How do I make an HTTP request in Javascript?"
+    ],
+    [
+      "2023-04-08",
+      "Concert Titles Matter.",
+      3,
+      3,
+      "Can you write a word ley about the concert title?"
+    ],
+    [
+      "2023-04-08",
+      "Home exercises: 5 moves.",
+      2,
+      2,
+      "Can you give information about smma?"
+    ],
+    [
+      "2023-01-24",
+      "Make HTTP Request in JS\n",
+      1,
+      1,
+      "How do I make an HTTP request in Javascript?"
+    ],
+    [
+      "2023-01-23",
+      "Simple Quantum Computing Explanation",
+      3,
+      3,
+      "Explain quantum computing in simple terms"
+    ],
+    [
+      "2023-04-07",
+      "Quantum Computing Explanation.",
+      1,
+      1,
+      "Explain quantum computing in simple terms"
+    ],
+    [
+      "2023-04-08",
+      "Earn Money Online.",
+      2,
+      2,
+      "Can you write me something 75 words about english german translation?"
+    ],
+    [
+      "2023-01-26",
+      "Near-Death Experience Story\n",
+      1,
+      1,
+      "Can you write a 5000 word near-death story?"
+    ],
+    [
+      "2023-01-25",
+      "Merhaba Yardım İstiyor",
+      4,
+      4,
+      "bana türkiye cumhuriyetinin tarihi geçmişiyle ilgili 2000 kelimelik yazı yazarmısın"
+    ],
+    [
+      "2025-01-09",
+      "Hello and assistance",
+      4,
+      5,
+      "merhaba"
+    ],
+    [
+      "2023-01-28",
+      "Manifesting Wishes Through Universe\n",
+      5,
+      6,
+      "Can you write an article with my wish and the universe in it?"
+    ],
+    [
+      "2026-01-27",
+      "New chat",
+      1,
+      1,
+      "merhaba"
+    ],
+    [
+      "2026-01-27",
+      "Virtualization Hatası Çözümü",
+      2,
+      2,
+      "merhaba"
+    ],
+    [
+      "2026-01-28",
+      "WSL Kurulum ve Hata Çözümü",
+      3,
+      3,
+      "PS C:\\Users\\sergen> wsl --install\r\nSağlanan ada sahip bir dağıtım zaten var. Farklı --name bir ad se"
+    ],
+    [
+      "2026-01-28",
+      "Selamlaşma sohbeti",
+      5,
+      5,
+      "Merhaba"
+    ],
+    [
+      "2026-01-28",
+      "Ajan Modu Aktivasyonu",
+      8,
+      8,
+      "🚀 Proje Promptu: GÜVENKONTROL\r\nProje Amacı: Kullanıcıların şüpheli IBAN, Telefon ve İsim bilgilerini"
+    ],
+    [
+      "2026-01-29",
+      "Computer modunu aktive etme",
+      8,
+      15,
+      "5 sayfa PDF üret"
+    ],
+    [
+      "2026-01-29",
+      "PDF Hazırlama Talebi",
+      13,
+      17,
+      "PDF’yi şimdi oluştur artık uzatmadan direk linki ver"
+    ],
+    [
+      "2026-02-03",
+      "İnternet Sitesi Yapımı",
+      3,
+      3,
+      "https://www.google.com/aclk?sa=L&ai=DChsSEwioxITzlL2SAxWoiv0FHWZLF8EYACICCAIQARoCd2Y&co=1&gclid=CjwK"
+    ],
+    [
+      "2026-02-04",
+      "WSL Kurulum Rehberi",
+      1,
+      8,
+      "ama şöyle bir şey var kopyalayamıyorum"
+    ],
+    [
+      "2026-02-04",
+      "Codex Alımı Yardımı",
+      4,
+      7,
+      "Codexi almak istiyorum"
+    ],
+    [
+      "2026-02-04",
+      "AI-Native Engineering Teams",
+      2,
+      3,
+      "https://developers.openai.com/codex/guides/build-ai-native-engineering-team/"
+    ],
+    [
+      "2026-02-05",
+      "Codex Kurulumu Yardımı",
+      3,
+      3,
+      "bunlardan hangisi"
+    ],
+    [
+      "2026-02-05",
+      "Codex Kurulumu ve Kullanımı",
+      54,
+      89,
+      "benim  için bu 4 göreseli indir hata alıyorumm"
+    ],
+    [
+      "2026-02-06",
+      "Net Sonuç Odaklı Yardım",
+      4,
+      5,
+      "aklımdaki sistem internet üzerinden data çekicek ve bu dataların hepsnı ayrı ayrı dosyalandıracak ör"
+    ],
+    [
+      "2026-02-06",
+      "Tarayıcı Simgesi Açıklaması",
+      2,
+      2,
+      "Bu hangi tarayıcı ağı"
+    ],
+    [
+      "2026-02-10",
+      "E-ticaret Sistemi Yardımı",
+      1,
+      1,
+      "meraha ben ben aklımda bir iş fikri var https://www.etsy.com/  üzreinden bir e ticaret sitesi yapmak"
+    ],
+    [
+      "2026-02-11",
+      "Hayata Geçirme Yardımı",
+      1,
+      1,
+      "https://www.instagram.com/p/DUNtYiMDJfV/?utm_source=ig_web_copy_link&igsh=MzRlODBiNWFlZA==  \n\ninceke"
+    ],
+    [
+      "2026-02-11",
+      "Google Maps ChatGPT Modeli",
+      2,
+      2,
+      "bu ekraan resmide gördüğün tüm özellikleri tek bir seferle kullanabileceğim bir akllı asistan prompu"
+    ],
+    [
+      "2026-02-11",
+      "AI Lokasyon Zekâ Pazarı",
+      21,
+      21,
+      "vermiş olduğum propt ile anti gravity böyle bir şey yaptı bende ona bana vermiş olduğu n cevabı verd"
+    ],
+    [
+      "2026-02-14",
+      "Image description generation",
+      9,
+      12,
+      "bu dünden beri adlmış olduğum 3. hatam oldu geceden beri 3 4 defa herşeyi kaldırım tekrardan sildim "
+    ],
+    [
+      "2026-02-17",
+      "Kali Ekran Hatası Çözümü",
+      13,
+      21,
+      "ayar olarak hangisi"
+    ],
+    [
+      "2026-02-18",
+      "Süper AI Ajanı Promtu",
+      1,
+      1,
+      "senden isteiğim bu tüm özellikleri kullanacak süper bir AI ajanı oluşturman ve vereceğin özel prompt"
+    ],
+    [
+      "2026-02-18",
+      "Omnimind Operasyonu Başlatıldı",
+      21,
+      21,
+      "başlıyoruz"
+    ],
+    [
+      "2026-02-18",
+      "Minimal Aesthetic Description",
+      22,
+      35,
+      "dahga sonra yaparız"
+    ],
+    [
+      "2026-02-18",
+      "Finansal Hedef Stratejisi",
+      1,
+      1,
+      "Elbette, finansal hedeflerine ulaşmana yardım etmek isterim! Öncelikle, hedeflerinin neler olduğunu "
+    ],
+    [
+      "2026-02-18",
+      "Cinematic sabah sahnesi",
+      1,
+      1,
+      "🎬 DAY 1 – GÖRSEL PROMPT SETİ\n\n(Luna | Sabah | İlk Video)\n\n🎥 ANA VİDEO İSTEĞİ (9:16 – Cin)\nA calm cin"
+    ],
+    [
+      "2026-02-18",
+      "RTX 570 Monster Laptop",
+      2,
+      2,
+      "bu video rtx570 ekran kartı olan monster laptoplü"
+    ],
+    [
+      "2026-02-19",
+      "Video Metne Dönüştürme",
+      2,
+      2,
+      "https://www.instagram.com/p/DU3RQK8DGIh/?img_index=1&igsh=eXBkam5qdDJlbDM3 \n\nBana bu video içeriğini"
+    ],
+    [
+      "2026-02-19",
+      "Kali ve Kali Linux Farkı",
+      1,
+      1,
+      "merhaba kali ile kali linux arasındaki fark nedir"
+    ],
+    [
+      "2026-02-19",
+      "Greeting exchange",
+      1,
+      1,
+      "Peki bu TikTok otomasyonu oluşturduktan sonra dışarıya yani açık bir şekilde satmaya çalışsak TikTok"
+    ],
+    [
+      "2026-02-19",
+      "M5 Pro Ürün Araştırması",
+      1,
+      1,
+      "M5 pro araştırması"
+    ],
+    [
+      "2026-02-19",
+      "M5 Pro ile WAN 2.2",
+      1,
+      1,
+      "comfyui içerisine video rander almak için WAN 2.2 modelini kullanacağız ama performans ve hız açısın"
+    ],
+    [
+      "2026-02-20",
+      "Eş Anlamlı Kelimeler Görseli",
+      1,
+      1,
+      "Eş anlamlarını görselli bir şekilde bana ver"
+    ],
+    [
+      "2026-02-23",
+      "Codex Cihaz Etkinleştirme",
+      1,
+      1,
+      "etkinleştir"
+    ],
+    [
+      "2026-02-24",
+      "Sinematik Metro Sahnesi",
+      2,
+      2,
+      "Vermiş olduğum promptla bir fotoğraf oluştur."
+    ],
+    [
+      "2026-02-24",
+      "Instagram gönderisi metne dönüştürme",
+      2,
+      2,
+      "https://www.instagram.com/p/DVGWAz0k2RF/?igsh=MXM3NWdsMG04djR2MA== babana bu instagram gönderisini b"
+    ],
+    [
+      "2026-02-24",
+      "Clowbot Analizi ve Geliştirme",
+      60,
+      81,
+      "?"
+    ],
+    [
+      "2026-02-25",
+      "Node.js Bot Geliştirme",
+      37,
+      42,
+      "birde elimizde genAI tarafından bana verilen 1000 dolarlık bir kredimiz var"
+    ],
+    [
+      "2026-02-25",
+      "Remotion API Overview",
+      2,
+      2,
+      "Türkçe cevao mı ver bana"
+    ],
+    [
+      "2026-02-26",
+      "Jarvis Mission Control Tasarımı",
+      46,
+      57,
+      "ver bakalım hadi"
+    ],
+    [
+      "2026-02-26",
+      "Docker Hatası Çözümü",
+      3,
+      5,
+      "docker zaten kurulu"
+    ],
+    [
+      "2026-02-27",
+      "Task-004 Review Output",
+      7,
+      7,
+      "5️⃣ SONRA NE YAPACAĞIZ?\n\nSıradaki net ve doğru adım:\n\n👉 TASK-004 → review.md (Reviewer PASS)\n👉 sonra"
+    ],
+    [
+      "2026-02-27",
+      "TASK-005 Adım Planı",
+      67,
+      106,
+      "devam hata yok"
+    ],
+    [
+      "2026-02-27",
+      "Phase 3 Tamamlama Adımları",
+      31,
+      43,
+      "userk@userk:~/jarvis-mission-control$ grep -R \"ExecutionResult\" -n src/runtime/executor src/runtime/"
+    ],
+    [
+      "2023-01-23",
+      "Create Upwork Profile Denied",
+      1,
+      1,
+      "can you create a profile for me on upwork"
+    ],
+    [
+      "2023-01-26",
+      "WhatsApp Chatbot Code\n",
+      1,
+      1,
+      "Whatsapp chatbot\nnecessary for\ncan you write the codes"
+    ],
+    [
+      "2023-01-26",
+      "Open Website AI Error",
+      7,
+      8,
+      "JavaScript kodu yazarmısın"
+    ],
+    [
+      "2023-04-08",
+      "Amazon FBA Nedir?",
+      1,
+      1,
+      "amazon fba hakkında bilgi bana bilgi verirmisin"
+    ],
+    [
+      "2023-01-26",
+      "Telegram Chatbot Code Python",
+      4,
+      4,
+      "can you tell me some websites that show javascript codes?"
+    ],
+    [
+      "2023-01-24",
+      "Write Article For Book\n",
+      3,
+      3,
+      "bana uzayla alakalı 1000 kelimeli birşey yaz"
+    ],
+    [
+      "2023-01-26",
+      "New chat",
+      2,
+      1,
+      "can you code a website for me"
+    ],
+    [
+      "2023-04-07",
+      "HTTP request in Javascript.",
+      1,
+      1,
+      "How do I make an HTTP request in Javascript?"
+    ],
+    [
+      "2023-01-27",
+      "New chat",
+      4,
+      4,
+      "Emirrr can you write a poem about my penis?"
+    ],
+    [
+      "2023-04-08",
+      "WhatsApp Chatbot Creation",
+      1,
+      1,
+      "Can you write me the necessary codes to make a whatsapp chatbot?"
+    ],
+    [
+      "2023-03-01",
+      "HTTP request in JavaScript",
+      1,
+      1,
+      "How do I make an HTTP request in Javascript?"
+    ],
+    [
+      "2023-01-26",
+      "Simple Quantum Computing Explanation\n",
+      1,
+      1,
+      "Explain quantum computing in simple terms"
+    ]
+  ]
+}

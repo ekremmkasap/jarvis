@@ -1,0 +1,1 @@
+0 8 * * * /usr/bin/python3 /opt/jarvis/skills/heartbeat.py >> /home/userk/.jarvis/heartbeat.log 2>&1

@@ -1,0 +1,13 @@
+# Gizli dosyalar
+.env
+data/memory.json
+data/shopify_token.json
+logs/
+__pycache__/
+*.pyc
+*.pyo
+
+# Geçici dosyalar
+*.b64
+*.zip
+nul

@@ -1,0 +1,6 @@
+total 48
+drwxrwxr-x 3 userk userk  4096 Mar  1 19:09 .
+drwxr-xr-x 9 userk userk  4096 Mar  1 17:07 ..
+-rw-rw-r-- 1 userk userk 28717 Mar  1 19:07 bridge.py
+-rw-rw-r-- 1 userk userk   115 Feb 28 17:48 bridge.py.stub.bak
+drwxrwxr-x 2 userk userk  4096 Mar  1 19:09 __pycache__

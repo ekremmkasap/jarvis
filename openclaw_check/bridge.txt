@@ -1,0 +1,5 @@
+import time
+print("OpenClaw Bridge Starting...")
+while True:
+    time.sleep(60)
+    print("OpenClaw heartbeat...")

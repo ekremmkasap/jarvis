@@ -1,0 +1,21 @@
+# Web Tasarım Ajansı - Müşteri Briefi
+
+## Müşteri Profili
+Sektör: Hukuk Bürosu (Corporate & Luxury Law)
+Marka Adı: Harrison & Cole Hukuk
+
+## Tasarım Beklentileri
+Tema: Luxury Gold (Lüks Altın) ve Siyah. 
+Hissiyat: Güvenilir, asil, pahalı ve profesyonel.
+
+## İstenen Bölümler
+1. Hero Section (Etkileyici bir başlık ve "Hemen Danışın" butonu)
+2. Hakkımızda
+3. Uzmanlık Alanlarımız (Ticaret Hukuku, Ceza Hukuku vs.)
+4. Müvekkil Yorumları (Testimonials - Akıcı bir slider animasyonu ile)
+5. İletişim ve Randevu Formu
+
+## Teknik Kurallar
+- Mobil uyumlu (Responsive) olmalı.
+- TailwindCSS kullanılmalı.
+- Mikro animasyonlar barındırmalı.

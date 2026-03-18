@@ -1,0 +1,16 @@
+2026-03-01 23:08:08,639 [INFO] Bilgi bankasi yuklendi: ['jarvis_komutlar', 'ebay_strateji', 'jarvis_mimari', 'agentclaw_mimari', 'trendyol_strateji', 'ai_icerik_araclari', 'profil', 'agentclaw_ajans']
+2026-03-01 23:08:08,639 [INFO] ✅ soul.md yuklendi
+Traceback (most recent call last):
+  File "/tmp/check_bridge.py", line 38, in <module>
+    exec(compile(open("/opt/jarvis/openclaw/bridge.py").read(), "bridge.py", "exec"))
+  File "bridge.py", line 112, in <module>
+NameError: name '_get_best_model' is not defined
+OK: import os, json, time, logging, threading, subproc
+OK: from datetime import datetime
+OK: from http.server import HTTPServer, BaseHTTPReques
+OK: from urllib.request import urlopen, Request
+OK: from urllib.error import URLError
+OK: import glob as _glob
+SYNTAX HATA satir 2: unterminated triple-quoted string literal (detected at line 2) (bridge.py, line 2)
+Compile tamam, runtime test...
+RUNTIME HATA:

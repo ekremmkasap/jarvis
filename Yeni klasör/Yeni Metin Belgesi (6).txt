@@ -1,0 +1,115 @@
+Antigravity ve Agentic İş Akışları ile Otonom Yapay Zeka Yaratıcı Ajansı Kurulumu
+Bu bilgilendirme belgesi, Digital Academy tarafından sunulan, Antigravity platformu üzerinden çeşitli yapay zeka modellerini (görsel ve video) birleştirerek 7/24 çalışan otonom bir yaratıcı reklam ajansı kurma stratejisini ve teknik detaylarını sentezlemektedir.
+Yönetici Özeti
+Yapay zeka modellerinin (Nano Banana 2, GPT, Vio, Sora vb.) hızla gelişmesi, içerik üretiminde yüksek kaliteyi mümkün kılmış ancak karmaşık "prompt" (istem) teknikleri ve manuel üretim süreçleri bir darboğaz oluşturmuştur. Geleneksel otomasyon araçları (N8N, VIVI vb.) ise "düğüm makarnası" olarak adlandırılan karmaşık ve kırılgan yapılar sunmaktadır. Antigravity üzerinde kurulan "Agentic" (ajan tabanlı) iş akışları, bu karmaşıklığı ortadan kaldırarak kullanıcının bir "yönetmen" rolüne geçmesini sağlar. Sistem, araştırma, kampanya kurgusu, görsel üretim ve video oluşturma süreçlerini birbiriyle konuşan yapay zeka ajanları aracılığıyla otonom hale getirir. Bu yapı, e-ticaret firmalarına ve markalara yüksek katma değerli reklam hizmeti olarak sunulabilecek ticari bir iş modeli teşkil etmektedir.
+1. Geleneksel Otomasyondan Agentic İş Akışlarına Geçiş
+Belge, geleneksel otomasyon yöntemlerinin sınırlamalarını ve "Agentic" sistemlerin sunduğu çözümleri karşılaştırmalı olarak ele almaktadır.
+Geleneksel Otomasyonun Sorunları
+Karmaşıklık ve Kırılganlık: N8N gibi araçlarda oluşturulan akışlar, her yeni model güncellemesinde bozulabilmekte ve yönetimi zor, karmaşık düğüm yapılarına ("çorba" veya "makarna" yapısı) dönüşmektedir.
+Esneklik Eksikliği: Belirli bir format (örneğin dikey video) için kurulan akışlar, ufak bir değişiklik (yatay video) istendiğinde manuel müdahale gerektirmektedir.
+Teknik Bilgi Bariyeri: Kullanıcının ışıklandırma, kamera açısı ve kompozisyon gibi detaylı teknik parametreleri içeren karmaşık istemler yazmasını gerektirir.
+Agentic Sistemlerin Avantajları
+Konuşma Temelli Yönetim: Sistemle doğal dilde konuşarak süreçler yönetilir. Teknik detaylar ajanın "hafızasında" tutulur ve eğitildiği şekilde uygulanır.
+Hata Payının Azalması: Ajanlar, çıktıları kontrol eder ve hataları minimize eder.
+Model Bağımsızlığı: Yeni bir model çıktığında tüm akışı yeniden kurmak yerine ajana ilgili modeli kullanması söylenmesi yeterlidir.
+2. Sistemin Teknik Bileşenleri ve Mimari Yapısı
+Otonom reklam ajansı, birbiriyle entegre çalışan birkaç temel platform ve model üzerine inşa edilmiştir.
+Bileşen
+Görevi / Fonksiyonu
+Yerçekimsiz
+Sistemin ana işletim merkezi ve yerel/bulut tabanlı çalışma ortamı.
+AirTable
+Sistemin "işletim sistemi" ve veri tabanı; tüm görsel, video ve istem kayıtlarının tutulduğu merkez.
+Yani API
+Farklı yapay zeka modellerine (Vio, Nano Banana vb.) bağlanmayı sağlayan köprü.
+Gemini 3.1 Pro / Bulut Kodu
+Sistemin "beyni" olarak işlev gören, ajanların mantık yürüttüğü büyük dil modelleri.
+Nano Banana 2 / Pro
+Yüksek kaliteli ve düşük maliyetli görsel üretim modelleri.
+Vio 3.1 / Sora / Cedens
+Metinden veya görselden video üretimini sağlayan modeller.
+3. Operasyonel İş Akışı: Bir Reklam Kampanyası Oluşturma Süreci
+Sistem, bir ürün linki veya görselinden başlayarak nihai reklam içeriğine kadar giden otonom bir süreci takip eder:
+Araştırma ve Analiz: Ajan, verilen ürün linkini (örneğin bir Amazon linki) ve görsellerini analiz eder. Rakip analizi ve tersine mühendislik yaparak strateji belirler.
+Kampanya Kurgusu: "Hook" (kanca) cümleleri, görsel yönlendirmeler (visual direction) ve senaryo sahneleri oluşturulur. Bu belgeler AirTable üzerinde otomatik dosyalanır.
+Görsel Üretimi: Belirlenen senaryoya uygun olarak Nano Banana 2 gibi modellerle yüksek çözünürlüklü (2K, sinematik, Earth tone vb.) görseller üretilir.
+Onay ve Seçim: Kullanıcı (Yönetmen), üretilen varyasyonlar arasından en iyilerini onaylar.
+Video Üretimi: Onaylanan görseller, Vio 3.1 gibi modeller aracılığıyla hareketli reklamlara dönüştürülür.
+Kayıt ve Arşiv: Tüm süreç, maliyet hesaplamaları (örneğin görsel başına $0.13, video başına $4) ve istem detaylarıyla birlikte AirTable'a kaydedilir.
+4. Ticari Potansiyel ve İş Modeli
+Bu sistem, bireysel kullanıcılar için bir "yaratıcı asistan" olmanın ötesinde, ölçeklenebilir bir iş modeli sunar:
+Hizmet Olarak Satış: E-ticaret firmalarına aylık reklam üretim hizmeti olarak paketlenebilir. Binlerce dolarlık gelir potansiyeli taşır.
+Maliyet Avantajı: Nano Banana 2 gibi modeller, Nano Banana Pro veya GPT-4 tabanlı görsel oluşturuculara göre daha yüksek kaliteyi daha düşük maliyetle sunar.
+Kurumsal Entegrasyon: Şirketlerin pazarlama veya kreatif departmanları için 20+ sanal çalışan içeren otonom bir birim olarak kurulabilir.
+Toplu Üretim: Tek tek istem yazmak yerine, ajana toplu üretim emirleri verilerek saatler sürecek işler dakikalar içinde tamamlanır.
+5. Önemli Çıkarımlar ve İpuçları
+Model Seçimi: Nano Banana 2, hem kalite hem de maliyet açısından (0.13 birim maliyet gibi) şu anki en optimize seçenek olarak öne çıkmaktadır.
+Esneklik: Sistem dikey (9:16) veya yatay (16:9) kampanya formatlarına sadece bir komutla uyum sağlayabilir.
+Varyasyonun Önemi: Video üretiminde hataları minimize etmek için sistem genellikle ikişer varyasyon oluşturur; böylece en başarılı geçişe sahip klip seçilebilir.
+Hibrit Kullanım: Belirli standart ve tekrarlayan işler için hala N8N (Nat) workflowları kullanılabilirken, yaratıcı ve değişken süreçler tamamen "Agentic" sistemlere devredilmelidir.
+6. Kritik Alıntılar
+"Şunu hayal et: Uyurken senin için reklam görseli üreten, video çeken, istemleri kendi yazan modeller arasında geçiş yapan ve sabah kalktığında her şeyi hazır eden bir yaratıcı asistan."
+"Bugünün dünyasında her ay yeni bir model çıkıyor. Her seferinde N8N'de düğümleri yeniden yapılandırmak mantıklı değil. Agentic platformlar bu sorunu çözüyor."
+"Siz artık bir geliştirici değil, bir yönetmensiniz. Ajanlar sizin yerinize teknik detayları hallediyor."
+NotebookLM yanlış bilgiler gösterebilir. Bu nedenle, verdiği yanıtları doğrulayın.
+
+Antigravity ve Yapay Zeka Tabanlı Reklam Ajansı Oluşturma Rehberi
+Bu çalışma rehberi, Antigravity platformu kullanılarak dünyanın en iyi görsel ve video üretim modellerini birleştiren, 7/24 çalışan bir "Yaratıcı Yapay Zeka Ajanı" kurulumu ve yönetimi üzerine odaklanmaktadır. Belge, sistemin teknik altyapısını, geleneksel otomasyonlardan farkını ve ticari potansiyelini analiz eder.
+--------------------------------------------------------------------------------
+Bölüm 1: Kısa Cevaplı Test
+Aşağıdaki soruları, kaynak metindeki bilgilere dayanarak 2-3 cümle ile yanıtlayınız.
+Antigravity platformunun temel işlevi nedir?
+Geleneksel otomasyon araçları (n8n veya Vivi gibi) ile "Ajan Tabanlı (Agentic)" iş akışları arasındaki temel fark nedir?
+Nano Banana 2 modelinin, Nano Banana Pro modeline göre sağladığı avantajlar nelerdir?
+Sistemde kullanılan "Kaya" (Kaya.so) platformunun görevi nedir?
+Bir yapay zeka reklam ajanı, karmaşık "prompt" (istem) yazma sürecini kullanıcı için nasıl kolaylaştırır?
+Sistemde Air Table kullanılmasının temel amacı nedir?
+Yapay zeka ajanı bir reklam kampanyası başlatırken hangi hazırlık süreçlerinden geçer?
+Antigravity içerisinde hangi büyük dil modelleri (LLM) kullanılabilir ve hangilerine ücretsiz erişim mümkündür?
+Vio 3.1 modeli sistem içerisinde ne amaçla kullanılır?
+Kaynak metne göre, teknik bilgiye sahip olmayan bir birey bu sistemi nasıl kullanabilir?
+--------------------------------------------------------------------------------
+Bölüm 2: Cevap Anahtarı
+Cevap: Antigravity, dünyanın en iyi görsel ve video üretim modellerini (Nano Banana, GPT, Vio vb.) tek bir çatı altında toplayan ve bu modelleri konuşarak yönetilebilen yaratıcı ajanlara dönüştüren bir platformdur. Kullanıcıların karmaşık teknik yapılar kurmadan, doğrudan ajanlar aracılığıyla içerik üretim hattı oluşturmasına olanak tanır.
+Cevap: Geleneksel araçlar "düğüm (node) makarnası" olarak adlandırılan karmaşık ve kırılgan yapılara dönüşebilirken, ajan tabanlı sistemler esnektir ve model güncellemelerinde bozulmazlar. Ajanlar, hafızalarında teknik detayları tutabilir ve kullanıcıyla sadece konuşarak (prompt üzerinden) süreci yönetebilirler.
+Cevap: Nano Banana 2, Nano Banana Pro'ya kıyasla hem daha kaliteli ve gerçekçi görseller üretme kabiliyetine sahiptir hem de üretim maliyeti açısından çok daha ucuzdur. Bu özellikleriyle seri reklam içeriği üretimi için daha verimli bir seçenek sunar.
+Cevap: Kaya, sistemin farklı yapay zeka modellerine bağlanmasını sağlayan bir API köprüsü görevi görür. Kullanıcılar Kaya üzerinden aldıkları API anahtarları ile sisteme farklı modelleri entegre eder ve bu modellerin tek bir merkezden yönetilmesini sağlar.
+Cevap: Ajanlar, ışıklandırma, kamera açısı, kompozisyon ve malzeme dokusu gibi teknik detayları kendi hafızalarında tutacak şekilde eğitilmişlerdir. Kullanıcı basit bir talimat verdiğinde (örneğin "kedi fotoğrafı"), ajan bunu arka planda profesyonel ve son derece detaylı bir isteme dönüştürerek modele iletir.
+Cevap: Air Table, sistemin "işletim sistemi" ve veritabanı olarak işlev görür; üretilen tüm görseller, videolar, istemler ve kampanya detayları burada kayıt altına alınır. Aynı zamanda müşteriler için onay süreçlerini yönetmek ve marka geçmişini takip etmek için merkezi bir panel sağlar.
+Cevap: Ajan önce verilen ürün linkini veya görsellerini inceleyerek araştırma yapar; ardından "visual direction" (görsel yönelim), "hook" (kanca/etkileşim başlıkları) ve senaryo aşamalarını içeren kapsamlı bir kampanya dosyası oluşturur.
+Cevap: Sistemde Claude 4.6 Opus ve Gemini 3.1 Pro gibi güçlü modeller kullanılabilir. Google'ın Gemini modellerine Antigravity üzerinden ücretsiz olarak erişmek mümkündür.
+Cevap: Vio 3.1, sistemin video üretim ayağını temsil eder; ajan tarafından onaylanan görsellerin hareketli reklam kliplerine dönüştürülmesini sağlar. Kaynak metinde, uygun maliyetli ve yüksek gerçeklikte varyasyonlar üretmek için tercih edildiği belirtilmiştir.
+Cevap: Sistem, teknik kurulumları otomatize eden hazır klasörler ve "Cloud Code" eklentisi gibi araçlarla gelir. Kullanıcı, bir geliştirici gibi kod yazmak yerine bir "yaratıcı yönetmen" gibi hareket ederek ajanıyla konuşarak süreci yönetir.
+--------------------------------------------------------------------------------
+Bölüm 3: Deneme (Essay) Soruları
+Aşağıdaki sorular, konunun derinlemesine analiz edilmesi amacıyla hazırlanmıştır. Yanıtlar metindeki verilere ve argümanlara dayanmalıdır.
+Yaratıcı Yönetmenlik Rolü: Yapay zeka ajanlarının yaygınlaşmasıyla birlikte, bir insanın "geliştirici" olmaktan "yönetmen" olmaya geçiş sürecini ve bu geçişin reklamcılık sektöründeki iş gücü verimliliğine etkilerini değerlendirin.
+Sistem Esnekliği ve Sürdürülebilirlik: Sürekli yeni modellerin çıktığı bir teknoloji dünyasında, neden "dikey otomasyon akışları" yerine "agentic (ajan tabanlı)" yapıların daha sürdürülebilir bir iş modeli olduğunu tartışın.
+Ticari Potansiyel ve AI Girişimciliği: Kaynak metinde bahsedilen "Aylık 10.000 dolar gelire ulaşma" hedefi doğrultusunda, bir AI otomasyon ajansının (AAA) e-ticaret markalarına sunduğu değer önerilerini analiz edin.
+Hata Yönetimi ve İnsan Denetimi: Video üretim sürecindeki "varyasyon oluşturma" ve "onay (approval)" mekanizmalarının, yapay zekanın üretebileceği olası hataları (halüsinasyonlar veya görsel bozulmalar) engellemedeki kritik rolünü açıklayın.
+Bütünleşik Veri Yönetimi: Air Table ve Antigravity entegrasyonunun, bir markanın "kurumsal hafızasını" oluşturmadaki ve kampanya yönetim süreçlerini hızlandırmadaki stratejik önemini değerlendirin.
+--------------------------------------------------------------------------------
+Bölüm 4: Temel Terimler Sözlüğü
+Terim
+Tanım
+Yerçekimsiz
+Google Gemini ve diğer AI modellerini birleştiren, ajan tabanlı iş akışları oluşturmaya yarayan masaüstü platformu.
+Temsilci İş Akışı
+Modellerin birbirine statik düğümlerle bağlanması yerine, bir yapay zeka ajanının süreci dinamik olarak yönettiği esnek iş akışı.
+Nano Muz 2
+Yüksek kaliteli görsel üretimi sağlayan, özellikle düşük maliyeti ve gerçekçiliği ile öne çıkan yapay zeka modeli.
+Yani (Yani)
+Farklı yapay zeka modellerine (Vio, Sora vb.) erişim sağlayan merkezi API yönetim ve bağlantı platformu.
+Bulut Kodu
+Antigravity içerisinde terminal ve chat özelliklerini aktif hale getiren, ajanlarla etkileşimi kolaylaştıran eklenti.
+Kanca (Kanca)
+Reklam içeriklerinde kullanıcının dikkatini ilk saniyelerde çekmek için tasarlanmış etkileşim odaklı başlık veya senaryo girişi.
+Görsel Yönlendirme
+Bir kampanyanın estetik ve sanatsal sınırlarını belirleyen, ajanın üretim yaparken sadık kaldığı görsel kılavuz.
+Node (Düğüm)
+Geleneksel otomasyon sistemlerinde her bir işlemi temsil eden, karmaşıklaştığında yönetilmesi zorlaşan statik bağlantı noktası.
+Vio 3.1
+Görselleri videoya dönüştürme veya sıfırdan video üretme yeteneğine sahip, uygun maliyetli video yapay zeka modeli.
+Hava Masası
+Üretilen tüm verilerin, istemlerin ve kampanya kayıtlarının tutulduğu, sistemin veri tabanı olarak çalışan bulut tabanlı platform.
+NotebookLM yanlış bilgiler gösterebilir. Bu nedenle, verdiği yanıtları doğrulayın.

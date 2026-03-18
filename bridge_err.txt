@@ -1,0 +1,11 @@
+RC:1
+STDERR:
+2026-03-01 23:05:35,368 [INFO] Bilgi bankasi yuklendi: ['jarvis_komutlar', 'ebay_strateji', 'jarvis_mimari', 'agentclaw_mimari', 'trendyol_strateji', 'ai_icerik_araclari', 'profil', 'agentclaw_ajans']
+2026-03-01 23:05:35,368 [INFO] ✅ soul.md yuklendi
+Traceback (most recent call last):
+  File "/opt/jarvis/openclaw/bridge.py", line 112, in <module>
+    "model": _get_best_model("general"),
+             ^^^^^^^^^^^^^^^
+NameError: name '_get_best_model' is not defined
+
+STDOUT:

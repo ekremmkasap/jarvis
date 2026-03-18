@@ -1,0 +1,45 @@
+1 kaynağa göre
+Özellik Adı
+İşlev ve Açıklama
+Kullanılan Teknolojiler
+Hedef Meslek Grubu
+Kurulum Adımı
+Tahmini Gelir Potansiyeli (Inferred)
+Kaynak
+Kişiselleştirilmiş Hafıza (Memory)
+Kullanıcı ile geçmiş konuşmaları hatırlar, bağlamı korur ve kullanıcıyı tanıyarak özelleşmiş yanıtlar verir.
+SQLite, PostgreSQL, Vektör İndeksleme
+Avukatlar, Doktorlar, Muhasebeciler, Danışmanlar
+AntiGravity üzerinde hafıza promptu verilerek SQL veritabanı ve API anahtarı yapılandırması yapılır.
+Aylık 500$ hizmet bedeli veya paket başına 10.000$ gelir.
+[1]
+Sesli Yanıt ve İşleme (Voice Message)
+Sesli mesajları metne dönüştürür (Transcription) ve kullanıcıya doğal bir sesle yanıt verir.
+Whisper (Transcription), 11 Labs (Text-to-Speech)
+Klinikler, Diş Hekimleri, Yoğun Saha Çalışanları
+11 Labs üzerinden API key alınarak AntiGravity sistemine 'text-to-speech' özelliği olarak entegre edilir.
+Yapay zeka asistanı kurulum hizmeti kapsamında ek modül ücreti.
+[1]
+E-posta ve Takvim Yönetimi
+Gelen e-postaları kontrol eder, özet çıkarır ve takvimdeki etkinlikleri takip ederek kullanıcıyı bilgilendirir.
+MCP (Model Context Protocol), Gmail/Takvim Entegrasyonları
+Yöneticiler, Serbest Zamanlı Çalışanlar, Hukuk Büroları
+MCP bağlantıları kurulur ve Telegram botu üzerinden ilgili komutlar (örneğin 'takvimimde ne var') test edilir.
+Verimlilik artırıcı otomasyon paketi satışı.
+[1]
+Günlük Brief ve Proaktiflik (Heartbeat)
+Her sabah belirli bir saatte (örneğin 08:00) kullanıcıya günlük öncelikleri ve yapılması gerekenleri özetleyen bir mesaj gönderir.
+Cron Jobs, Scheduler, Telegram Bot API
+Tüm yoğun çalışan profesyoneller
+AntiGravity içerisinde 'Heartbeat' promptu ile Cron yapısı kurulur ve Telegram üzerinden otomatik gönderim ayarlanır.
+Aylık abonelik tabanlı asistanlık hizmeti.
+[1]
+7/24 Bulut Dağıtımı (Deployment)
+Sistemin yerel bilgisayar kapalıyken bile sürekli çalışmasını sağlar.
+Railway, Vercel, GitHub
+Yapay Zeka Otomasyon Ajansları (AAA)
+Kodlar GitHub'a yüklenir, Railway üzerinden proje oluşturularak çevrimiçi sunucuya deploy edilir.
+Aylık 5$ maliyetle çalışan kesintisiz hizmet satışı.
+[1]
+[1] AntiGravity Artık DURDURULAMAZ: AgentClaw! 🚀
+NotebookLM yanlış bilgiler gösterebilir. Bu nedenle, verdiği yanıtları doğrulayın.

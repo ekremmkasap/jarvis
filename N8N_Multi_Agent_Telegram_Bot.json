@@ -1,0 +1,103 @@
+{
+    "name": "N8n Multi-Agent Telegram Bot",
+    "nodes": [
+        {
+            "parameters": {
+                "updates": [
+                    "message"
+                ],
+                "additionalFields": {}
+            },
+            "id": "1",
+            "name": "Telegram Trigger",
+            "type": "n8n-nodes-base.telegramTrigger",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ],
+            "credentials": {
+                "telegramApi": {
+                    "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
+                    "name": "Telegram account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://192.168.1.109:11434/api/chat",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "model",
+                            "value": "deepseek-coder:latest"
+                        },
+                        {
+                            "name": "messages",
+                            "value": "=[{\"role\": \"user\", \"content\": \"{{$json.message.text}}\"}]"
+                        },
+                        {
+                            "name": "stream",
+                            "value": "false"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "2",
+            "name": "Ollama AI Agent",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                500,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "chatId": "={{$node[\"Telegram Trigger\"].json[\"message\"][\"chat\"][\"id\"]}}",
+                "text": "={{$json[\"message\"][\"content\"]}}",
+                "additionalFields": {}
+            },
+            "id": "3",
+            "name": "Telegram Reply",
+            "type": "n8n-nodes-base.telegram",
+            "typeVersion": 1.1,
+            "position": [
+                750,
+                300
+            ]
+        }
+    ],
+    "pinData": {},
+    "connections": {
+        "Telegram Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "Ollama AI Agent",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Ollama AI Agent": {
+            "main": [
+                [
+                    {
+                        "node": "Telegram Reply",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": false,
+    "settings": {
+        "executionOrder": "v1"
+    }
+}

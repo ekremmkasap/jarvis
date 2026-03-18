@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "/tmp/chk2.py", line 4, in <module>
+    exec(open("/opt/jarvis/openclaw/bridge.py", encoding="utf-8").read())
+  File "<string>", line 112, in <module>
+NameError: name '_get_best_model' is not defined
+name '_get_best_model' is not defined

@@ -1,0 +1,15 @@
+{
+  "tenant_id": "musteri_001",
+  "name": "userk1 Test",
+  "plan": "starter",
+  "telegram_token": "7962006843:AAEqzNvdVjzwuHiEIQvYq7RjI1T7vkRuIjE",
+  "authorized_chat_id": 5847386182,
+  "active": true,
+  "stripe_customer_id": null,
+  "expires_at": null,
+  "created_at": "2026-03-02",
+  "features": [],
+  "memory_dir": "/opt/jarvis/tenants/musteri_001/memory",
+  "soul_md": "/opt/jarvis/soul.md",
+  "web_port": null
+}
