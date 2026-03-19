@@ -876,12 +876,6 @@ Servis: ✅ Aktif"""
 # ─────────────────────────── PROCESS MESSAGE ──────────────────────
 def process_message(chat_id: int, text: str) -> str:
     text = text.strip()
-    text_lower = text.lower()
-    
-    # ── NATURAL LANGUAGE INTERCEPT FOR ANYDESK ──
-    if "anydesk" in text_lower and ("onay" in text_lower or "kabul" in text_lower):
-        return handle_command(chat_id, "/kabul")
-        
     if CONTENT_FACTORY_SESSIONS.get(str(chat_id)):
         try:
             from content_factory_skill import get_interviewer, get_multiplier, format_output, init_content_db

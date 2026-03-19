@@ -1,14 +1,16 @@
 """
 Jarvis Telegram Gateway v2
 Her mesajı JarvisRouter'a iletir.
-Özel komutlar: /status, /memory, /tasks, /help
+Özel komutlar: /status, /memory, /tasks, /help, /cmd
 """
 import telebot
 import logging
 import sys
 sys.path.insert(0, '/opt/jarvis/core')
 sys.path.insert(0, '/home/userk')
+sys.path.insert(0, '/opt/jarvis/skills/execution')
 from jarvis_router import get_router
+import run_command as terminal_skill
 
 logging.basicConfig(
     level=logging.INFO,
@@ -53,6 +55,8 @@ def cmd_help(message):
         "/status — Sunucu durumu\n"
         "/memory — Son konuşmalar\n"
         "/tasks — Son görevler\n"
+        "/cmd <komut> — Terminal komutu çalıştır\n"
+        "/kabul — AnyDesk bağlantı isteğini kabul et\n"
         "/help — Bu mesaj\n\n"
         "Veya doğrudan yazın: 'sunucu durumu', 'kod yaz', 'planla...'"
     )
@@ -82,6 +86,70 @@ def cmd_tasks(message):
         return
     summary = router.get_tasks_summary()
     send(message.chat.id, f"📋 Son Görevler:\n\n{summary}")
+
+
+@bot.message_handler(commands=["kabul", "onayla", "accept"])
+def cmd_anydesk_accept(message):
+    if not is_authorized(message):
+        return
+    bot.send_chat_action(message.chat.id, "typing")
+    log.info("AnyDesk kabul isteği alındı.")
+
+    # WSL üzerinden Windows PowerShell'i çağır
+    result = terminal_skill.run(
+        "powershell.exe -ExecutionPolicy Bypass -WindowStyle Hidden "
+        "-File 'C:\\Users\\sergen\\Desktop\\anydesk_kabul.ps1'",
+        timeout=15
+    )
+
+    stdout = (result.get("stdout") or "").strip()
+    stderr = (result.get("stderr") or "").strip()
+    ok = result.get("returncode", -1) == 0
+
+    if ok or "kabul edildi" in stdout.lower() or "accepted" in stdout.lower():
+        send(message.chat.id, f"✅ AnyDesk bağlantısı kabul edildi!\n{stdout}")
+    else:
+        msg = stdout or stderr or "Pencere bulunamadı veya hata oluştu."
+        send(message.chat.id, f"❌ AnyDesk kabul başarısız:\n{msg}")
+
+
+@bot.message_handler(commands=["cmd", "terminal", "run"])
+def cmd_terminal(message):
+    if not is_authorized(message):
+        return
+
+    parts = message.text.split(maxsplit=1)
+    if len(parts) < 2 or not parts[1].strip():
+        bot.reply_to(message, "⚠️ Kullanım: `/cmd <komut>`\nÖrnek: `/cmd git clone https://...`", parse_mode="Markdown")
+        return
+
+    command = parts[1].strip()
+    log.info(f"Terminal komutu: {command[:80]}")
+    bot.send_chat_action(message.chat.id, "typing")
+
+    result = terminal_skill.run(command, timeout=60)
+
+    if result.get("error") == "policy_blocked":
+        send(message.chat.id, f"🚫 Engellendi: `{command}`\nNeden: {result['stderr']}")
+        return
+
+    stdout = result.get("stdout", "").strip()
+    stderr = result.get("stderr", "").strip()
+    returncode = result.get("returncode", -1)
+
+    output_parts = []
+    if stdout:
+        output_parts.append(f"```\n{stdout[:3000]}\n```")
+    if stderr:
+        output_parts.append(f"⚠️ stderr:\n```\n{stderr[:1000]}\n```")
+
+    status = "✅" if returncode == 0 else f"❌ (exit {returncode})"
+    header = f"{status} `{command[:60]}`\n\n"
+
+    if output_parts:
+        send(message.chat.id, header + "\n".join(output_parts))
+    else:
+        send(message.chat.id, header + "_(çıktı yok)_")
 
 
 # --- Tüm mesajlar ---

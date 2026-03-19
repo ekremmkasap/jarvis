@@ -9,11 +9,11 @@ Build a modular, extensible, auditable core runtime using:
 - State and observability
 
 ## High-Level Components
-1. Mission Control (Orchestrator)
-   - Translates user intent into tasks.
-   - Plans, dispatches, executes, retries, and finalizes.
+1. Mission Control (Orchestrator - Asynchronous Engine)
+   - Translates user intent into tasks across distributed sub-agents.
+   - Plans, dispatches, executes, retries, and finalizes **asynchronously** (referencing Open-Source Async Coding Agent).
 2. Core Agent (Executive)
-   - Single decision authority.
+   - Single decision authority with Multi-agent Swarm routing (inspired by agency-agents).
    - Applies policy, quality gates, and synthesis.
 3. Sub-Agents
    - Role-specific specialists (planner, implementer, reviewer, ops, curator).
@@ -33,10 +33,11 @@ Build a modular, extensible, auditable core runtime using:
 - Error: `running -> blocked | failed`
 - External dependency: `waiting`
 
-## Security and Governance
+## Security and Governance (OpenSandbox Integration)
 - Capability-based permissions per agent and skill.
 - Policy gate before sensitive operations.
 - Audit trail for significant decisions.
+- **Tool Execution Isolation:** Strict execution sandboxing for generated code via `OpenSandbox` containerized runtime (Docker/K8s SDKs) to prevent host compromise.
 
 ## MVP Core
 - Core + Planner + Implementer + Reviewer

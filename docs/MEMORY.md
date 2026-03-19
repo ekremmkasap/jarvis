@@ -1,18 +1,19 @@
-# Memory Model (FAZ 1)
+# Memory Model (FAZ 2 - OpenViking Context DB Integration)
 
-## Layers
+## Layers (Hierarchical File-System Paradigm)
 
 ### Working Memory (WM)
-- Ephemeral, run-scoped context.
+- Ephemeral, run-scoped context dynamically managed like an OS RAM process.
 - Temporary plans, notes, intermediate artifacts.
 - Archived or discarded after run completion.
 
 ### Project Memory (PM)
 - Long-term project rules, decisions, standards, conventions.
-- Equivalent to project memory docs (`MISSION.md`, `MEMORY.md`).
+- Modeled hierarchically (Directory-tree scaling pattern per OpenViking architecture).
 
-### Knowledge Store (KS)
+### Knowledge Store (KS) / Context Graph
 - Structured reference summaries, snippets, templates, standards.
+- Uses Interactive Knowledge Graph mapping (inspired by GitNexus).
 - Indexed by tags/source/date.
 
 ## Memory Gate Policy
