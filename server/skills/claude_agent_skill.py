@@ -4,15 +4,17 @@ import logging
 
 log = logging.getLogger("claude_agents")
 
-AGENT_DIR = "/opt/jarvis/agent_prompts"
+# Dinamik olarak agent_prompts klasörünü bul (Windows ve Linux uyumlu)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+AGENT_DIR = os.path.join(BASE_DIR, "agent_prompts")
 _agents_cache = {}
 
 def refresh_agents():
     global _agents_cache
     _agents_cache = {}
     if not os.path.exists(AGENT_DIR):
-        log.warning(f"{AGENT_DIR} bulunamadi.")
-        return
+        os.makedirs(AGENT_DIR, exist_ok=True)
+        log.warning(f"{AGENT_DIR} bulunamadi, olusturuldu.")
         
     for root, dirs, files in os.walk(AGENT_DIR):
         for file in files:

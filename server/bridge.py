@@ -418,7 +418,7 @@ Servis: ✅ Aktif"""
 
     elif command == "/ebay":
         query = args or "kazancli dropshipping urun"
-        sys.path.insert(0, "/opt/jarvis/skills")
+        sys.path.insert(0, "C:/Users/sergen/Desktop/jarvis-mission-control/server/skills")
         try:
             from ebay_research import analyze_product, format_report
             result = analyze_product(query)
@@ -462,7 +462,7 @@ Servis: ✅ Aktif"""
 
     elif command == "/hava":
         city = args or "Istanbul"
-        sys.path.insert(0, "/opt/jarvis/skills")
+        sys.path.insert(0, "C:/Users/sergen/Desktop/jarvis-mission-control/server/skills")
         try:
             from utils_skill import get_weather
             return get_weather(city)
@@ -494,7 +494,7 @@ Servis: ✅ Aktif"""
             return f"❌ Haber hatası: {e}"
 
     elif command == "/altin":
-        sys.path.insert(0, "/opt/jarvis/skills")
+        sys.path.insert(0, "C:/Users/sergen/Desktop/jarvis-mission-control/server/skills")
         try:
             from utils_skill import get_gold_price
             return get_gold_price()
@@ -503,7 +503,7 @@ Servis: ✅ Aktif"""
 
     elif command == "/kur":
         parts = args.split() if args else []
-        sys.path.insert(0, "/opt/jarvis/skills")
+        sys.path.insert(0, "C:/Users/sergen/Desktop/jarvis-mission-control/server/skills")
         try:
             from utils_skill import get_currency
             if len(parts) >= 3:
@@ -518,7 +518,7 @@ Servis: ✅ Aktif"""
     elif command == "/hesap":
         if not args:
             return "Kullanım: /hesap 2+2 veya /hesap sqrt(144)"
-        sys.path.insert(0, "/opt/jarvis/skills")
+        sys.path.insert(0, "C:/Users/sergen/Desktop/jarvis-mission-control/server/skills")
         try:
             from utils_skill import calculate
             return calculate(args)
@@ -527,17 +527,17 @@ Servis: ✅ Aktif"""
 
     elif command == "/printify":
         query = args or "genel"
-        sys.path.insert(0, "/opt/jarvis/skills")
+        sys.path.insert(0, "C:/Users/sergen/Desktop/jarvis-mission-control/server/skills")
         try:
             import importlib, os
             token = ""
             try:
-                with open("/opt/jarvis/printify_token.txt") as f:
+                with open("C:/Users/sergen/Desktop/jarvis-mission-control/server/printify_token.txt") as f:
                     token = f.read().strip()
             except:
                 pass
             if not token:
-                return "Printify token gerekli. /printify_setup komutu ile ayarla veya token’ı /opt/jarvis/printify_token.txt dosyasına yaz."
+                return "Printify token gerekli. /printify_setup komutu ile ayarla veya token’ı C:/Users/sergen/Desktop/jarvis-mission-control/server/printify_token.txt dosyasına yaz."
             from printify_skill import format_overview, analyze_product_opportunity
             if query in ("genel", "durum", "status", "shop"):
                 return format_overview(token)
@@ -548,7 +548,7 @@ Servis: ✅ Aktif"""
 
     elif command == "/trendyol":
         query = args or "bluetooth kulaklik"
-        sys.path.insert(0, "/opt/jarvis/skills")
+        sys.path.insert(0, "C:/Users/sergen/Desktop/jarvis-mission-control/server/skills")
         try:
             from trendyol_skill import full_trendyol_analysis
             return full_trendyol_analysis(query)
@@ -603,7 +603,7 @@ Servis: ✅ Aktif"""
 
     elif command == "/task":
         task_goal = args or "Genel durum ozeti ve yapilacaklar listesi hazirla"
-        sys.path.insert(0, "/opt/jarvis/skills")
+        sys.path.insert(0, "C:/Users/sergen/Desktop/jarvis-mission-control/server/skills")
         try:
             from ollama_orchestrator import OrchestratorSkill
             orch = OrchestratorSkill(call_ollama)
@@ -620,7 +620,7 @@ Servis: ✅ Aktif"""
             return f"*Task Sonucu:*\n\n{response}"
 
     elif command == "/gorevler":
-        sys.path.insert(0, "/opt/jarvis/skills")
+        sys.path.insert(0, "C:/Users/sergen/Desktop/jarvis-mission-control/server/skills")
         try:
             from ollama_orchestrator import get_task_history
             return get_task_history(8)
@@ -629,7 +629,7 @@ Servis: ✅ Aktif"""
 
     elif command == "/agent":
         agent_name = args.strip().lower()
-        sys.path.insert(0, "/opt/jarvis/skills")
+        sys.path.insert(0, "C:/Users/sergen/Desktop/jarvis-mission-control/server/skills")
 
         if agent_name in ("content-factory", "icerik"):
             try:
@@ -699,7 +699,7 @@ Servis: ✅ Aktif"""
         query = args.strip()
         if not query:
             return "Kullanim: `/ara [arama sorgusu]`\nOrnek: `/ara Python asyncio nedir`"
-        sys.path.insert(0, "/opt/jarvis/skills")
+        sys.path.insert(0, "C:/Users/sergen/Desktop/jarvis-mission-control/server/skills")
         try:
             from web_search_skill import web_search
             result = web_search(query, max_results=5)
@@ -758,7 +758,7 @@ Servis: ✅ Aktif"""
         hedef = args.strip()
         if not hedef:
             return "*Kullanim:* `/rakip [rakip/kategori]`\n*Ornek:* `/rakip trendyol dropshipping`"
-        sys.path.insert(0, "/opt/jarvis/skills")
+        sys.path.insert(0, "C:/Users/sergen/Desktop/jarvis-mission-control/server/skills")
         try:
             from web_search_skill import web_search
             arama = web_search(f"{hedef} rakip platform", max_results=3)
@@ -838,6 +838,37 @@ Servis: ✅ Aktif"""
                 return f"❌ AnyDesk kabul başarısız:\n{out or err or 'Pencere bulunamadı.'}"
         except Exception as e:
             return f"❌ Hata: {e}"
+
+
+    elif command == "/osint":
+        hedef = args.strip()
+        if not hedef:
+            return "Kullanim: /osint [hedef (IP, isim, vd.)]"
+        try:
+            from shadowbroker_skill import run_osint
+            return run_osint(hedef)
+        except Exception as e:
+            return f"OSINT hatasi: {e}"
+
+    elif command == "/arastirma" or command == "/research":
+        hedef = args.strip()
+        if not hedef:
+            return "Kullanim: /arastirma [konu]"
+        try:
+            from autoresearch_skill import run_deep_research
+            return run_deep_research(hedef)
+        except Exception as e:
+            return f"Arastirma motoru hatasi: {e}"
+
+    elif command == "/sandbox":
+        kod = args.strip()
+        if not kod:
+            return "Kullanim: /sandbox [python kodu]"
+        try:
+            from opensandbox_skill import run_in_sandbox
+            return run_in_sandbox(kod)
+        except Exception as e:
+            return f"Sandbox calistirma hatasi: {e}"
 
     elif command == "/cmd":
         if not args:
@@ -982,9 +1013,36 @@ class TelegramBot:
             except Exception as e:
                 log.error(f"Send error: {e}")
 
+    def send_button(self, chat_id, text, button_text, callback_data):
+        payload = json.dumps({
+            "chat_id": chat_id,
+            "text": text,
+            "parse_mode": "Markdown",
+            "reply_markup": {
+                "inline_keyboard": [[
+                    {"text": button_text, "callback_data": callback_data}
+                ]]
+            }
+        }).encode()
+        try:
+            req = Request(f"{self.api}/sendMessage", data=payload,
+                        headers={"Content-Type": "application/json"}, method="POST")
+            urlopen(req, timeout=10)
+        except Exception as e:
+            log.error(f"Send button error: {e}")
+
+    def answer_callback(self, callback_id, text="✅"):
+        payload = json.dumps({"callback_query_id": callback_id, "text": text}).encode()
+        try:
+            req = Request(f"{self.api}/answerCallbackQuery", data=payload,
+                        headers={"Content-Type": "application/json"}, method="POST")
+            urlopen(req, timeout=5)
+        except Exception as e:
+            log.error(f"Answer callback error: {e}")
+
     def get_updates(self):
         try:
-            url = f"{self.api}/getUpdates?offset={self.offset}&timeout=30&limit=10"
+            url = f"{self.api}/getUpdates?offset={self.offset}&timeout=30&limit=10&allowed_updates=[\"message\",\"callback_query\"]"
             with urlopen(Request(url), timeout=35) as resp:
                 return json.loads(resp.read()).get("result", [])
         except Exception as e:
@@ -1006,6 +1064,32 @@ class TelegramBot:
                     log.error(f"Update error: {e}")
 
     def _handle_update(self, update):
+        # Inline buton callback
+        cb = update.get("callback_query")
+        if cb:
+            cb_id   = cb["id"]
+            cb_data = cb.get("data", "")
+            cb_chat = cb["message"]["chat"]["id"]
+            if cb_chat != self.authorized_id:
+                return
+            if cb_data == "anydesk_kabul":
+                self.answer_callback(cb_id, "⏳ Kabul ediliyor...")
+                try:
+                    result = subprocess.run(
+                        ["powershell.exe", "-ExecutionPolicy", "Bypass",
+                         "-WindowStyle", "Hidden", "-File",
+                         r"C:\Users\sergen\Desktop\anydesk_kabul.ps1"],
+                        capture_output=True, text=True, timeout=15
+                    )
+                    out = (result.stdout or "").strip()
+                    if result.returncode == 0 or "kabul edildi" in out.lower():
+                        self.send(cb_chat, "✅ AnyDesk bağlantısı kabul edildi!")
+                    else:
+                        self.send(cb_chat, f"❌ Kabul başarısız:\n{out or result.stderr[:200]}")
+                except Exception as e:
+                    self.send(cb_chat, f"❌ Hata: {e}")
+            return
+
         msg = update.get("message", {})
         if not msg:
             return
@@ -1015,6 +1099,17 @@ class TelegramBot:
         if chat_id != self.authorized_id or not text:
             return
         log.info(f"[{username}]: {text[:50]}")
+
+        # /kabul komutu → buton gönder
+        if text.strip().lower() in ("/kabul", "/onayla", "/accept"):
+            self.send_button(
+                chat_id,
+                "🖥️ AnyDesk bağlantı isteği var mı?",
+                "✅ Kabul Et",
+                "anydesk_kabul"
+            )
+            return
+
         self.send(chat_id, "_Isleniyor..._")
         response = process_message(chat_id, text)
         self.send(chat_id, response)
