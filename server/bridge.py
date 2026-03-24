@@ -157,14 +157,14 @@ MODEL_ROUTES = {
         "system": "Sen uzman bir dijital pazarlama ve reklam danismanisin. Turkiye pazarini iyi bilirsin. Kisa, net, aksiyona donusulebilir tavsiyeler ver."
     },
     "general": {
-        "model": "minimax-m2:cloud",
-        "fallback": "minimax-m2.7:cloud",
+        "model": "minimax-m2.7:cloud",
+        "fallback": "qwen3:8b",
         "keywords": [],
         "system": "Sen yardimci bir AI asistanisin. Kisa ve net yanit ver."
     },
     "chat": {
-        "model": "minimax-m2:cloud",
-        "fallback": "minimax-m2.7:cloud",
+        "model": "minimax-m2.7:cloud",
+        "fallback": "qwen3:8b",
         "keywords": [],
         "system": JARVIS_SOUL
     },
@@ -213,6 +213,7 @@ def _start_reme_loop():
     async def _init():
         global _reme_instance
         try:
+            sys.path.insert(0, str(BASE_DIR))
             from reme import ReMe
             # OpenAI key varsa daha iyi embedding kullan, yoksa Ollama fallback
             if OPENAI_API_KEY and OPENAI_API_KEY != "sk-buraya-yaz":
@@ -754,13 +755,14 @@ Servis: Aktif (Pinokio)"""
     elif command == "/task":
         task_goal = args or "Genel durum ozeti ve yapilacaklar listesi hazirla"
         try:
-            from ollama_orchestrator import OrchestratorSkill
-            orch = OrchestratorSkill(call_ollama)
-            result = orch.run(task_goal)
+            sys.path.insert(0, str(BASE_DIR))
+            from agent_loop import run as agent_run
+            result = agent_run(task_goal, chat_id=str(chat_id))
             memory.add_message(chat_id, "user", f"/task {task_goal}")
-            memory.add_message(chat_id, "assistant", result, "orchestrator")
+            memory.add_message(chat_id, "assistant", result, "agent_loop")
             return result
-        except Exception:
+        except Exception as e:
+            log.warning(f"agent_loop hatasi: {e}, fallback")
             route = MODEL_ROUTES["code"]
             history = [{"role": "user", "content": f"Bu gorevi tamamla: {task_goal}"}]
             response = call_ollama(route["model"], history, route["system"])
