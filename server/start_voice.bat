@@ -1,22 +1,13 @@
 @echo off
 title Jarvis Sesli Asistan
 echo ============================================
-echo   Jarvis Sesli Asistan v1.0 (Pinokio)
+echo   Jarvis Sesli Asistan v1.0
 echo ============================================
 cd /d "%~dp0"
 
-REM Python kontrolü (Pinokio)
-set PYTHON=c:\pinokio\bin\miniconda\python.exe
-if not exist "%PYTHON%" (
-    REM Sistem Python'u dene
-    where python >nul 2>&1
-    if errorlevel 1 (
-        echo HATA: Python bulunamadi!
-        pause
-        exit /b 1
-    )
-    set PYTHON=python
-)
+REM Python
+set PYTHON=C:\Program Files\Python311\python.exe
+if not exist "%PYTHON%" set PYTHON=python
 
 REM Paket kontrolü
 echo Bagimliliklar kontrol ediliyor...

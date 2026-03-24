@@ -1,34 +1,8 @@
 #!/usr/bin/env python3
 """
-JARVIS MISSION CONTROL — bridge.py v2.2 (Pinokio/Windows Edition)
+JARVIS MISSION CONTROL — bridge.py v2.2 (Windows/Pinokio Edition)
 Multi-Model AI Router | Telegram + Web Dashboard | eBay + Trendyol Skills
 """
-
-# ── Windows/Linux uyumluluk katmanı ────────────────────────────────
-try:
-    from win_compat import (
-        BASE_DIR, SKILLS_DIR, KNOWLEDGE_DIR, MEMORY_DIR, LOGS_DIR,
-        IS_WINDOWS, load_dotenv,
-        get_cpu_usage, get_ram_usage, get_disk_usage,
-        get_service_status, run_shell_safe
-    )
-except ImportError:
-    from pathlib import Path
-    import platform
-    BASE_DIR = Path(__file__).parent.resolve()
-    SKILLS_DIR = BASE_DIR / "skills"
-    KNOWLEDGE_DIR = BASE_DIR / "knowledge"
-    MEMORY_DIR = BASE_DIR / "memory"
-    LOGS_DIR = BASE_DIR / "logs"
-    IS_WINDOWS = platform.system() == "Windows"
-    def load_dotenv(): pass
-    def get_cpu_usage(): return "N/A"
-    def get_ram_usage(): return "N/A"
-    def get_disk_usage(): return "N/A"
-    def get_service_status(s): return "unknown"
-    def run_shell_safe(cmd): return "win_compat.py bulunamadı"
-
-load_dotenv()
 
 import os
 import json
@@ -40,20 +14,46 @@ from concurrent.futures import ThreadPoolExecutor
 import subprocess
 import sys
 from datetime import datetime
+from pathlib import Path
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.request import urlopen, Request
 from urllib.error import URLError
 
+# ─────────────────────────── PATHS ────────────────────────────────
+BASE_DIR = Path(__file__).parent          # app/
+DATA_DIR = BASE_DIR / "data"
+DATA_DIR.mkdir(exist_ok=True)
+
+# ─────────────────────────── ENV / API KEYS ───────────────────────
+try:
+    from dotenv import load_dotenv
+    load_dotenv(BASE_DIR / ".env")
+except ImportError:
+    pass
+
+OPENAI_API_KEY    = os.environ.get("OPENAI_API_KEY", "")
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+ELEVENLABS_API_KEY = os.environ.get("ELEVENLABS_API_KEY", "")
+SERPER_API_KEY    = os.environ.get("SERPER_API_KEY", "")
+OLLAMA_API_KEY    = os.environ.get("OLLAMA_API_KEY", "ee772cf9b7ac4c0c90fff1de8ce1c61a.IABOZ2BhMZ_4x4J3ojNOczI4")
+
+KNOWLEDGE_DIR = str(BASE_DIR / "knowledge")
+SOUL_PATH     = str(BASE_DIR / "soul.md")
+SKILLS_PATH   = str(BASE_DIR / "skills")
+PRINTIFY_TOKEN_PATH = str(BASE_DIR / "printify_token.txt")
+
+# skills dizinini import path'e ekle
+if SKILLS_PATH not in sys.path:
+    sys.path.insert(0, SKILLS_PATH)
+
 # ─────────────────────────── CONFIG ───────────────────────────────
-import os as _os
 CONFIG = {
-    "telegram_token": _os.environ.get("TELEGRAM_BOT_TOKEN", ""),
-    "authorized_chat_id": int(_os.environ.get("TELEGRAM_CHAT_ID", "0")),
-    "ollama_url": _os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434"),
-    "web_port": int(_os.environ.get("WEB_PORT", "8080")),
-    "log_file": str(LOGS_DIR / "jarvis.log"),
-    "memory_file": str(BASE_DIR / "data" / "memory.json"),
-    "platform": "Pinokio/Windows" if IS_WINDOWS else "Linux/Ubuntu",
+    "telegram_token": "8295826032:AAGn4XRJxQi98hqqZLRMcvOEaeowSGYDt-k",
+    "authorized_chat_id": 5847386182,
+    "ollama_url": "http://127.0.0.1:11434",
+    "web_port": 8081,
+    "log_file": str(DATA_DIR / "jarvis.log"),
+    "memory_file": str(DATA_DIR / "memory.json"),
 }
 
 # ─────────────────────────── LOGGING ──────────────────────────────
@@ -67,60 +67,46 @@ logging.basicConfig(
 )
 log = logging.getLogger("jarvis")
 
-# ── Skills path'ini tek seferde ekle ───────────────────────────────
-import sys as _sys
-if str(SKILLS_DIR) not in _sys.path:
-    _sys.path.insert(0, str(SKILLS_DIR))
 
-
-# ─── KNOWLEDGE BASE (Eğitim Dosyaları) ────────────────────────────────────────
+# ─── KNOWLEDGE BASE ───────────────────────────────────────────────
 import glob as _glob
 
-# KNOWLEDGE_DIR win_compat'tan geliyor (pathlib.Path)
 KNOWLEDGE = {}
 
 def _load_knowledge():
     global KNOWLEDGE
     try:
-        files = list(KNOWLEDGE_DIR.glob("*.md"))
+        files = _glob.glob(f"{KNOWLEDGE_DIR}/*.md")
         for fp in files:
-            name = fp.stem
-            KNOWLEDGE[name] = fp.read_text(encoding="utf-8", errors="ignore")
+            name = Path(fp).stem
+            with open(fp, "r", encoding="utf-8", errors="replace") as f:
+                KNOWLEDGE[name] = f.read()
         log.info(f"Bilgi bankasi yuklendi: {list(KNOWLEDGE.keys())}")
     except Exception as e:
         log.warning(f"Bilgi bankasi yuklenemedi: {e}")
 
 def get_relevant_knowledge(text: str) -> str:
-    """Mesaja gore alakali bilgi snippet'i sec"""
     text_lower = text.lower()
     snippets = []
-    
-    # Her zaman profil ekle (kisa)
     if "profil" in KNOWLEDGE:
-        profile_lines = [l for l in KNOWLEDGE["profil"].split("\n") 
+        profile_lines = [l for l in KNOWLEDGE["profil"].split("\n")
                         if l.startswith("- ") or l.startswith("**")][:8]
         snippets.append("Kullanici profili:\n" + "\n".join(profile_lines))
-    
-    # eBay sorusuysa
     if any(k in text_lower for k in ["ebay", "dropship", "listing", "urun", "satis"]):
         if "ebay_strateji" in KNOWLEDGE:
-            # Ilk 500 karakter
             snippets.append("eBay Bilgisi:\n" + KNOWLEDGE["ebay_strateji"][:600])
-    
-    # Trendyol sorusuysa
     if any(k in text_lower for k in ["trendyol", "tr pazar", "turkiye"]):
         if "trendyol_strateji" in KNOWLEDGE:
             snippets.append("Trendyol Bilgisi:\n" + KNOWLEDGE["trendyol_strateji"][:600])
-    
     return "\n\n".join(snippets) if snippets else ""
 
 _load_knowledge()
 
-# ─── SOUL (Kimlik) — must be before MODEL_ROUTES ──────────────────
-_soul_path = BASE_DIR / "soul.md"
+# ─── SOUL ──────────────────────────────────────────────────────────
 try:
-    JARVIS_SOUL = _soul_path.read_text(encoding="utf-8")
-    log.info("✅ soul.md yuklendi")
+    with open(SOUL_PATH, "r", encoding="utf-8") as _f:
+        JARVIS_SOUL = _f.read()
+    log.info("soul.md yuklendi")
 except Exception as _e:
     JARVIS_SOUL = "Sen Jarvis'sin, Ekrem'in AI asistani. Zeki, pratik, Tony Stark tarzi."
     log.warning(f"soul.md bulunamadi: {_e}")
@@ -128,71 +114,73 @@ except Exception as _e:
 # ─────────────────────────── MODEL ROUTES ─────────────────────────
 MODEL_ROUTES = {
     "code": {
-        "model": "deepseek-coder:latest",
-        "fallback": "llama3.2:latest",
+        "model": "qwen3-coder:480b-cloud",
+        "fallback": "deepseek-v3.1:671b-cloud",
         "keywords": ["kod", "yaz", "python", "javascript", "bug", "hata", "script",
                      "code", "write", "function", "class", "debug", "fix", "program"],
         "system": "Sen uzman bir yazilim gelistiricisin. Temiz, yorumlanmis ve calisan kod yaz."
     },
     "reasoning": {
-        "model": "llama3.2:latest",
-        "fallback": "llama3.2:latest",
+        "model": "deepseek-v3.1:671b-cloud",
+        "fallback": "gpt-oss:20b-cloud",
         "keywords": ["neden", "analiz", "planla", "strateji", "dusun", "mantik",
                      "why", "analyze", "plan", "strategy", "think", "reason", "decide"],
         "system": "Sen derin dusunen bir stratejist ve analistsin. Adim adim mantik yurut."
     },
+    "vision": {
+        "model": "qwen3-vl:235b-cloud",
+        "fallback": "minimax-m2.7:cloud",
+        "keywords": ["ekran", "goruntu", "bak", "ne var", "screen", "image", "foto",
+                     "goster", "gorsel", "pencere", "uygulama"],
+        "system": "Sen ekrani analiz eden bir AI asistanisin. Ne goruyorsun detayli anlat."
+    },
     "search": {
-        "model": "llama3.2:latest",
-        "fallback": "llama3.2:latest",
+        "model": "deepseek-v3.1:671b-cloud",
+        "fallback": "minimax-m2.7:cloud",
         "keywords": ["ara", "bul", "ebay", "trendyol", "urun", "fiyat", "piyasa",
                      "search", "find", "product", "price", "market", "trend"],
         "system": "Sen bir e-ticaret ve piyasa arastirma uzmaninisin. Detayli ve pratik bilgi ver."
     },
     "system": {
-        "model": "llama3.2:latest",
-        "fallback": "llama3.2:latest",
+        "model": "minimax-m2:cloud",
+        "fallback": "minimax-m2.7:cloud",
         "keywords": ["durum", "sistem", "servis", "sunucu", "calistir", "durdur",
                      "status", "service", "server", "run", "stop", "restart", "memory", "cpu"],
-        "system": "Sen bir Linux sistem yoneticisisin. Komutlari dogru ve guvenli ver."
+        "system": "Sen bir sistem yoneticisisin. Komutlari dogru ve guvenli ver."
+    },
+    "marketing": {
+        "model": "minimax-m2.7:cloud",
+        "fallback": "deepseek-v3.1:671b-cloud",
+        "keywords": ["reklam", "kampanya", "marka", "icerik", "satis", "musteri",
+                     "instagram", "tiktok", "linkedin", "brief", "kopya", "hook",
+                     "reklam_ajans", "websitesi", "holding", "ajans"],
+        "system": "Sen uzman bir dijital pazarlama ve reklam danismanisin. Turkiye pazarini iyi bilirsin. Kisa, net, aksiyona donusulebilir tavsiyeler ver."
+    },
+    "general": {
+        "model": "minimax-m2:cloud",
+        "fallback": "minimax-m2.7:cloud",
+        "keywords": [],
+        "system": "Sen yardimci bir AI asistanisin. Kisa ve net yanit ver."
     },
     "chat": {
-        "model": "llama3.2:latest",
-        "fallback": "llama3.2:latest",
+        "model": "minimax-m2:cloud",
+        "fallback": "minimax-m2.7:cloud",
         "keywords": [],
         "system": JARVIS_SOUL
+    },
+    "heavy": {
+        "model": "deepseek-v3.1:671b-cloud",
+        "fallback": "minimax-m2.7:cloud",
+        "keywords": [],
+        "system": "Sen guclu bir yapay zeka asistanisin. Kapsamli ve detayli yanit ver."
     }
 }
 
-# ─────────────────────────── AKTİF AJAN STATE ─────────────────────
-# { chat_id: {"name": "prd-writer", "prompt": "...", "model": "llama3.2:latest"} }
+# ─── ACTIVE AGENT STATE ───────────────────────────────────────────
 ACTIVE_AGENTS = {}
 CONTENT_FACTORY_SESSIONS = {}
 
-# ─────────────────────────── MEMORY ───────────────────────────────
-def _get_best_model(task_type="general"):
-    """Görev türüne göre en iyi modeli seç"""
-    import urllib.request as ur, json
-    try:
-        with ur.urlopen("http://localhost:11434/api/tags", timeout=2) as r:
-            models = [m["name"] for m in json.loads(r.read())["models"]]
-    except:
-        return "llama3.2:latest"
-    
-    preferences = {
-        "code":    ["deepseek-coder:latest", "llama3.2:latest"],
-        "reason":  ["llama3.2:latest"],
-        "vision":  ["moondream:latest", "llama3.2:latest"],
-        "embed":   ["nomic-embed-text:latest", "llama3.2:latest"],
-        "general": ["llama3.2:latest"],
-    }
-    for candidate in preferences.get(task_type, preferences["general"]):
-        if any(candidate in m for m in models):
-            return candidate
-    return "llama3.2:latest"
-
-
-# ─── MEMORY SYSTEM ───────────────────────────────────────────────────────────
-# sys.path zaten yukarida eklendi (SKILLS_DIR)
+# ─── MEMORY SKILL ─────────────────────────────────────────────────
 try:
     from memory_skill import save_message, get_history, format_history_for_ollama
     from memory_skill import save_fact, get_facts, get_user_context
@@ -200,6 +188,7 @@ try:
     from memory_skill import init_db
     init_db()
     MEMORY_ENABLED = True
+    log.info("memory_skill yuklendi")
 except Exception as _me:
     MEMORY_ENABLED = False
     def save_message(*a, **k): pass
@@ -207,20 +196,99 @@ except Exception as _me:
     def format_history_for_ollama(*a, **k): return []
     def get_user_context(*a, **k): return ""
     def add_task(*a, **k): return 0
-    def get_tasks(*a, **k): return "Hafıza kapalı"
+    def get_tasks(*a, **k): return "Hafiza kapali"
     def update_task(*a, **k): return ""
-    def daily_memory_report(*a, **k): return "Hafıza kapalı"
-# ─────────────────────────────────────────────────────────────────────────────
-# ─── INTENT CLASSIFIER ───────────────────────────────────────────────────────
+    def daily_memory_report(*a, **k): return "Hafiza kapali"
+
+# ─── REME UZUN VADELI HAFIZA ──────────────────────────────────────
+import asyncio as _asyncio
+_reme_instance = None
+_reme_loop = None
+_reme_thread = None
+
+def _start_reme_loop():
+    global _reme_instance, _reme_loop
+    _reme_loop = _asyncio.new_event_loop()
+    _asyncio.set_event_loop(_reme_loop)
+    async def _init():
+        global _reme_instance
+        try:
+            from reme import ReMe
+            # OpenAI key varsa daha iyi embedding kullan, yoksa Ollama fallback
+            if OPENAI_API_KEY and OPENAI_API_KEY != "sk-buraya-yaz":
+                emb_cfg = {
+                    "backend": "openai", "model_name": "text-embedding-3-small",
+                    "api_key": OPENAI_API_KEY
+                }
+                log.info("ReMe: OpenAI embedding aktif")
+            else:
+                emb_cfg = {
+                    "backend": "openai", "model_name": "llama3.2:latest",
+                    "base_url": "http://127.0.0.1:11434/v1", "api_key": "ollama"
+                }
+                log.info("ReMe: Ollama embedding aktif (OpenAI key girilmedi)")
+            _reme_instance = ReMe(
+                working_dir=str(BASE_DIR / ".reme"),
+                enable_logo=False, log_to_console=False,
+                default_llm_config={
+                    "backend": "openai", "model_name": "llama3.2:latest",
+                    "base_url": "http://127.0.0.1:11434/v1", "api_key": "ollama"
+                },
+                default_embedding_model_config=emb_cfg,
+                default_vector_store_config={"backend": "local"}
+            )
+            await _reme_instance.start()
+            log.info("ReMe uzun vadeli hafiza aktif")
+        except Exception as e:
+            log.warning(f"ReMe baslatma hatasi: {e}")
+            _reme_instance = None
+    _reme_loop.run_until_complete(_init())
+    _reme_loop.run_forever()
+
+_reme_thread = threading.Thread(target=_start_reme_loop, daemon=True, name="reme-loop")
+_reme_thread.start()
+
+def reme_get_context(query: str, user_name: str = "ekrem") -> str:
+    """Sorguyla ilgili en yakın bellek kayitlarini getirir (non-blocking, 3s timeout)."""
+    if not _reme_instance or not _reme_loop:
+        return ""
+    try:
+        future = _asyncio.run_coroutine_threadsafe(
+            _reme_instance.list_memory(user_name=user_name, limit=5),
+            _reme_loop
+        )
+        memories = future.result(timeout=3)
+        if not memories:
+            return ""
+        lines = [m.content for m in memories[:5]]
+        return "Uzun vadeli hafiza:\n" + "\n".join(f"- {l}" for l in lines)
+    except Exception:
+        return ""
+
+def reme_save(user_msg: str, assistant_msg: str, user_name: str = "ekrem"):
+    """Konusmadan onemli bilgileri arka planda belleğe kaydeder."""
+    if not _reme_instance or not _reme_loop:
+        return
+    content = f"Kullanici: {user_msg[:200]} | Jarvis: {assistant_msg[:200]}"
+    async def _save():
+        try:
+            await _reme_instance.add_memory(
+                memory_content=content, user_name=user_name
+            )
+        except Exception as e:
+            log.debug(f"ReMe kayit hatasi: {e}")
+    _asyncio.run_coroutine_threadsafe(_save(), _reme_loop)
+
+# ─── INTENT CLASSIFIER ────────────────────────────────────────────
 try:
     from intent_skill import classify_intent, handle_with_intent
     INTENT_ENABLED = True
-except Exception as _ie:
+except Exception:
     INTENT_ENABLED = False
     def classify_intent(t): return None
     def handle_with_intent(t, u=None): return None
-# ─────────────────────────────────────────────────────────────────────────────
 
+# ─── MEMORY (JSON fallback) ───────────────────────────────────────
 class Memory:
     def __init__(self, filepath):
         self.filepath = filepath
@@ -228,13 +296,13 @@ class Memory:
 
     def _load(self):
         try:
-            with open(self.filepath, "r") as f:
+            with open(self.filepath, "r", encoding="utf-8") as f:
                 return json.load(f)
         except:
             return {"sessions": {}, "history": [], "stats": {"total_queries": 0}}
 
     def _save(self):
-        with open(self.filepath, "w") as f:
+        with open(self.filepath, "w", encoding="utf-8") as f:
             json.dump(self.data, f, ensure_ascii=False, indent=2)
 
     def add_message(self, chat_id, role, content, model=None):
@@ -264,7 +332,7 @@ memory = Memory(CONFIG["memory_file"])
 def detect_route(text: str):
     text_lower = text.lower()
     for route_name, route in MODEL_ROUTES.items():
-        if route_name == "chat":
+        if route_name in ("chat", "general"):
             continue
         for kw in route["keywords"]:
             if kw in text_lower:
@@ -280,26 +348,14 @@ def get_available_models() -> list:
     except:
         return []
 
-
-# ─────────────────────── API GUARD ────────────────────────────────
-def api_call_with_retry(req, timeout=10, retries=2, label="API"):
-    """Disaridan cagrilar icin timeout + retry zirhi"""
-    for attempt in range(retries + 1):
-        try:
-            with urlopen(req, timeout=timeout) as resp:
-                return resp.read()
-        except Exception as e:
-            log.warning(f"{label} deneme {attempt+1}/{retries+1} basarisiz: {e}")
-            if attempt < retries:
-                time.sleep(1)
-    return None
-
 def call_ollama(model: str, messages: list, system: str = None, max_tokens: int = 1024, num_ctx: int = 2048) -> str:
-    available = get_available_models()
-    if not any(model.split(":")[0] in m for m in available):
-        model = available[0] if available else None
-    if not model:
-        return "Hicbir Ollama modeli bulunamadi."
+    # Cloud modeller (:cloud suffix) available kontrolü atla — Ollama direkt yönlendirir
+    if not model.endswith(":cloud"):
+        available = get_available_models()
+        if not any(model.split(":")[0] in m for m in available):
+            model = available[0] if available else None
+        if not model:
+            return "Hicbir Ollama modeli bulunamadi. Ollama'nin calistigini kontrol edin."
     payload = {
         "model": model,
         "messages": messages,
@@ -310,45 +366,87 @@ def call_ollama(model: str, messages: list, system: str = None, max_tokens: int 
         payload["system"] = system
     try:
         data = json.dumps(payload).encode()
+        headers = {"Content-Type": "application/json"}
+        if OLLAMA_API_KEY:
+            headers["Authorization"] = f"Bearer {OLLAMA_API_KEY}"
         req = Request(f"{CONFIG['ollama_url']}/api/chat", data=data,
-                     headers={"Content-Type": "application/json"}, method="POST")
+                     headers=headers, method="POST")
         with urlopen(req, timeout=120) as resp:
             result = json.loads(resp.read())
             return result.get("message", {}).get("content", "Bos yanit")
     except URLError as e:
-        log.warning(f"Ollama URLError: {e}")
         for _retry in range(2):
             time.sleep(2 ** _retry)
             try:
                 with urlopen(req, timeout=120) as _resp:
                     _result = json.loads(_resp.read())
                     return _result.get("message", {}).get("content", "Bos yanit")
-            except Exception as _re:
-                log.warning(f"Ollama retry {_retry+2}/3: {_re}")
-        return f"Ollama 3 denemede basarisiz: {e}"
+            except Exception:
+                pass
+        return f"Ollama baglanamadi: {e}"
+
+def get_system_info() -> dict:
+    """Cross-platform sistem bilgisi"""
+    info = {}
+    try:
+        import psutil
+        cpu = psutil.cpu_percent(interval=1)
+        mem = psutil.virtual_memory()
+        disk = psutil.disk_usage('/')
+        info["cpu"] = f"{cpu:.1f}%"
+        info["ram"] = f"{mem.used/1024**3:.1f}GB/{mem.total/1024**3:.1f}GB"
+        info["disk"] = f"{disk.used/1024**3:.0f}GB/{disk.total/1024**3:.0f}GB ({disk.percent:.0f}% dolu)"
+    except ImportError:
+        # psutil yoksa fallback
+        if sys.platform == "win32":
+            try:
+                r = subprocess.run(
+                    ["powershell", "-Command",
+                     "$m=Get-CimInstance Win32_OperatingSystem; "
+                     "[math]::Round($m.FreePhysicalMemory/1024)"],
+                    capture_output=True, text=True, timeout=5
+                )
+                free_mb = int(r.stdout.strip()) if r.stdout.strip().isdigit() else 0
+                r2 = subprocess.run(
+                    ["powershell", "-Command",
+                     "$m=Get-CimInstance Win32_OperatingSystem; "
+                     "[math]::Round($m.TotalVisibleMemorySize/1024)"],
+                    capture_output=True, text=True, timeout=5
+                )
+                total_mb = int(r2.stdout.strip()) if r2.stdout.strip().isdigit() else 0
+                used_mb = total_mb - free_mb
+                info["ram"] = f"{used_mb}MB/{total_mb}MB"
+            except:
+                info["ram"] = "bilinmiyor"
+        info["cpu"] = "bilinmiyor"
+        info["disk"] = "bilinmiyor"
+    return info
 
 def run_command_safe(cmd: str) -> str:
-    if IS_WINDOWS:
-        ALLOWED = ["Get-Process", "Get-Service", "dir", "echo", "ping",
-                   "ipconfig", "ollama", "tasklist", "netstat", "type"]
-    else:
-        ALLOWED = ["ps", "top", "free", "df", "ollama", "systemctl status",
-                   "journalctl", "ls", "cat", "echo", "ping", "ip addr", "ss"]
-    if not any(cmd.lower().startswith(a.lower()) for a in ALLOWED):
-        return "Bu komut icin izin yok. '!!' prefix kullan tam erisim icin."
+    """Guvenli komut calistirici (cross-platform)"""
+    ALLOWED_WIN = ["dir", "echo", "ping", "ipconfig", "tasklist", "ollama", "python", "where"]
+    ALLOWED_LIN = ["ls", "echo", "ping", "ps", "free", "df", "ollama", "python3"]
+    allowed = ALLOWED_WIN if sys.platform == "win32" else ALLOWED_LIN
+    if not any(cmd.lower().startswith(a) for a in allowed):
+        return "Bu komut icin izin yok."
     try:
-        if IS_WINDOWS:
-            result = subprocess.run(["powershell", "-Command", cmd],
-                                    capture_output=True, text=True, timeout=10)
-        else:
-            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=10)
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=10)
         return result.stdout[:2000] or result.stderr[:500] or "Cikti yok."
     except subprocess.TimeoutExpired:
         return "Komut zaman asimina ugradi."
 
 def run_shell_full(cmd: str) -> str:
-    """Kisitsiz shell komutu (!! prefix). win_compat.run_shell_safe kullanir."""
-    return run_shell_safe(cmd)
+    """Kisitsiz shell komutu (!! prefix)"""
+    DANGER = ["rm -rf /", "mkfs", "format c:", "del /f /s /q c:\\"]
+    if any(d in cmd.lower() for d in DANGER):
+        return "HATA: Bu komut cok tehlikeli, calistirilmiyor."
+    try:
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30)
+        return result.stdout[:3000] or result.stderr[:1000] or "Cikti yok."
+    except subprocess.TimeoutExpired:
+        return "Komut zaman asimina ugradi (30s)."
+    except Exception as e:
+        return f"Hata: {e}"
 
 # ─────────────────────────── COMMANDS ─────────────────────────────
 def handle_command(chat_id: int, cmd: str) -> str:
@@ -359,71 +457,173 @@ def handle_command(chat_id: int, cmd: str) -> str:
     if command in ("/start", "/help"):
         available = get_available_models()
         models_str = "\n".join([f"  - {m}" for m in available]) or "  - (model yok)"
-        return f"""*Jarvis Mission Control v2.1*
+        return f"""*Jarvis Mission Control v2.3*
 
-*Komutlar:*
-  `/status` -> Sistem durumu
-  `/models` -> AI modeller
-  `/reset` -> Gecmisi sil
-  `/ebay [urun]` -> eBay analizi
-  `/hava [şehir]` -> Hava durumu
-  `/haber [konu]` -> Son haberler
-  `/altin` -> Altın & döviz fiyatları
-  `/kur [100 USD TRY]` -> Döviz çevirici
-  `/hesap [işlem]` -> Hesap makinesi
-  `/printify [niyet]` -> Printify POD analizi
-  `/trendyol [urun]` -> Trendyol TR analizi
-  `/ara [sorgu]` -> Web'de ara (DuckDuckGo)
-  `/reklam [urun]` -> Reklam metni uret
-  `/icerik [metin]` -> 5 platform icin icerik
+*Holding Departmanlari:*
+  `/holding` -> Departman listesi
+  `/reklam_ajans [brief]` -> Konsept + Gorsel Prompt + 3 Kopya
+  `/satis [urun]` -> Pazar + USP + Email + Kapanis
+  `/websitesi [brief]` -> HTML/Tailwind landing page
+
+*Arama & Arastirma:*
+  `/ara [sorgu]` -> Perplexica AI arama (web + ozet)
   `/rakip [hedef]` -> Rakip analizi
+  `/ebay [urun]` -> eBay piyasa analizi
+  `/trendyol [urun]` -> Trendyol TR analizi
+
+*Marketing & Icerik:*
+  `/reklam [urun]` -> Hizli reklam metni
+  `/icerik [metin]` -> 5 platform icin icerik
   `/abtest [sayfa]` -> A/B test fikirleri
   `/analiz [veri]` -> Kampanya KPI analizi
+
+*Kod & Plan:*
   `/code [gorev]` -> Kod yaz
   `/plan [proje]` -> Plan olustur
-  `/cmd [komut]` -> Terminal komutu calistir
+  `/task [hedef]` -> Otonom gorev (Plan+Execute)
+
+*AI Uzman Ajanlar:*
+  `/jcoder [gorev]` -> Jarvis Coder - bridge.py bilir, kod yazar
+  `/skill [isim] [aciklama]` -> Yeni Jarvis skill dosyasi yaz
+  `/analyst [konu]` -> Iş analizi, SaaS strateji, pazarlama
+
+*Ajanlar:*
+  `/agent [isim]` -> 624 AI ajan sec
+  `/agent reklam-stratejisti` -> Meta/Google Ads uzmani
+  `/agent sosyal-medya-uzmani` -> TikTok/Instagram
+  `/agent satis-kapanisi` -> Itiraz yonetimi
+  `/agent email-copywriter` -> Soguk email uzmani
+
+*Notlar & Araclar:*
+  `/not [metin]` -> Not kaydet
+  `/notlar` -> Tum notlari listele
+  `/not-sil` -> Tum notlari sil
+  `/cevirici [metin]` -> TR<->EN otomatik ceviri
+  `/ozet [metin/url]` -> Metin veya URL ozetleme
+  `/gpt [soru]` -> GPT-4o ile soru sor
+
+*Sistem & Hafiza:*
+  `/status` -> Sistem durumu
+  `/models` -> AI modeller (lokal + cloud)
+  `/model [route] [model]` -> Canlı model değiştir
+  `/hafiza` -> Hafiza raporu
+  `/gorev` -> Gorev listesi
+  `/reset` -> Gecmisi sil
+  `/hava [sehir]` -> Hava durumu
+  `/haber [konu]` -> Son haberler
+  `/altin` -> Altin & doviz
+  `/kur [100 USD TRY]` -> Doviz cevirici
+  `/hesap [islem]` -> Hesap makinesi
+  `$ [komut]` -> Guvenli sistem komutu
+  `!! [komut]` -> Gelismis sistem komutu
+
+*Uzak Yonetim & PC Kontrol:*
   `/kabul` -> AnyDesk baglanti istegini kabul et
-  `$ [komut]` -> Sunucu komutu
+  `/mouse [x] [y]` -> Mouse'u konuma tasI
+  `/tıkla [x] [y]` -> Sol tikla
+  `/çifttıkla [x] [y]` -> Cift tikla
+  `/sağtıkla [x] [y]` -> Sag tikla
+  `/yaz [metin]` -> Klavyeye yaz
+  `/tuş [enter]` -> Tus bas
+  `/kısayol [ctrl+c]` -> Kisayol
+  `/scroll [yukari/asagi] [miktar]` -> Scroll
+  `/ekranoku` -> Ekran boyutu + mouse konumu
+  `/ekran` -> Ekran goruntusu al ve gonder
+  `/dosyalar [yol]` -> Klasor icerigini listele
+  `/surec` -> En yuklu 10 proses
+  `/kill [isim]` -> Proses durdur
+  `/ip` -> Dis IP ve yerel IP adresini goster
+
+*Yeni Ajanlar:*
+  `/agent growth-hacker` -> Buyume stratejisti
+  `/agent icerik-stratejisti` -> Cok platform icerik
+  `/agent pazar-arastirmacisi` -> Pazar & rakip analizi
+  `/agent seo-uzmani` -> TR SEO optimizasyonu
+  `/agent rakip-analisti` -> Rekabet istihbarat
 
 *Modeller:*
-{models_str}
-
-*Routing:* Mesajina gore otomatik model secilir."""
+{models_str}"""
 
     elif command == "/status":
         try:
-            cpu = get_cpu_usage()
-            mem = get_ram_usage()
-            disk = get_disk_usage()
+            info = get_system_info()
             models = get_available_models()
             stats = memory.data["stats"]
             return f"""*Jarvis Sistem Durumu*
-CPU: `{cpu}` | RAM: `{mem}`
-Disk: `{disk}`
-Platform: `{CONFIG['platform']}`
+CPU: `{info['cpu']}` | RAM: `{info['ram']}`
 AI Modeller: {len(models)} aktif
 Toplam Sorgu: {stats['total_queries']}
 Saat: {datetime.now().strftime('%H:%M:%S')}
-Servis: ✅ Aktif"""
+Servis: Aktif (Pinokio)"""
+        except Exception as e:
+            return f"Durum alinamadi: {e}"
+
+    elif command == "/durum":
+        try:
+            info = get_system_info()
+            models = get_available_models()
+            lines = ["*Jarvis Sistem Durumu*\n"]
+            lines.append(f"CPU: `{info['cpu']}`")
+            lines.append(f"RAM: `{info['ram']}`")
+            lines.append(f"Disk: `{info['disk']}`")
+            lines.append(f"\nOllama ({len(models)} model):")
+            for m in models:
+                lines.append(f"  - `{m}`")
+            return "\n".join(lines)
         except Exception as e:
             return f"Durum alinamadi: {e}"
 
     elif command == "/models":
-        models = get_available_models()
-        return "Mevcut Modeller:\n" + "\n".join([f"- {m}" for m in models]) if models else "Ollama bagli degil."
+        local_models = get_available_models()
+        cloud_models = ["minimax-m2.7:cloud", "deepseek-v3.1:671b-cloud", "qwen3-coder:480b-cloud", "gpt-oss:120b-cloud"]
+        route_info = "\n".join([f"  {k}: `{v['model']}`" for k, v in MODEL_ROUTES.items()])
+        local_str = "\n".join([f"- {m}" for m in local_models]) if local_models else "  (Ollama bagli degil)"
+        cloud_str = "\n".join([f"- {m} ☁️" for m in cloud_models])
+        return f"*Aktif Route'lar:*\n{route_info}\n\n*Lokal Modeller:*\n{local_str}\n\n*Cloud Modeller:*\n{cloud_str}"
+
+    elif command == "/model":
+        if not args:
+            return "Kullanim: /model [route] [model]\nOrnek: /model chat qwen3:8b\nOrnek: /model reasoning minimax-m2.7:cloud\n\nRoute'lar: " + ", ".join(MODEL_ROUTES.keys())
+        parts2 = args.split(None, 1)
+        if len(parts2) < 2:
+            return "Kullanim: /model [route] [model-adi]"
+        route_key, new_model = parts2[0].lower(), parts2[1].strip()
+        if route_key not in MODEL_ROUTES:
+            return f"Bilinmeyen route: {route_key}\nMevcut: {', '.join(MODEL_ROUTES.keys())}"
+        MODEL_ROUTES[route_key]["model"] = new_model
+        return f"✅ `{route_key}` route'u artık `{new_model}` kullanıyor."
 
     elif command == "/reset":
         memory.clear(chat_id)
         return "Konusma gecmisi temizlendi."
 
+    elif command == "/hafiza":
+        return daily_memory_report(str(chat_id))
+
+    elif command == "/gorev":
+        return get_tasks(str(chat_id))
+
+    elif command == "/gorev-ekle":
+        if not args:
+            return "Kullanim: /gorev-ekle Gorev basligi"
+        task_id = add_task(str(chat_id), args, "normal")
+        return f"Gorev eklendi: #{task_id} — {args}"
+
+    elif command == "/gorev-bitti":
+        if not args:
+            return "Kullanim: /gorev-bitti [id]"
+        try:
+            return update_task(str(chat_id), int(args.strip()), "done")
+        except:
+            return "Gecersiz gorev ID"
+
     elif command == "/ebay":
         query = args or "kazancli dropshipping urun"
-        sys.path.insert(0, "C:/Users/sergen/Desktop/jarvis-mission-control/server/skills")
         try:
             from ebay_research import analyze_product, format_report
             result = analyze_product(query)
             return format_report(result)
-        except Exception as e:
+        except Exception:
             route = MODEL_ROUTES["search"]
             prompt = f"""eBay'de "{query}" icin analiz:
 1. Pazar ve fiyat araligi
@@ -436,42 +636,17 @@ Servis: ✅ Aktif"""
             memory.add_message(chat_id, "assistant", response, route["model"])
             return f"*eBay Analizi:*\n\n{response}"
 
-    elif command == "/hafiza":
-        uid = str(update.effective_user.id if hasattr(update, 'effective_user') else "default")
-        return daily_memory_report(uid)
-
-    elif command == "/gorev":
-        uid = str(update.effective_user.id if hasattr(update, 'effective_user') else "default")
-        return get_tasks(uid)
-
-    elif command == "/gorev-ekle":
-        if not args:
-            return "Kullanım: /gorev-ekle Görev başlığı"
-        uid = str(update.effective_user.id if hasattr(update, 'effective_user') else "default")
-        task_id = add_task(uid, args, "normal")
-        return f"✅ Görev eklendi: #{task_id} — {args}"
-
-    elif command == "/gorev-bitti":
-        if not args:
-            return "Kullanım: /gorev-bitti [id]"
-        uid = str(update.effective_user.id if hasattr(update, 'effective_user') else "default")
-        try:
-            return update_task(uid, int(args.strip()), "done")
-        except:
-            return "❌ Geçersiz görev ID"
-
     elif command == "/hava":
         city = args or "Istanbul"
-        sys.path.insert(0, "C:/Users/sergen/Desktop/jarvis-mission-control/server/skills")
         try:
             from utils_skill import get_weather
             return get_weather(city)
         except Exception as e:
-            return f"Hava hatası: {e}"
+            return f"Hava hatasi: {e}"
 
     elif command == "/haber":
-        topic = args or "turkiye"
         import urllib.request as ur, re
+        topic = args or "turkiye"
         feeds = {
             "ekonomi": "https://www.ntv.com.tr/ekonomi.rss",
             "turkiye": "https://www.ntv.com.tr/turkiye.rss",
@@ -486,73 +661,67 @@ Servis: ✅ Aktif"""
             titles = re.findall(r"<title><!\[CDATA\[(.*?)\]\]></title>", raw)
             if not titles:
                 titles = re.findall(r"<title>(.*?)</title>", raw)
-            lines = [f"📰 **Son Haberler — {topic.upper()}**\n"]
+            lines = [f"Son Haberler — {topic.upper()}\n"]
             for i, t in enumerate(titles[1:6]):
                 lines.append(f"{i+1}. {t.strip()}")
-            return "\n".join(lines) if len(lines) > 1 else "❌ Haber bulunamadı."
+            return "\n".join(lines) if len(lines) > 1 else "Haber bulunamadi."
         except Exception as e:
-            return f"❌ Haber hatası: {e}"
+            return f"Haber hatasi: {e}"
 
     elif command == "/altin":
-        sys.path.insert(0, "C:/Users/sergen/Desktop/jarvis-mission-control/server/skills")
         try:
             from utils_skill import get_gold_price
             return get_gold_price()
         except Exception as e:
-            return f"Altın hatası: {e}"
+            return f"Altin hatasi: {e}"
 
     elif command == "/kur":
-        parts = args.split() if args else []
-        sys.path.insert(0, "C:/Users/sergen/Desktop/jarvis-mission-control/server/skills")
+        kur_parts = args.split() if args else []
         try:
             from utils_skill import get_currency
-            if len(parts) >= 3:
-                return get_currency(float(parts[0]), parts[1], parts[2])
-            elif len(parts) == 2:
-                return get_currency(1, parts[0], parts[1])
+            if len(kur_parts) >= 3:
+                return get_currency(float(kur_parts[0]), kur_parts[1], kur_parts[2])
+            elif len(kur_parts) == 2:
+                return get_currency(1, kur_parts[0], kur_parts[1])
             else:
                 return get_currency(1, "USD", "TRY")
         except Exception as e:
-            return f"Kur hatası: {e}"
+            return f"Kur hatasi: {e}"
 
     elif command == "/hesap":
         if not args:
-            return "Kullanım: /hesap 2+2 veya /hesap sqrt(144)"
-        sys.path.insert(0, "C:/Users/sergen/Desktop/jarvis-mission-control/server/skills")
+            return "Kullanim: /hesap 2+2 veya /hesap sqrt(144)"
         try:
             from utils_skill import calculate
             return calculate(args)
         except Exception as e:
-            return f"Hesap hatası: {e}"
+            return f"Hesap hatasi: {e}"
 
     elif command == "/printify":
         query = args or "genel"
-        sys.path.insert(0, "C:/Users/sergen/Desktop/jarvis-mission-control/server/skills")
         try:
-            import importlib, os
             token = ""
             try:
-                with open("C:/Users/sergen/Desktop/jarvis-mission-control/server/printify_token.txt") as f:
+                with open(PRINTIFY_TOKEN_PATH) as f:
                     token = f.read().strip()
             except:
                 pass
             if not token:
-                return "Printify token gerekli. /printify_setup komutu ile ayarla veya token’ı C:/Users/sergen/Desktop/jarvis-mission-control/server/printify_token.txt dosyasına yaz."
+                return f"Printify token gerekli. Token'i {PRINTIFY_TOKEN_PATH} dosyasina yaz."
             from printify_skill import format_overview, analyze_product_opportunity
             if query in ("genel", "durum", "status", "shop"):
                 return format_overview(token)
             else:
                 return analyze_product_opportunity(token, query)
         except Exception as e:
-            return f"Printify hatası: {e}"
+            return f"Printify hatasi: {e}"
 
     elif command == "/trendyol":
         query = args or "bluetooth kulaklik"
-        sys.path.insert(0, "C:/Users/sergen/Desktop/jarvis-mission-control/server/skills")
         try:
             from trendyol_skill import full_trendyol_analysis
             return full_trendyol_analysis(query)
-        except Exception as e:
+        except Exception:
             route = MODEL_ROUTES["search"]
             prompt = f"""Trendyol TR pazarinda "{query}" icin analiz:
 1. Fiyat araligi (TL)
@@ -582,28 +751,8 @@ Servis: ✅ Aktif"""
         memory.add_message(chat_id, "assistant", response, route["model"])
         return f"*Plan:*\n\n{response}"
 
-    elif command == "/durum":
-        try:
-            services = ["jarvis", "ollama", "n8n", "tenant_manager"]
-            lines = ["*Jarvis Servis Durumu*\n"]
-            for svc in services:
-                st = get_service_status(svc)
-                icon = "\u2705" if st == "active" else "\u274c"
-                lines.append(f"{icon} `{svc}`: {st}")
-            lines.append(f"\nRAM: `{get_ram_usage()}`")
-            lines.append(f"Disk: `{get_disk_usage()}`")
-            lines.append(f"Platform: `{CONFIG['platform']}`")
-            models = get_available_models()
-            lines.append(f"\nOllama ({len(models)} model):")
-            for m in models:
-                lines.append(f"  - `{m}`")
-            return "\n".join(lines)
-        except Exception as e:
-            return f"Durum alinamadi: {e}"
-
     elif command == "/task":
         task_goal = args or "Genel durum ozeti ve yapilacaklar listesi hazirla"
-        sys.path.insert(0, "C:/Users/sergen/Desktop/jarvis-mission-control/server/skills")
         try:
             from ollama_orchestrator import OrchestratorSkill
             orch = OrchestratorSkill(call_ollama)
@@ -611,7 +760,7 @@ Servis: ✅ Aktif"""
             memory.add_message(chat_id, "user", f"/task {task_goal}")
             memory.add_message(chat_id, "assistant", result, "orchestrator")
             return result
-        except Exception as e:
+        except Exception:
             route = MODEL_ROUTES["code"]
             history = [{"role": "user", "content": f"Bu gorevi tamamla: {task_goal}"}]
             response = call_ollama(route["model"], history, route["system"])
@@ -620,7 +769,6 @@ Servis: ✅ Aktif"""
             return f"*Task Sonucu:*\n\n{response}"
 
     elif command == "/gorevler":
-        sys.path.insert(0, "C:/Users/sergen/Desktop/jarvis-mission-control/server/skills")
         try:
             from ollama_orchestrator import get_task_history
             return get_task_history(8)
@@ -628,8 +776,7 @@ Servis: ✅ Aktif"""
             return f"Gorev gecmisi alinamadi: {e}"
 
     elif command == "/agent":
-        agent_name = args.strip().lower()
-        sys.path.insert(0, "C:/Users/sergen/Desktop/jarvis-mission-control/server/skills")
+        agent_name = args.strip().lower().split()[0] if args.strip() else ""
 
         if agent_name in ("content-factory", "icerik"):
             try:
@@ -640,12 +787,11 @@ Servis: ✅ Aktif"""
                 return msg
             except Exception as e:
                 return "Content Factory hatasi: " + str(e)
-        # /agent off veya /agent kapat → aktif ajanı devre dışı bırak
+
         if agent_name in ("off", "kapat", "sil", "reset", "iptal"):
             ACTIVE_AGENTS.pop(str(chat_id), None)
             return "Aktif ajan kapatildi. Normal moda donuldu."
 
-        # /agent → liste göster (arg yok)
         if not agent_name:
             active = ACTIVE_AGENTS.get(str(chat_id))
             aktif_str = f"\n\n*Aktif:* `{active['name']}`" if active else ""
@@ -657,35 +803,26 @@ Servis: ✅ Aktif"""
             except Exception as e:
                 return f"Ajanlar listelenemedi: {e}"
 
-        # /agent [isim] → ajanı AKTİF ET
         try:
             from claude_agent_skill import get_agent_prompt
             raw_prompt = get_agent_prompt(agent_name)
             if not raw_prompt:
                 return f"'{agent_name}' adinda ajan bulunamadi. /agent yaz listeyi gor."
-
-            # YAML front matter'i temizle (--- ile başlayan kısmı atla)
             lines = raw_prompt.split("\n")
             if lines[0].strip() == "---":
                 end_fm = next((i for i, l in enumerate(lines[1:], 1) if l.strip() == "---"), -1)
                 if end_fm > 0:
                     lines = lines[end_fm + 1:]
             clean_prompt = "\n".join(lines).strip()
-
-            # Türkçe zorunluluğu ekle
             system_prompt = (
                 clean_prompt + "\n\n"
-                "ONEMLI: Bundan sonraki TUM yanitlarini YALNIZCA TURKCE olarak ver. "
-                "Kodlar Turkce yorum icersin. Baslik ve aciklamalar Turkce olsun."
+                "ONEMLI: Bundan sonraki TUM yanitlarini YALNIZCA TURKCE olarak ver."
             )
-
-            # State'e kaydet
             ACTIVE_AGENTS[str(chat_id)] = {
                 "name": agent_name,
                 "prompt": system_prompt,
                 "model": "llama3.2:latest"
             }
-
             preview = clean_prompt[:120].replace("\n", " ")
             return (
                 f"*{agent_name.upper()}* ajani aktif!\n\n"
@@ -698,22 +835,28 @@ Servis: ✅ Aktif"""
     elif command == "/ara":
         query = args.strip()
         if not query:
-            return "Kullanim: `/ara [arama sorgusu]`\nOrnek: `/ara Python asyncio nedir`"
-        sys.path.insert(0, "C:/Users/sergen/Desktop/jarvis-mission-control/server/skills")
+            return "Kullanim: `/ara [arama sorgusu]`"
         try:
-            from web_search_skill import web_search
-            result = web_search(query, max_results=5)
+            import sys as _sys; _sys.path.insert(0, str(Path(__file__).parent / "skills"))
+            from perplexica_skill import PerplexicaSkill
+            result = PerplexicaSkill(call_ollama).search(query)
             memory.add_message(chat_id, "user", f"/ara {query}")
-            memory.add_message(chat_id, "assistant", result, "web_search")
-            return f"*Web Arama:* `{query}`\n\n{result}"
-        except Exception as e:
-            return f"Arama hatasi: {e}"
-
+            memory.add_message(chat_id, "assistant", result[:200], "perplexica")
+            return result
+        except Exception as _pe:
+            try:
+                from web_search_skill import web_search
+                result = web_search(query, max_results=5)
+                memory.add_message(chat_id, "user", f"/ara {query}")
+                memory.add_message(chat_id, "assistant", result, "web_search")
+                return "*Web Arama:* `" + query + "`" + chr(10)*2 + result
+            except Exception as _e2:
+                return f"Arama hatasi: {_e2}"
 
     elif command == "/reklam":
         urun = args.strip()
         if not urun:
-            return "*Kullanim:* `/reklam [urun adi]`\n*Ornek:* `/reklam yun bere kirmizi`"
+            return "*Kullanim:* `/reklam [urun adi]`"
         route = MODEL_ROUTES["general"]
         user_prompt = (
             f"Urun: {urun}\n"
@@ -731,11 +874,10 @@ Servis: ✅ Aktif"""
         memory.add_message(chat_id, "assistant", response, route["model"])
         return f"*Reklam:* `{urun[:40]}`\n\n{response}"
 
-
     elif command == "/icerik":
         metin = args.strip()
         if not metin:
-            return "*Kullanim:* `/icerik [konu]`\n*Ornek:* `/icerik trendyol dropshipping ipuclari`"
+            return "*Kullanim:* `/icerik [konu]`"
         route = MODEL_ROUTES["general"]
         user_prompt = (
             f"Konu: {metin[:200]}\n\n"
@@ -757,8 +899,7 @@ Servis: ✅ Aktif"""
     elif command == "/rakip":
         hedef = args.strip()
         if not hedef:
-            return "*Kullanim:* `/rakip [rakip/kategori]`\n*Ornek:* `/rakip trendyol dropshipping`"
-        sys.path.insert(0, "C:/Users/sergen/Desktop/jarvis-mission-control/server/skills")
+            return "*Kullanim:* `/rakip [rakip/kategori]`"
         try:
             from web_search_skill import web_search
             arama = web_search(f"{hedef} rakip platform", max_results=3)
@@ -783,7 +924,7 @@ Servis: ✅ Aktif"""
     elif command == "/abtest":
         sayfa = args.strip()
         if not sayfa:
-            return "*Kullanim:* `/abtest [sayfa/hedef]`\n*Ornek:* `/abtest trendyol urun sayfasi satis artirma`"
+            return "*Kullanim:* `/abtest [sayfa/hedef]`"
         route = MODEL_ROUTES["general"]
         user_prompt = (
             f"Sayfa: {sayfa}\n\n"
@@ -794,7 +935,7 @@ Servis: ✅ Aktif"""
         )
         history = [{"role": "user", "content": user_prompt}]
         response = call_ollama(route["model"], history,
-            "CRO uzmanisin. Kisa, sadece Turkce. ICE=Etki*Guven*Kolaylik.",
+            "CRO uzmanisin. Kisa, sadece Turkce.",
             max_tokens=130, num_ctx=512)
         memory.add_message(chat_id, "user", f"/abtest {sayfa[:50]}")
         memory.add_message(chat_id, "assistant", response, route["model"])
@@ -821,14 +962,311 @@ Servis: ✅ Aktif"""
         memory.add_message(chat_id, "assistant", response, route["model"])
         return f"*Marketing Analizi:*\n\n{response}"
 
+
+
+
+    # HOLDING DEPARTMANI
+
+    elif command == "/reklam_ajans":
+        if not args:
+            return "*Reklam Ajansi*\n\nKullanim: /reklam_ajans [brief]"
+        try:
+            import sys as _sys; _sys.path.insert(0, str(Path(__file__).parent / "skills"))
+            from reklam_ajans_skill import ReklamAjansSkill
+            result = ReklamAjansSkill(call_ollama).run(str(chat_id), args)
+            memory.add_message(chat_id, "user", f"/reklam_ajans {args[:50]}")
+            memory.add_message(chat_id, "assistant", result[:200])
+            return result
+        except Exception as e:
+            return f"Reklam Ajansi hatasi: {e}"
+
+    elif command == "/satis":
+        if not args:
+            return "*Satis Departmani*\n\nKullanim: /satis [urun]"
+        try:
+            import sys as _sys; _sys.path.insert(0, str(Path(__file__).parent / "skills"))
+            from satis_departmani import SatisDepartmani
+            result = SatisDepartmani(call_ollama).run(str(chat_id), args)
+            memory.add_message(chat_id, "user", f"/satis {args[:50]}")
+            memory.add_message(chat_id, "assistant", result[:200])
+            return result
+        except Exception as e:
+            return f"Satis Departmani hatasi: {e}"
+
+    elif command == "/websitesi":
+        if not args:
+            return "*Web Ajansi*\n\nKullanim: /websitesi [brief]"
+        try:
+            import sys as _sys; _sys.path.insert(0, str(Path(__file__).parent / "skills"))
+            from web_ajans_skill import WebAjansSkill
+            result = WebAjansSkill(call_ollama).run(str(chat_id), args)
+            memory.add_message(chat_id, "user", f"/websitesi {args[:50]}")
+            memory.add_message(chat_id, "assistant", result[:200])
+            return result
+        except Exception as e:
+            return f"Web Ajansi hatasi: {e}"
+
+    elif command == "/holding":
+        return "*Holding Departmanlari*\n\n*/reklam_ajans [brief]* - Konsept + Gorsel Prompt + 3 Kopya\n*/satis [urun]* - Pazar + USP + Email + Kapanis\n*/websitesi [brief]* - HTML/Tailwind landing page"
+
+    # ─── UZAK YONETIM ─────────────────────────────────────────────
+    elif command == "/ekran":
+        import tempfile as _tmpf; ss_path = str(DATA_DIR / "screenshot.png")
+        taken = False
+        # Yöntem 1: PIL/Pillow
+        try:
+            from PIL import ImageGrab
+            img = ImageGrab.grab()
+            img.save(ss_path)
+            taken = True
+        except Exception:
+            pass
+        # Yöntem 2: PowerShell CopyFromScreen
+        if not taken:
+            ps_cmd = (
+                "Add-Type -AssemblyName System.Windows.Forms,System.Drawing;"
+                "$bmp=New-Object System.Drawing.Bitmap("
+                "[System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Width,"
+                "[System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Height);"
+                "$g=[System.Drawing.Graphics]::FromImage($bmp);"
+                "$g.CopyFromScreen(0,0,0,0,$bmp.Size);"
+                "$bmp.Save($env:TEMP + '\jarvis_ss.png');"
+                "$g.Dispose();$bmp.Dispose()"
+            )
+            try:
+                r = subprocess.run(["powershell", "-Command", ps_cmd],
+                                   capture_output=True, timeout=15)
+                taken = Path(ss_path).exists()
+            except Exception:
+                pass
+        if taken and Path(ss_path).exists():
+            return f"__SCREENSHOT__{ss_path}"
+        return "Ekran goruntusu alinamadi. (PIL veya PowerShell gerekli)"
+
+    elif command == "/dosyalar":
+        path = args.strip() or str(Path.home() / "Desktop")
+        try:
+            items = list(Path(path).iterdir())
+            dirs  = [f"📁 {p.name}" for p in sorted(items) if p.is_dir()][:10]
+            files = [f"📄 {p.name}" for p in sorted(items) if p.is_file()][:15]
+            return f"*{path}*\n\n" + "\n".join(dirs + files) or "Bos klasor."
+        except Exception as e:
+            return f"Klasor hatasi: {e}"
+
+    elif command == "/surec":
+        try:
+            r = subprocess.run(
+                ["powershell", "-Command",
+                 "Get-Process | Sort-Object CPU -Descending | Select-Object -First 10 Name,CPU,WorkingSet | Format-Table -AutoSize"],
+                capture_output=True, text=True, timeout=10
+            )
+            return f"*En Yuklu 10 Proses:*\n```\n{r.stdout[:1500]}\n```"
+        except Exception as e:
+            return f"Proses hatasi: {e}"
+
+    elif command == "/kill":
+        if not args:
+            return "Kullanim: /kill [proses-adi veya PID]"
+        kill_target = args.strip().split()[0]  # sadece ilk kelime
+        try:
+            r = subprocess.run(
+                ["powershell", "-Command", f"Stop-Process -Name '{kill_target}' -Force"],
+                capture_output=True, text=True, timeout=10
+            )
+            return f"`{kill_target}` durduruldu." if r.returncode == 0 else f"Hata: {r.stderr[:200]}"
+        except Exception as e:
+            return f"Kill hatasi: {e}"
+
+    elif command == "/ip":
+        try:
+            r = subprocess.run(["powershell", "-Command",
+                "(Invoke-WebRequest -Uri 'https://api.ipify.org' -UseBasicParsing).Content"],
+                capture_output=True, text=True, timeout=10)
+            local = subprocess.run(["ipconfig"], capture_output=True, text=True, timeout=5)
+            local_ip = next((l.split(":")[-1].strip() for l in local.stdout.split("\n")
+                            if "IPv4" in l), "?")
+            return f"*Dis IP:* `{r.stdout.strip()}`\n*Yerel IP:* `{local_ip}`"
+        except Exception as e:
+            return f"IP hatasi: {e}"
+
+    elif command == "/not":
+        if not args:
+            return "Kullanim: /not [metin]\nOrnek: /not Yarin toplanti var saat 15:00"
+        import json as _json_not
+        notes_file = str(DATA_DIR / "notlar.json")
+        try:
+            with open(notes_file, "r", encoding="utf-8") as f:
+                notes = _json_not.load(f)
+        except Exception:
+            notes = []
+        from datetime import datetime as _dt
+        notes.append({"tarih": _dt.now().strftime("%Y-%m-%d %H:%M"), "not": args})
+        with open(notes_file, "w", encoding="utf-8") as f:
+            _json_not.dump(notes, f, ensure_ascii=False, indent=2)
+        return f"Not kaydedildi ({len(notes)}. not):\n{args}"
+
+    elif command == "/notlar":
+        import json as _json_notlar
+        notes_file = str(DATA_DIR / "notlar.json")
+        try:
+            with open(notes_file, "r", encoding="utf-8") as f:
+                notes = _json_notlar.load(f)
+        except Exception:
+            notes = []
+        if not notes:
+            return "Hic not yok. /not [metin] ile ekle."
+        lines = [f"*Notlarim ({len(notes)} adet):*"]
+        for i, n in enumerate(notes[-10:], 1):
+            lines.append(f"{i}. [{n.get('tarih','')}] {n.get('not','')}")
+        return chr(10).join(lines)
+
+    elif command == "/not-sil":
+        import json as _json_notsil
+        notes_file = str(DATA_DIR / "notlar.json")
+        try:
+            with open(notes_file, "w", encoding="utf-8") as f:
+                _json_notsil.dump([], f)
+            return "Tum notlar silindi."
+        except Exception as e:
+            return f"Hata: {e}"
+
+    elif command == "/cevirici":
+        if not args:
+            return "Kullanim: /cevirici [metin]\nOtomatik TR<->EN cevirir"
+        route = MODEL_ROUTES["chat"]
+        prompt = (
+            f"Asagidaki metni cevirdir. Eger Turkce ise Ingilizceye, "
+            f"eger Ingilizce ise Turkceye cevirdir. "
+            f"SADECE cevirisi olan metni yaz, baska hicbir sey ekleme:" + chr(10) + args
+        )
+        reply = call_ollama(route["model"], [{"role": "user", "content": prompt}],
+                           max_tokens=800, num_ctx=2048)
+        return f"*Ceviri:*{chr(10)}{reply}"
+
+    elif command == "/gpt":
+        if not args:
+            return "Kullanim: /gpt [soru]\nGPT-4o ile soru sor (OpenAI API)"
+        oai_key = os.environ.get("OPENAI_API_KEY", "")
+        if not oai_key or oai_key == "your_api_key_here":
+            return "OpenAI API key eksik. .env dosyasina OPENAI_API_KEY ekle."
+        import urllib.request as _ureq, json as _jgpt
+        payload = _jgpt.dumps({
+            "model": "gpt-4o",
+            "messages": [{"role": "user", "content": args}],
+            "max_tokens": 1000
+        }).encode()
+        req = _ureq.Request(
+            "https://api.openai.com/v1/chat/completions",
+            data=payload,
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {oai_key}"}
+        )
+        try:
+            with _ureq.urlopen(req, timeout=30) as r:
+                data = _jgpt.loads(r.read())
+            reply = data["choices"][0]["message"]["content"]
+            return f"*GPT-4o:*{chr(10)}{reply}"
+        except Exception as e:
+            return f"GPT hatasi: {e}"
+
+    elif command == "/ozet":
+        if not args:
+            return "Kullanim: /ozet [metin veya url]\nLong metni/URL icerigini ozetler"
+        route = MODEL_ROUTES["chat"]
+        # URL mi metin mi?
+        if args.startswith("http"):
+            try:
+                import urllib.request as _ur
+                req = _ur.Request(args, headers={"User-Agent": "Mozilla/5.0"})
+                with _ur.urlopen(req, timeout=10) as r:
+                    raw = r.read().decode("utf-8", errors="ignore")
+                # Basit HTML tag temizleme
+                import re as _re
+                clean = _re.sub(r"<[^>]+>", " ", raw)
+                clean = _re.sub(r"\s+", " ", clean).strip()[:3000]
+                text_to_sum = f"Su URL icerigi: {clean}"
+            except Exception as e:
+                text_to_sum = args
+        else:
+            text_to_sum = args
+        prompt = f"Asagidaki metni Turkce olarak 3-5 madde halinde ozetle:{chr(10)}{text_to_sum}"
+        reply = call_ollama(route["model"], [{"role": "user", "content": prompt}],
+                           max_tokens=600, num_ctx=4096)
+        return f"*Ozet:*{chr(10)}{reply}"
+
+    elif command == "/jcoder":
+        if not args:
+            return "Kullanim: /jcoder [gorev]\nOrnek: /jcoder bridge.py ye yeni komut ekle"
+        route = MODEL_ROUTES["code"]
+        system_prompt = (
+            "Sen Jarvis Mission Control sisteminin bas geliştiricisisin. "
+            "Python 3.14, Telegram raw HTTP polling, Ollama (http://127.0.0.1:11434) kullaniyorsun. "
+            "bridge.py yapisina hakimsin. f-string icinde chr(10) kullan. "
+            "Kisa, net, calisir kod yaz. Turkce acikla."
+        )
+        reply = call_ollama(route["model"], [{"role":"user","content":args}],
+                           system=system_prompt, max_tokens=1500, num_ctx=4096)
+        return f"*Jarvis Coder:*{chr(10)}{reply}"
+
+    elif command == "/skill":
+        if not args:
+            return "Kullanim: /skill [isim] [aciklama]\nOrnek: /skill hava Sehir hava durumu getir"
+        route = MODEL_ROUTES["code"]
+        skill_fmt = "def run(args: str, context: dict = None) -> str:" + chr(10) + "    return 'sonuc'"
+        system_prompt = (
+            "Sen Jarvis skill yazicisin. Skill su formatta olmali:" + chr(10) +
+            skill_fmt + chr(10) +
+            "Ollama icin urllib kullan (http://127.0.0.1:11434/api/generate). "
+            "Sadece calisir Python kodu yaz, Turkce yorum ekle."
+        )
+        reply = call_ollama(route["model"],
+                           [{"role":"user","content":f"Skill yaz: {args}"}],
+                           system=system_prompt, max_tokens=1500, num_ctx=4096)
+        return f"*Skill Yazici:*{chr(10)}{reply}"
+
+    elif command == "/analyst":
+        if not args:
+            return "Kullanim: /analyst [konu]\nOrnek: /analyst Jarvis SaaS fiyatlandirma"
+        route = MODEL_ROUTES["reasoning"]
+        system_prompt = (
+            "Sen Jarvis Mission Control icin is gelistirme ve pazarlama uzmanisın. "
+            "Jarvis = self-hosted Turkce AI asistan SaaS. "
+            "Paketler: Starter 1500 TL, Pro 3500 TL, Agency 7500 TL. "
+            "Hedef: 20 musteri = 80.000 TL/ay. "
+            "Veriye dayali, somut, aksiyon odakli Turkce analiz yap."
+        )
+        reply = call_ollama(route["model"], [{"role":"user","content":args}],
+                           system=system_prompt, max_tokens=1200, num_ctx=4096)
+        return f"*Jarvis Analyst:*{chr(10)}{reply}"
+
+    elif command in ("/mouse", "/git", "/tıkla", "/tikla", "/click",
+                    "/çifttıkla", "/cifttikla", "/dblclick",
+                    "/sağtıkla", "/sagtikla", "/rightclick",
+                    "/yaz", "/type", "/tuş", "/tus", "/key", "/press",
+                    "/kısayol", "/kisayol", "/hotkey",
+                    "/scroll", "/ekranoku", "/konum", "/nerede"):
+        try:
+            sys.path.insert(0, r"C:\Users\sergen\Desktop\jarvis-mission-control\server\skills")
+            from computer_control_skill import run_computer_control
+            return run_computer_control(command, args)
+        except Exception as e:
+            return f"❌ Computer control hatası: {e}"
+
+    elif command in ("/yap", "/bak", "/otonom", "/kodcalistir"):
+        try:
+            sys.path.insert(0, r"C:\Users\sergen\Desktop\jarvis-mission-control\server\skills")
+            from computer_agent_skill import run_computer_agent
+            return run_computer_agent(command, args)
+        except Exception as e:
+            return f"❌ Computer agent hatası: {e}"
+
     elif command in ("/kabul", "/onayla", "/accept"):
         log.info("AnyDesk kabul komutu alindi.")
         try:
-            ps_script = r"C:\Users\sergen\Desktop\anydesk_kabul.ps1"
+            ps_script = r"C:\Users\sergen\Desktop\jarvis-mission-control\anydesk_kabul.ps1"
             result = subprocess.run(
                 ["powershell.exe", "-ExecutionPolicy", "Bypass",
                  "-WindowStyle", "Hidden", "-File", ps_script],
-                capture_output=True, text=True, timeout=15
+                capture_output=True, text=True, timeout=20
             )
             out = (result.stdout or "").strip()
             err = (result.stderr or "").strip()
@@ -839,80 +1277,13 @@ Servis: ✅ Aktif"""
         except Exception as e:
             return f"❌ Hata: {e}"
 
-
-    elif command == "/osint":
-        hedef = args.strip()
-        if not hedef:
-            return "Kullanim: /osint [hedef (IP, isim, vd.)]"
-        try:
-            from shadowbroker_skill import run_osint
-            return run_osint(hedef)
-        except Exception as e:
-            return f"OSINT hatasi: {e}"
-
-    elif command == "/arastirma" or command == "/research":
-        hedef = args.strip()
-        if not hedef:
-            return "Kullanim: /arastirma [konu]"
-        try:
-            from autoresearch_skill import run_deep_research
-            return run_deep_research(hedef)
-        except Exception as e:
-            return f"Arastirma motoru hatasi: {e}"
-
-    elif command == "/sandbox":
-        kod = args.strip()
-        if not kod:
-            return "Kullanim: /sandbox [python kodu]"
-        try:
-            from opensandbox_skill import run_in_sandbox
-            return run_in_sandbox(kod)
-        except Exception as e:
-            return f"Sandbox calistirma hatasi: {e}"
-
-    elif command == "/cmd":
-        if not args:
-            return "⚠️ Kullanım: `/cmd <komut>`\nÖrnek: `/cmd git clone https://...`"
-        FORBIDDEN = ["rm -rf /", "mkfs", "dd if=", "> /dev/sda", "format c:", "del /f /s"]
-        for f in FORBIDDEN:
-            if f in args.lower():
-                return f"🚫 Engellendi: `{f}` içeren komutlar çalıştırılamaz."
-        log.info(f"CMD komutu: {args[:80]}")
-        try:
-            if IS_WINDOWS:
-                result = subprocess.run(
-                    ["powershell.exe", "-Command", args],
-                    capture_output=True, text=True, timeout=60
-                )
-            else:
-                result = subprocess.run(
-                    args, shell=True, capture_output=True, text=True, timeout=60
-                )
-            stdout = (result.stdout or "").strip()
-            stderr = (result.stderr or "").strip()
-            status = "✅" if result.returncode == 0 else f"❌ (exit {result.returncode})"
-            out = f"{status} `{args[:60]}`\n\n"
-            if stdout:
-                out += f"```\n{stdout[:3000]}\n```"
-            if stderr:
-                out += f"\n⚠️ stderr:\n```\n{stderr[:500]}\n```"
-            return out or f"{status} _(çıktı yok)_"
-        except subprocess.TimeoutExpired:
-            return "❌ Komut zaman aşımına uğradı (60s)."
-        except Exception as e:
-            return f"❌ Hata: {e}"
-
     return f"Bilinmeyen komut: {command}\n/help yaz yardim icin."
 
 # ─────────────────────────── PROCESS MESSAGE ──────────────────────
 def process_message(chat_id: int, text: str) -> str:
     text = text.strip()
-    text_lower = text.lower()
-    
-    # ── NATURAL LANGUAGE INTERCEPT FOR ANYDESK ──
-    if "anydesk" in text_lower and ("onay" in text_lower or "kabul" in text_lower):
-        return handle_command(chat_id, "/kabul")
-        
+
+    # Content Factory session
     if CONTENT_FACTORY_SESSIONS.get(str(chat_id)):
         try:
             from content_factory_skill import get_interviewer, get_multiplier, format_output, init_content_db
@@ -922,71 +1293,115 @@ def process_message(chat_id: int, text: str) -> str:
                 CONTENT_FACTORY_SESSIONS.pop(str(chat_id), None)
                 try:
                     results = get_multiplier(call_ollama).multiply(ctx)
-                    return resp + chr(10)*2 + format_output(results)
+                    return resp + "\n\n" + format_output(results)
                 except Exception as me:
-                    return resp + chr(10) + str(me)
+                    return resp + "\n" + str(me)
             return resp
         except Exception as e:
             CONTENT_FACTORY_SESSIONS.pop(str(chat_id), None)
             return str(e)
+
     if text.startswith("/"):
         return handle_command(chat_id, text)
+
+    # ── NATURAL LANGUAGE INTERCEPTS ────────────────────────────────
+    _tl = text.lower()
+    # AnyDesk kabul
+    if any(k in _tl for k in ["kabul et", "anydesk", "bağlantıyı kabul", "isteği kabul", "gelen isteği", "accept"]):
+        return handle_command(chat_id, "/kabul")
+    # Ekran görüntüsü
+    if any(k in _tl for k in ["ekran görüntüsü", "ekranı göster", "screenshot", "ekrana bak"]):
+        return handle_command(chat_id, "/ekran")
+    # Ekrana bak (vision)
+    if any(k in _tl for k in ["ekrana bak", "ne var ekranda", "ekranda ne", "ekranı analiz"]):
+        return handle_command(chat_id, "/bak")
+    # Bilgisayar kontrolü — doğal dil → /yap komutu
+    _bilgisayar_keys = [
+        "aç", "ac", "kapat", "yaz", "tıkla", "tikla", "başlat", "baslat",
+        "youtube", "chrome", "firefox", "spotify", "explorer", "dosya",
+        "klasör", "program", "uygulama", "pencere", "tarayıcı", "tarayici",
+        "müzik", "muzik", "video", "oynat", "durdur", "ses aç", "ses kapat",
+        "büyüt", "buyut", "küçült", "kucult", "tam ekran"
+    ]
+    if any(k in _tl for k in _bilgisayar_keys):
+        # Doğrudan subprocess ile hızlı aç komutları
+        import subprocess as _sp
+        _quick_map = {
+            "youtube":  "start https://www.youtube.com",
+            "spotify":  "start spotify:",
+            "chrome":   "start chrome",
+            "firefox":  "start firefox",
+            "explorer": "start explorer",
+            "hesap":    "start calc",
+            "notepad":  "start notepad",
+        }
+        for _app, _cmd in _quick_map.items():
+            if _app in _tl:
+                try:
+                    _sp.Popen(_cmd, shell=True)
+                    return f"✅ {_app.capitalize()} açıldı!"
+                except Exception as _e:
+                    return f"❌ Açılamadı: {_e}"
+        # Bilinen app yok → /yap komutuna yönlendir
+        return handle_command(chat_id, f"/yap {text}")
+
     if text.startswith("!! "):
         cmd = text[3:].strip()
         result = run_shell_full(cmd)
         memory.add_message(chat_id, "user", text)
         memory.add_message(chat_id, "assistant", result, "system")
         return f"```\n{result}\n```"
+
     if text.startswith("$ "):
         cmd = text[2:].strip()
         result = run_command_safe(cmd)
         memory.add_message(chat_id, "user", text)
         memory.add_message(chat_id, "assistant", result, "system")
         return f"```\n{result}\n```"
-    # ── INTENT CHECK: Doğal dil → komut (komut prefix gerektirmez) ──
+
+    # Intent check
     if INTENT_ENABLED:
         try:
             _intent_response = handle_with_intent(text, str(chat_id))
             if _intent_response:
                 memory.add_message(chat_id, "user", text)
                 memory.add_message(chat_id, "assistant", _intent_response)
-                # Show detected intent hint
                 _detected = classify_intent(text)
                 _cmd = _detected.get("command", "") if _detected else ""
-                return f"🎯 `{_cmd}`\n\n{_intent_response}"
-        except Exception as _ie:
-            pass  # Fall through to AI on intent error
-    # ── END INTENT CHECK ─────────────────────────────────────────────
+                return f"[{_cmd}]\n\n{_intent_response}" if _cmd else _intent_response
+        except Exception:
+            pass
 
-    # ── AKTİF AJAN KONTROLÜ ──────────────────────────────────────────
+    # Aktif ajan kontrolu
     active_agent = ACTIVE_AGENTS.get(str(chat_id))
     if active_agent:
-        history = memory.get_history(chat_id)
-        history.append({"role": "user", "content": text})
+        hist = memory.get_history(chat_id)
+        hist.append({"role": "user", "content": text})
         model = active_agent.get("model", "llama3.2:latest")
-        system = active_agent["prompt"]
-        response = call_ollama(model, history, system)
+        response = call_ollama(model, hist, active_agent["prompt"])
         memory.add_message(chat_id, "user", text)
         memory.add_message(chat_id, "assistant", response, model)
-        agent_tag = active_agent["name"].upper()
-        return f"[{agent_tag}] {response}"
-    # ── NORMAL ROUTING ───────────────────────────────────────────────
+        return f"[{active_agent['name'].upper()}] {response}"
+
+    # Normal routing
     route_name, route = detect_route(text)
-    history = memory.get_history(chat_id)
+    hist = memory.get_history(chat_id)
     knowledge = get_relevant_knowledge(text)
     if knowledge:
-        history.insert(0, {"role": "system", "content": knowledge})
-    history.append({"role": "user", "content": text})
+        hist.insert(0, {"role": "system", "content": knowledge})
+    hist.append({"role": "user", "content": text})
     model = route["model"]
-    # PATCH 2: User context inject
     try:
         _user_ctx = get_user_context(str(chat_id))
-        _system = route["system"] + (chr(10)+chr(10)+_user_ctx if _user_ctx else "")
+        _reme_ctx = reme_get_context(text)
+        _extra = "\n\n".join(filter(None, [_user_ctx, _reme_ctx]))
+        _system = route["system"] + ("\n\n" + _extra if _extra else "")
     except Exception:
         _system = route["system"]
-    response = call_ollama(model, history, _system)
+    response = call_ollama(model, hist, _system)
     memory.add_message(chat_id, "user", text)
     memory.add_message(chat_id, "assistant", response, model)
+    reme_save(text, response)
     model_short = model.split(":")[0].replace("deepseek-", "DS-")
     return f"[{model_short}] {response}"
 
@@ -1013,36 +1428,9 @@ class TelegramBot:
             except Exception as e:
                 log.error(f"Send error: {e}")
 
-    def send_button(self, chat_id, text, button_text, callback_data):
-        payload = json.dumps({
-            "chat_id": chat_id,
-            "text": text,
-            "parse_mode": "Markdown",
-            "reply_markup": {
-                "inline_keyboard": [[
-                    {"text": button_text, "callback_data": callback_data}
-                ]]
-            }
-        }).encode()
-        try:
-            req = Request(f"{self.api}/sendMessage", data=payload,
-                        headers={"Content-Type": "application/json"}, method="POST")
-            urlopen(req, timeout=10)
-        except Exception as e:
-            log.error(f"Send button error: {e}")
-
-    def answer_callback(self, callback_id, text="✅"):
-        payload = json.dumps({"callback_query_id": callback_id, "text": text}).encode()
-        try:
-            req = Request(f"{self.api}/answerCallbackQuery", data=payload,
-                        headers={"Content-Type": "application/json"}, method="POST")
-            urlopen(req, timeout=5)
-        except Exception as e:
-            log.error(f"Answer callback error: {e}")
-
     def get_updates(self):
         try:
-            url = f"{self.api}/getUpdates?offset={self.offset}&timeout=30&limit=10&allowed_updates=[\"message\",\"callback_query\"]"
+            url = f"{self.api}/getUpdates?offset={self.offset}&timeout=30&limit=10"
             with urlopen(Request(url), timeout=35) as resp:
                 return json.loads(resp.read()).get("result", [])
         except Exception as e:
@@ -1053,7 +1441,7 @@ class TelegramBot:
     def run(self):
         log.info("Jarvis Telegram bot basladi")
         self.send(self.authorized_id,
-                  "*Jarvis Mission Control v2.1 Aktif!*\nMulti-model AI router hazir.\n`/help` yaz yardim icin.")
+                  "*Jarvis Mission Control v2.4 Aktif!* (Pinokio Edition)\nMulti-model AI router + Uzak Yonetim hazir.\n`/help` yaz yardim icin.")
         while self.running:
             updates = self.get_updates()
             for update in updates:
@@ -1063,11 +1451,35 @@ class TelegramBot:
                 except Exception as e:
                     log.error(f"Update error: {e}")
 
+    def send_button(self, chat_id, text, btn_text, btn_data):
+        payload = json.dumps({
+            "chat_id": chat_id,
+            "text": text,
+            "reply_markup": {
+                "inline_keyboard": [[{"text": btn_text, "callback_data": btn_data}]]
+            }
+        }).encode()
+        try:
+            req = Request(f"{self.api}/sendMessage", data=payload,
+                         headers={"Content-Type": "application/json"}, method="POST")
+            urlopen(req, timeout=10)
+        except Exception as e:
+            log.error(f"send_button error: {e}")
+
+    def answer_callback(self, callback_id, text=""):
+        payload = json.dumps({"callback_query_id": callback_id, "text": text}).encode()
+        try:
+            req = Request(f"{self.api}/answerCallbackQuery", data=payload,
+                         headers={"Content-Type": "application/json"}, method="POST")
+            urlopen(req, timeout=5)
+        except Exception as e:
+            log.error(f"answer_callback error: {e}")
+
     def _handle_update(self, update):
-        # Inline buton callback
+        # Callback query (buton basma) işle
         cb = update.get("callback_query")
         if cb:
-            cb_id   = cb["id"]
+            cb_id = cb["id"]
             cb_data = cb.get("data", "")
             cb_chat = cb["message"]["chat"]["id"]
             if cb_chat != self.authorized_id:
@@ -1075,11 +1487,11 @@ class TelegramBot:
             if cb_data == "anydesk_kabul":
                 self.answer_callback(cb_id, "⏳ Kabul ediliyor...")
                 try:
+                    ps_script = r"C:\Users\sergen\Desktop\jarvis-mission-control\anydesk_kabul.ps1"
                     result = subprocess.run(
                         ["powershell.exe", "-ExecutionPolicy", "Bypass",
-                         "-WindowStyle", "Hidden", "-File",
-                         r"C:\Users\sergen\Desktop\anydesk_kabul.ps1"],
-                        capture_output=True, text=True, timeout=15
+                         "-WindowStyle", "Hidden", "-File", ps_script],
+                        capture_output=True, text=True, timeout=20
                     )
                     out = (result.stdout or "").strip()
                     if result.returncode == 0 or "kabul edildi" in out.lower():
@@ -1096,11 +1508,31 @@ class TelegramBot:
         chat_id = msg["chat"]["id"]
         text = msg.get("text", "")
         username = msg.get("from", {}).get("username", "?")
-        if chat_id != self.authorized_id or not text:
+
+        # ── Sesli mesaj (voice/audio) ──────────────────────────────────────
+        voice = msg.get("voice") or msg.get("audio")
+        if voice and chat_id == self.authorized_id:
+            self.send(chat_id, "🎙️ _Ses dinleniyor..._")
+            try:
+                import sys, os
+                sys.path.insert(0, os.path.join(os.path.dirname(__file__), "skills"))
+                from voice_skill import handle_voice_message
+                result = handle_voice_message(self.token, voice["file_id"])
+                text = result.get("text", "")
+                if not text or "hata" in text.lower():
+                    self.send(chat_id, f"❌ Ses anlaşılamadı: {text}")
+                    return
+                self.send(chat_id, f"🎙️ *Duydum:* _{text}_")
+                log.info(f"[{username}][VOICE]: {text[:50]}")
+            except Exception as e:
+                self.send(chat_id, f"❌ Ses işleme hatası: {e}")
+                return
+        elif chat_id != self.authorized_id or not text:
             return
+
         log.info(f"[{username}]: {text[:50]}")
 
-        # /kabul komutu → buton gönder
+        # /kabul → buton gönder
         if text.strip().lower() in ("/kabul", "/onayla", "/accept"):
             self.send_button(
                 chat_id,
@@ -1110,9 +1542,54 @@ class TelegramBot:
             )
             return
 
+        is_voice_request = bool(msg.get("voice") or msg.get("audio"))
         self.send(chat_id, "_Isleniyor..._")
         response = process_message(chat_id, text)
-        self.send(chat_id, response)
+        if response.startswith("__SCREENSHOT__"):
+            photo_path = response[len("__SCREENSHOT__"):]
+            self.send_photo(chat_id, photo_path)
+        else:
+            self.send(chat_id, response)
+            # Sesli mesajla geldiyse → sesli yanıt da gönder
+            if is_voice_request:
+                try:
+                    import sys as _sys, os as _os
+                    _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), "skills"))
+                    from voice_skill import text_to_speech
+                    # Emoji ve markdown işaretlerini temizle
+                    _clean = response.replace("*","").replace("_","").replace("`","")
+                    _clean = _clean[:400]  # max 400 karakter
+                    audio_path = text_to_speech(_clean)
+                    if audio_path:
+                        self.send_voice(chat_id, audio_path)
+                except Exception as _e:
+                    log.warning(f"TTS hatasi: {_e}")
+
+    def send_photo(self, chat_id, photo_path):
+        try:
+            import urllib.request, urllib.parse
+            with open(photo_path, "rb") as f:
+                photo_data = f.read()
+            boundary = "JarvisBoundary"
+            body = (
+                f"--{boundary}\r\n"
+                f'Content-Disposition: form-data; name="chat_id"\r\n\r\n'
+                f"{chat_id}\r\n"
+                f"--{boundary}\r\n"
+                f'Content-Disposition: form-data; name="photo"; filename="screenshot.png"\r\n'
+                f"Content-Type: image/png\r\n\r\n"
+            ).encode() + photo_data + f"\r\n--{boundary}--\r\n".encode()
+            req = urllib.request.Request(
+                f"{self.api}/sendPhoto",
+                data=body,
+                headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
+                method="POST"
+            )
+            urllib.request.urlopen(req, timeout=15)
+            log.info("Ekran goruntusu gonderildi")
+        except Exception as e:
+            log.error(f"Fotograf gonderilemedi: {e}")
+            self.send(chat_id, f"Fotograf gonderilemedi: {e}")
 
 # ─────────────────────────── WEB DASHBOARD ────────────────────────
 class WebHandler(BaseHTTPRequestHandler):
@@ -1120,7 +1597,7 @@ class WebHandler(BaseHTTPRequestHandler):
         pass
 
     def do_GET(self):
-        if self.path == "/" or self.path == "/dashboard":
+        if self.path in ("/", "/dashboard"):
             models = get_available_models()
             stats = memory.data["stats"]
             html = f"""<!DOCTYPE html>
@@ -1161,28 +1638,28 @@ header p{{color:#888;font-size:.9em}}
 </style></head><body>
 <header>
 <div class="dot"></div>
-<div><h1>Jarvis Mission Control</h1><p>Pinokio Edition — {datetime.now().strftime('%H:%M:%S')} | {CONFIG['platform']}</p></div>
+<div><h1>Jarvis Mission Control</h1><p>Pinokio Edition — {datetime.now().strftime('%H:%M:%S')}</p></div>
 </header>
 <div class="grid">
 <div class="card">
 <h2>Sistem</h2>
 <div class="stat"><span class="stat-label">Toplam Sorgu</span><span class="stat-val">{stats['total_queries']}</span></div>
 <div class="stat"><span class="stat-label">AI Modeller</span><span class="stat-val">{len(models)} aktif</span></div>
-<div class="stat"><span class="stat-label">Web Port</span><span class="stat-val">:8080</span></div>
-<div class="stat"><span class="stat-label">Telegram</span><span class="stat-val">Bagli</span></div>
+<div class="stat"><span class="stat-label">Web Port</span><span class="stat-val">:{CONFIG['web_port']}</span></div>
+<div class="stat"><span class="stat-label">Platform</span><span class="stat-val">Pinokio/Windows</span></div>
 </div>
 <div class="card">
 <h2>Router</h2>
 <div class="stat"><span class="stat-label">Sohbet</span><span class="stat-val">llama3.2</span></div>
 <div class="stat"><span class="stat-label">Kod</span><span class="stat-val">deepseek-coder</span></div>
-<div class="stat"><span class="stat-label">Akil/Plan</span><span class="stat-val">deepseek-r1</span></div>
+<div class="stat"><span class="stat-label">Akil/Plan</span><span class="stat-val">llama3.2</span></div>
 <div class="stat"><span class="stat-label">eBay/Trendyol</span><span class="stat-val">llama3.2</span></div>
 </div>
 <div class="card full">
 <h2>Web Chat</h2>
 <div class="chat">
 <div class="chat-row">
-<input id="inp" placeholder="/help /ebay /trendyol /code /status..." onkeypress="if(event.key==='Enter')send()"/>
+<input id="inp" placeholder="/help /ebay /trendyol /code /status /reklam /ara ..." onkeypress="if(event.key==='Enter')send()"/>
 <button onclick="send()">Gonder</button>
 </div>
 <div class="msgs" id="msgs"><div class="msg sys">Jarvis hazir. Mesaj gonderin.</div></div>
@@ -1219,10 +1696,8 @@ if(s.length)s[s.length-1].remove();
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.end_headers()
-            self.wfile.write(html.encode())
-        elif self.path.startswith("/auth/callback"):
-            self._handle_shopify_oauth()
-            return
+            self.wfile.write(html.encode("utf-8"))
+
         elif self.path == "/api/status":
             data = {"status": "online", "models": get_available_models(),
                     "stats": memory.data["stats"], "time": datetime.now().isoformat()}
@@ -1244,68 +1719,8 @@ if(s.length)s[s.length-1].remove();
         else:
             self.send_error(404)
 
-
-    def _handle_shopify_oauth(self):
-        """Handle Shopify OAuth callback"""
-        from urllib.parse import urlparse, parse_qs
-        from urllib.request import urlopen, Request
-        import json
-        
-        parsed = urlparse(self.path)
-        params = parse_qs(parsed.query)
-        code = params.get("code", [""])[0]
-        shop = params.get("shop", [""])[0]
-        
-        if not code or not shop:
-            self._json({"error": "Missing code or shop"}, 400)
-            return
-        
-        # Exchange code for token
-        payload = json.dumps({
-            "client_id": _os.environ.get("SHOPIFY_CLIENT_ID", ""),
-            "client_secret": _os.environ.get("SHOPIFY_CLIENT_SECRET", ""),
-            "code": code
-        }).encode()
-        
-        try:
-            req = Request(
-                f"https://{shop}/admin/oauth/access_token",
-                data=payload,
-                headers={"Content-Type": "application/json"},
-                method="POST"
-            )
-            with urlopen(req, timeout=15) as resp:
-                token_data = json.loads(resp.read())
-                token = token_data.get("access_token", "")
-            
-            # Save token
-            _shopify_path = BASE_DIR / "data" / "shopify_token.txt"
-            _shopify_path.parent.mkdir(exist_ok=True)
-            _shopify_path.write_text(f"SHOP={shop}\nTOKEN={token}\n")
-            
-            log.info(f"Shopify OAuth complete! Token: {token[:20]}...")
-            
-            # Send HTML response
-            html = f"""<html><body style="background:#0a0a0f;color:#00ff88;font-family:sans-serif;text-align:center;padding:50px">
-            <h1>✅ Jarvis Shopify Bağlantısı Tamam!</h1>
-            <p>Token alındı ve kaydedildi.</p>
-            <p>Şimdi ürünler çekiliyor...</p>
-            </body></html>"""
-            self.send_response(200)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.end_headers()
-            self.wfile.write(html.encode())
-            
-            # Trigger product sync in background
-            import threading
-            threading.Thread(target=_sync_shopify_products, args=(shop, token), daemon=True).start()
-            
-        except Exception as e:
-            log.error(f"OAuth error: {e}")
-            self._json({"error": str(e)}, 500)
-
     def _json(self, data, code=200):
-        body = json.dumps(data, ensure_ascii=False).encode()
+        body = json.dumps(data, ensure_ascii=False).encode("utf-8")
         self.send_response(code)
         self.send_header("Content-Type", "application/json")
         self.send_header("Access-Control-Allow-Origin", "*")
@@ -1313,94 +1728,24 @@ if(s.length)s[s.length-1].remove();
         self.wfile.write(body)
 
 # ─────────────────────────── MAIN ─────────────────────────────────
-def _sync_shopify_products(shop, token):
-    """Sync all products from Shopify store"""
-    import json, time
-    from urllib.request import urlopen, Request
-    
-    log.info(f"Shopify urun sync basliyor: {shop}")
-    all_products = []
-    page_info = None
-    
-    while True:
-        url = f"https://{shop}/admin/api/2024-01/products.json?limit=250"
-        if page_info:
-            url += f"&page_info={page_info}"
-        
-        try:
-            req = Request(url, headers={
-                "X-Shopify-Access-Token": token,
-                "Content-Type": "application/json"
-            })
-            with urlopen(req, timeout=30) as resp:
-                data = json.loads(resp.read())
-                products = data.get("products", [])
-                all_products.extend(products)
-                log.info(f"  Sayfa: {len(all_products)} urun")
-                
-                # Check for pagination
-                link_header = resp.headers.get("Link", "")
-                if "rel=\"next\"" in link_header:
-                    import re
-                    m = re.search(r'page_info=([^&>]+)', link_header.split("rel=\"next\"")[0])
-                    page_info = m.group(1) if m else None
-                else:
-                    break
-                time.sleep(0.5)
-        except Exception as e:
-            log.error(f"Sync error: {e}")
-            break
-    
-    # Save knowledge file
-    lines = [f"# Shopify Mağaza: {shop}", f"# Toplam: {len(all_products)} urun", ""]
-    
-    vendors = list(set(p.get("vendor","") for p in all_products if p.get("vendor")))
-    types = list(set(p.get("product_type","") for p in all_products if p.get("product_type")))
-    
-    lines.append(f"## Ozet")
-    lines.append(f"- Toplam Urun: {len(all_products)}")
-    lines.append(f"- Kategoriler: {', '.join(types[:10]) or '-'}")
-    lines.append(f"- Tedarikciler: {', '.join(vendors[:10]) or '-'}")
-    lines.append("")
-    lines.append("## Urunler")
-    
-    for p in all_products:
-        variants = p.get("variants", [])
-        prices = [float(v.get("price",0)) for v in variants if v.get("price")]
-        min_p = min(prices) if prices else 0
-        max_p = max(prices) if prices else 0
-        stock = sum(v.get("inventory_quantity",0) for v in variants)
-        price_str = f"${min_p:.2f}" if min_p==max_p else f"${min_p:.2f}-${max_p:.2f}"
-        
-        lines.append(f"- **{p.get('title','-')}** | {price_str} | Stok:{stock} | {p.get('product_type','-')}")
-    
-    knowledge = "\n".join(lines)
-    _sk_path = KNOWLEDGE_DIR / "shopify_store.md"
-    _sk_path.write_text(knowledge, encoding="utf-8")
-    
-    # Reload knowledge
-    global KNOWLEDGE
-    KNOWLEDGE["shopify_store"] = knowledge
-    log.info(f"✅ Shopify sync tamamlandi: {len(all_products)} urun")
-
 def start_web():
-    HTTPServer(("0.0.0.0", int(CONFIG["web_port"])), WebHandler).serve_forever()
+    HTTPServer(("127.0.0.1", CONFIG["web_port"]), WebHandler).serve_forever()
 
 def main():
     log.info("=" * 55)
-    log.info("  JARVIS MISSION CONTROL v2.2 (Pinokio Edition)")
-    log.info(f"  Platform: {CONFIG['platform']}")
-    log.info(f"  Dizin: {BASE_DIR}")
+    log.info("  JARVIS MISSION CONTROL v2.2 — Pinokio Edition")
     log.info("=" * 55)
-    if not CONFIG["telegram_token"]:
-        log.warning("UYARI: TELEGRAM_BOT_TOKEN bulunamadi! .env dosyasini kontrol et.")
+    log.info(f"BASE_DIR: {BASE_DIR}")
     models = get_available_models()
     if models:
         log.info(f"Ollama aktif — {len(models)} model: {', '.join(models[:3])}")
     else:
-        log.warning("Ollama bagli degil! http://127.0.0.1:11434 adresini kontrol et.")
+        log.warning("Ollama bagli degil! Ollama'yi baslatin.")
     threading.Thread(target=start_web, daemon=True).start()
-    log.info(f"Web dashboard: http://127.0.0.1:{CONFIG['web_port']}")
+    time.sleep(1)
+    url = f"http://127.0.0.1:{CONFIG['web_port']}"
+    log.info(f"Web dashboard: {url}")
+    print(url, flush=True)
     bot = TelegramBot(CONFIG["telegram_token"], CONFIG["authorized_chat_id"])
     try:
         bot.run()
