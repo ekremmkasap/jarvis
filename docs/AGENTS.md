@@ -1,4 +1,4 @@
-# Agents (FAZ 1)
+﻿# Agents (FAZ 1)
 
 ## Core Agent (Executive)
 - Owns orchestration and final decisions.
@@ -33,3 +33,17 @@
 - No sub-agent can self-escalate permissions.
 - All skill calls must pass policy checks.
 - Every major action must be traceable.
+
+## Development Automation Agents
+
+### git_summarizer
+- Summarizes recent Git activity into a standup-ready markdown report.
+
+### pr_reviewer
+- Reviews pull requests using GitHub metadata and file risk heuristics.
+
+### ci_triager
+- Analyzes failed workflow runs, extracts signal lines, and proposes minimal fixes.
+
+### issue_router
+- Recommends issue labels, priority, and ownership direction.

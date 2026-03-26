@@ -1,0 +1,139 @@
+{
+  "analysis_session": {
+    "id": "trending_repos_20260326",
+    "timestamp": "2026-03-26T04:50:00",
+    "total_repos": 25,
+    "status": "queued"
+  },
+  "repos_to_analyze": [
+    {
+      "url": "https://github.com/hanouticelina",
+      "priority": 1,
+      "type": "developer_profile",
+      "focus": "skills_and_patterns"
+    },
+    {
+      "url": "https://github.com/jackwener/opencli",
+      "priority": 1,
+      "type": "cli_framework",
+      "focus": "command_interface"
+    },
+    {
+      "url": "https://github.com/fatih/color",
+      "priority": 2,
+      "type": "utility",
+      "focus": "terminal_output"
+    },
+    {
+      "url": "https://github.com/slavingia/skills",
+      "priority": 1,
+      "type": "ai_skills",
+      "focus": "skill_architecture"
+    },
+    {
+      "url": "https://github.com/mrgoonie/claudekit-skills",
+      "priority": 1,
+      "type": "claude_integration",
+      "focus": "claude_skills_pattern"
+    },
+    {
+      "url": "https://github.com/jsoref",
+      "priority": 2,
+      "type": "developer_profile",
+      "focus": "code_quality"
+    },
+    {
+      "url": "https://github.com/renecannao",
+      "priority": 2,
+      "type": "developer_profile",
+      "focus": "database_patterns"
+    },
+    {
+      "url": "https://github.com/fzyzcjy/flutter_rust_bridge",
+      "priority": 2,
+      "type": "bridge_pattern",
+      "focus": "language_bridge"
+    },
+    {
+      "url": "https://github.com/majiayu000/claude-skill-registry",
+      "priority": 1,
+      "type": "skill_registry",
+      "focus": "skill_discovery"
+    },
+    {
+      "url": "https://github.com/chenhg5/cc-connect",
+      "priority": 1,
+      "type": "connection_framework",
+      "focus": "connectivity"
+    },
+    {
+      "url": "https://github.com/mattt/iMCP",
+      "priority": 1,
+      "type": "mcp_protocol",
+      "focus": "protocol_implementation"
+    },
+    {
+      "url": "https://github.com/martinothamar/Mediator",
+      "priority": 1,
+      "type": "mediator_pattern",
+      "focus": "message_routing"
+    },
+    {
+      "url": "https://github.com/klauspost/compress",
+      "priority": 3,
+      "type": "utility",
+      "focus": "compression"
+    },
+    {
+      "url": "https://github.com/mvanhorn/last30days-skill",
+      "priority": 1,
+      "type": "research_skill",
+      "focus": "multi_source_research"
+    },
+    {
+      "url": "https://github.com/davideast/stitch-mcp",
+      "priority": 1,
+      "type": "mcp_integration",
+      "focus": "mcp_framework"
+    },
+    {
+      "url": "https://github.com/bradygaster/squad",
+      "priority": 1,
+      "type": "team_orchestration",
+      "focus": "multi_agent_system"
+    },
+    {
+      "url": "https://github.com/ruvnet/ruflo",
+      "priority": 1,
+      "type": "workflow_engine",
+      "focus": "flow_orchestration"
+    },
+    {
+      "url": "https://github.com/max-sixty/worktrunk",
+      "priority": 1,
+      "type": "work_management",
+      "focus": "task_tracking"
+    },
+    {
+      "url": "https://github.com/trending/developers",
+      "priority": 1,
+      "type": "trending_analysis",
+      "focus": "developer_trends"
+    }
+  ],
+  "extraction_targets": [
+    "skill_architecture",
+    "agent_orchestration",
+    "mcp_protocol",
+    "multi_source_research",
+    "team_coordination",
+    "workflow_patterns",
+    "bridge_patterns",
+    "cli_interface_design"
+  ],
+  "output": {
+    "summary_file": "server/agent_workspace/staging/trending_repos_analysis.md",
+    "integration_plan": "server/agent_workspace/staging/integration_roadmap.md",
+    "code_samples": "server/agent_workspace/staging/best_patterns/"
+  }
+}

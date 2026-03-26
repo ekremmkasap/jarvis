@@ -27,8 +27,8 @@ Olusturulma: 2026-03-01
 ### Telegram Entegrasyonu
 - /home/userk/telegram_gateway_v2.py    — Ana gateway (aktif servis)
 - /home/userk/jarvis_router.py          — Mesaj siniflandirici + AI yonlendirici
-- Bot token: 8295826032:AAGn4XRJxQi98hqqZLRMcvOEaeowSGYDt-k
-- Authorized Chat ID: 5847386182
+- Bot token: [redacted - use .env]
+- Authorized Chat ID: [redacted - use .env]
 - Komutlar: /help, /status, /memory, /tasks
 - Her mesaj → JarvisRouter → Claude (karmask) / Ollama (basit) / Skill (sunucu)
 

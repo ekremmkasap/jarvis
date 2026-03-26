@@ -1,20 +1,32 @@
-# Jarvis Mission Control - Architecture (FAZ 1)
+# Jarvis Mission Control - Architecture
 
-## Sistem Bilesenleri
-- **Mission Control (Orchestrator)**: orchestrator.py - istekleri Task'a ceviren katman
-- **Core Agent**: core/agent.py - tek karar verici, state machine, policy gate
-- **Sub-Agents**: planner / implementer / reviewer
-- **Skills**: cognitive / execution / io / governance
-- **Memory**: working_memory (anlık) / project_memory (kalici) / knowledge_store
+## Canonical Runtime
+- **Gateway**: `server/bridge.py` - web, Telegram, and command intake
+- **Agent OS Runtime**: `server/agent_os/runtime.py` - route selection, department loading, context packet assembly
+- **Team Orchestrator**: `server/core/team_orchestrator.py` - planner -> builder -> guard -> research -> synthesizer workflow
+- **Department Workspace**: `server/agent_workspace/departments/*` - AGENT, MEMORY, and skill files per department
+- **Team Agents**: `server/agents/*.py` - execution roles used by the orchestrator
 
-## Akis
-Intake -> Policy Check -> Planning -> Running -> Reviewing -> Synthesize -> Memory Update
+## Main Flow
+Intake -> Route -> Department Context -> Planning -> Build -> Guard -> Synthesis -> Memory
 
-## Dizin Yapisi
-/opt/jarvis/
-  core/          - agent.py, orchestrator.py
-  agents/        - planner, implementer, reviewer
-  skills/        - cognitive, execution, io, governance
-  memory/        - working_memory, project_memory, knowledge_store
-  config/        - konfigurasyonlar
-  logs/          - agent.log, audit.jsonl
+## Department Model
+- `assistant` - intake, routing, executive framing
+- `builder` - implementation and code-first outputs
+- `guard` - security and logic review
+- `research` - comparisons and architecture choices
+- `marketing` - campaign/content workflows
+- `sales` - offer and outreach workflows
+
+## Key Files
+- `server/config/department_manifest.json`
+- `server/config/team_config.json`
+- `server/logs/team_audit.jsonl`
+- `server/memory/working_memory/team_tasks.jsonl`
+
+## Notes
+- `server/bridge.py` remains the active Windows runtime.
+- `/team` is now backed by the Agent OS runtime rather than a thin direct orchestrator call.
+- Department context is file-based so the system can evolve toward AgentClaw-style context engineering.
+- Pinokio launcher compatibility is no longer a primary design goal; the runtime is a standalone local Python service.
+- `C:\pinokio\api\ekrem\app` is treated as a donor source for prompts and patterns only.

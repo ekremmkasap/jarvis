@@ -6,9 +6,18 @@ Kullanim: python3 /opt/jarvis/jarvis_tenant_bot.py --config /opt/jarvis/tenants/
 """
 
 import os, sys, json, time, logging, threading, argparse, sqlite3
+from pathlib import Path
 from datetime import datetime
 from urllib.request import urlopen, Request
 from urllib.error import URLError
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from env_utils import load_env_files
+
+load_env_files(ROOT_DIR / ".env", Path(__file__).resolve().parent / ".env")
 
 # ── Args ──────────────────────────────────────────────────────────
 parser = argparse.ArgumentParser()
@@ -19,15 +28,36 @@ args = parser.parse_args()
 with open(args.config) as f:
     TC = json.load(f)
 
+
+def _resolve_config_value(config: dict, literal_key: str, env_key_field: str, default=None):
+    env_name = config.get(env_key_field)
+    if env_name:
+        env_value = os.environ.get(env_name, "")
+        if env_value not in ("", None):
+            return env_value
+    return config.get(literal_key, default)
+
 TENANT_ID   = TC["tenant_id"]
 TENANT_NAME = TC["name"]
-TG_TOKEN    = TC["telegram_token"]
-CHAT_ID     = TC["authorized_chat_id"]
+TG_TOKEN    = _resolve_config_value(TC, "telegram_token", "telegram_token_env", "")
+CHAT_ID_RAW = _resolve_config_value(TC, "authorized_chat_id", "authorized_chat_id_env", 0)
+CHAT_ID     = int(CHAT_ID_RAW or 0)
 MEMORY_DIR  = TC.get("memory_dir", f"/opt/jarvis/tenants/{TENANT_ID}/memory")
 SOUL_MD     = TC.get("soul_md", "/opt/jarvis/soul.md")
 FEATURES    = TC.get("features", [])
 PLAN        = TC.get("plan", "starter")
 OLLAMA_URL  = "http://127.0.0.1:11434"
+
+if not TG_TOKEN:
+    raise RuntimeError(
+        f"Tenant {TENANT_ID} icin Telegram token bulunamadi. "
+        "Config'te telegram_token_env tanimlayin veya literal telegram_token saglayin."
+    )
+if not CHAT_ID:
+    raise RuntimeError(
+        f"Tenant {TENANT_ID} icin authorized_chat_id bulunamadi. "
+        "Config'te authorized_chat_id_env tanimlayin veya literal authorized_chat_id saglayin."
+    )
 
 os.makedirs(MEMORY_DIR, exist_ok=True)
 

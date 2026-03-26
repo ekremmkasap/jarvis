@@ -48,7 +48,7 @@ C=OK, L=KISMI, A=OK, W=OK, S=KISMI, N=EKSIK
 /opt/jarvis/skills/web_search_skill.py
 /opt/jarvis/skills/ollama_orchestrator.py
 /opt/jarvis/skills/claude_agent_skill.py
-Telegram: 8295826032:AAGn4XRJxQi98hqqZLRMcvOEaeowSGYDt-k | ChatID: 5847386182
+Telegram: [redacted - use .env] | ChatID: [redacted - use .env]
 
 ## BAGLANTI
 python (python3 degil) + paramiko, SFTP ile yaz/oku

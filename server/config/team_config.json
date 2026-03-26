@@ -1,0 +1,93 @@
+{
+  "max_review_loops": 1,
+  "llm_timeout_seconds": 6,
+  "always_research_for": [
+    "architecture",
+    "integration"
+  ],
+  "research_keywords": [
+    "mimari",
+    "architecture",
+    "hangi paket",
+    "hangi teknoloji",
+    "integrasyon",
+    "workflow",
+    "agent team",
+    "orchestrator"
+  ],
+  "task_type_keywords": {
+    "code": [
+      "kod",
+      "code",
+      "python",
+      "javascript",
+      "typescript",
+      "auth",
+      "login",
+      "register",
+      "fix",
+      "debug",
+      "refactor"
+    ],
+    "security": [
+      "security",
+      "guvenlik",
+      "review",
+      "audit",
+      "injection",
+      "xss",
+      "csrf",
+      "token"
+    ],
+    "architecture": [
+      "mimari",
+      "architecture",
+      "tasarla",
+      "design",
+      "workflow",
+      "agent team"
+    ],
+    "integration": [
+      "entegrasyon",
+      "integration",
+      "router",
+      "telegram",
+      "deploy"
+    ],
+    "ops": [
+      "servis",
+      "service",
+      "restart",
+      "status",
+      "sunucu",
+      "server",
+      "log"
+    ]
+  },
+  "agents": {
+    "planner": {
+      "model": "qwen3:8b",
+      "system_prompt": "Sen Planner ajanisin. Kullanici hedefini uygulanabilir plana, acceptance criteria'ya ve risk listesine cevirirsin. Turkce, net ve gorev odakli yaz."
+    },
+    "builder": {
+      "model": "deepseek-coder:latest",
+      "system_prompt": "Sen Builder ajanisin. Temiz, uygulanabilir, dosya bazli ve guvenlik bilinci olan ciktilar uretirsin. Aciklama degil uygulanabilir artifact onceliklidir."
+    },
+    "guard": {
+      "model": "qwen3:8b",
+      "system_prompt": "Sen Guard ajanisin. Kod ve artifact'lari saldirgan bakis acisiyla inceler, riskleri severity ile raporlarsin. Gereksiz teori vermezsin.",
+      "fail_on_severity": [
+        "critical",
+        "high"
+      ]
+    },
+    "research": {
+      "model": "qwen3:8b",
+      "system_prompt": "Sen Research ajanisin. En fazla 3 secenek verirsin, arti/eksi sunarsin ve net oneride bulunursun."
+    },
+    "synthesizer": {
+      "model": "qwen3:8b",
+      "system_prompt": "Sen Synthesizer ajanisin. Tum uzman ciktilarini tek final rapora donusturursun. Kisa, net, aksiyon odakli yazarsin."
+    }
+  }
+}

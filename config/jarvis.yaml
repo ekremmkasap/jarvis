@@ -1,0 +1,122 @@
+##############################################################
+# Jarvis Mission Control — Main Configuration
+##############################################################
+
+system:
+  name: "Jarvis Mission Control"
+  version: "2.0.0"
+  log_level: "INFO"
+  data_dir: "./memory"
+  output_dir: "./outputs"
+  log_dir: "./logs"
+
+# ── Orchestrator ────────────────────────────────────────────
+orchestrator:
+  port: 8090
+  host: "0.0.0.0"
+  max_concurrent_agents: 4
+  task_retention_hours: 48
+  enable_websocket: true
+
+# ── Voice Layer ─────────────────────────────────────────────
+voice:
+  enabled: true
+  wake_word: "jarvis"
+  wake_word_sensitivity: 0.6
+  stt_model: "base"               # whisper model: tiny/base/small/medium
+  tts_engine: "edge"              # edge / pyttsx3 / piper / print
+  tts_voice: "en-US-GuyNeural"
+  mute_on_startup: false
+  announce_task_completion: true
+  announce_ci_failures: true
+  announce_pr_reviews: true
+
+# ── GitHub Integration ──────────────────────────────────────
+github:
+  enabled: true
+  poll_interval_seconds: 60
+  watched_repos: []               # override with JARVIS_WATCHED_REPOS env var
+  auto_label_issues: true
+  auto_review_prs: true
+  auto_diagnose_ci: true
+  protected_branches:
+    - main
+    - master
+    - release
+    - prod
+
+# ── Autonomy Policy ─────────────────────────────────────────
+autonomy:
+  # These operations run without user confirmation
+  auto_approve:
+    - "triage"
+    - "summarize"
+    - "review"
+    - "analyze"
+    - "draft"
+    - "suggest"
+    - "report"
+    - "changelog"
+    - "daily.summary"
+    - "weekly.digest"
+    - "update.docs"
+    - "update.readme"
+    - "update.agents.md"
+    - "create.non.destructive.pr"
+
+  # These require user confirmation before proceeding
+  require_confirmation:
+    - "delete"
+    - "force.push"
+    - "merge.protected"
+    - "rotate.secret"
+    - "shell.execute"
+    - "deploy.production"
+    - "drop.database"
+
+  # Completely blocked — never execute
+  blocked:
+    - "rm -rf /"
+    - "format disk"
+    - "wipe"
+
+# ── Notifications ────────────────────────────────────────────
+notifications:
+  telegram:
+    enabled: false                # set to true when bot is configured
+    on_task_complete: true
+    on_ci_failure: true
+    on_pr_merged: true
+  desktop:
+    enabled: true
+    on_critical_failure: true
+
+# ── Dashboard ───────────────────────────────────────────────
+dashboard:
+  port: 3000
+  auto_open: false
+  theme: "dark"
+  refresh_interval_ms: 1000
+
+# ── Memory / State ──────────────────────────────────────────
+memory:
+  backend: "sqlite"               # sqlite / json / postgres
+  sqlite_path: "./memory/jarvis.db"
+  task_history_max: 1000
+  agent_memory_max_per_agent: 100
+  voice_history_max: 200
+
+# ── Schedules ───────────────────────────────────────────────
+schedules:
+  daily_summary:
+    enabled: true
+    cron: "0 9 * * 1-5"          # 9am UTC weekdays
+    agent: "repo_analyst"
+  weekly_digest:
+    enabled: true
+    cron: "0 8 * * 1"            # Monday 8am UTC
+    agent: "mission_control"
+  stale_pr_check:
+    enabled: true
+    cron: "0 10 * * *"           # Daily 10am UTC
+    agent: "reviewer"

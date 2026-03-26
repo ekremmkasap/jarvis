@@ -1,0 +1,15 @@
+﻿defaults:
+  dry_run: true
+  output_root: outputs
+  llm:
+    provider: ollama
+    model: minimax-m2.7:cloud
+    timeout_seconds: 90
+  summary:
+    daily_window: 1 day ago
+    weekly_window: 7 days ago
+publishing:
+  add_job_summary: true
+  max_comment_length: 6000
+issue_routing:
+  default_priority: medium

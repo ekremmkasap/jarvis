@@ -1,0 +1,40 @@
+{
+  "generated_at": "2026-03-26",
+  "description": "Curated public repos and developers for Jarvis night research ingestion.",
+  "repos": [
+    "https://github.com/microsoft/JARVIS",
+    "https://github.com/open-jarvis/Open-Jarvis",
+    "https://github.com/Priler/jarvis",
+    "https://github.com/sukeesh/Jarvis",
+    "https://github.com/jackwener/opencli",
+    "https://github.com/slavingia/skills",
+    "https://github.com/mrgoonie/claudekit-skills",
+    "https://github.com/majiayu000/claude-skill-registry",
+    "https://github.com/chenhg5/cc-connect",
+    "https://github.com/mattt/iMCP",
+    "https://github.com/mvanhorn/last30days-skill",
+    "https://github.com/davideast/stitch-mcp",
+    "https://github.com/bradygaster/squad",
+    "https://github.com/ruvnet/ruflo",
+    "https://github.com/max-sixty/worktrunk",
+    "https://github.com/bytedance/deer-flow",
+    "https://github.com/BerriAI/litellm",
+    "https://github.com/supermemoryai/supermemory",
+    "https://github.com/obra/superpowers",
+    "https://github.com/langchain-ai/open-swe",
+    "https://github.com/volcengine/OpenViking",
+    "https://github.com/affaan-m/everything-claude-code",
+    "https://github.com/alirezarezvani/claude-skills",
+    "https://github.com/NousResearch/hermes-agent"
+  ],
+  "developers": [
+    "https://github.com/hanouticelina",
+    "https://github.com/jsoref",
+    "https://github.com/renecannao",
+    "https://github.com/fzyzcjy",
+    "https://github.com/martinothamar",
+    "https://github.com/klauspost",
+    "https://github.com/trending/developers",
+    "https://github.com/trending/developers?since=weekly"
+  ]
+}

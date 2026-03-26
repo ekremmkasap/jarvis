@@ -1,0 +1,69 @@
+{
+  "enabled": true,
+  "schedule": {
+    "run_at_hour": 2,
+    "run_duration_max_hours": 4,
+    "days_of_week": [0, 1, 2, 3, 4, 5, 6]
+  },
+  "safety": {
+    "staging_only": true,
+    "max_files_per_run": 20,
+    "max_api_calls_per_run": 50,
+    "safe_directories": [
+      "server/agents",
+      "server/agent_workspace/staging",
+      "server/skills",
+      "docs",
+      "server/agent_os"
+    ],
+    "forbidden_files": [
+      ".env",
+      "credentials.json",
+      "*.key",
+      "*.pem",
+      "*.token"
+    ],
+    "forbidden_operations": [
+      "delete_files",
+      "system_shutdown",
+      "external_payments",
+      "credential_modification"
+    ],
+    "require_approval_for": [
+      "bridge.py",
+      "hey_jarvis.py",
+      "server/start_jarvis.bat"
+    ]
+  },
+  "tasks": {
+    "enabled_tasks": [
+      "analyze_logs",
+      "scan_todos",
+      "research_topics",
+      "generate_docs",
+      "propose_improvements",
+      "self_learning",
+      "claude_analysis"
+    ]
+  },
+  "apis": {
+    "claude": {
+      "enabled": true,
+      "model": "claude-3-5-sonnet-20241022",
+      "max_tokens": 4000
+    },
+    "google_ai": {
+      "enabled": false,
+      "model": "gemini-2.0-flash-exp"
+    },
+    "ollama": {
+      "enabled": true,
+      "url": "http://127.0.0.1:11434"
+    }
+  },
+  "reporting": {
+    "morning_report": true,
+    "telegram_notification": false,
+    "email_notification": false
+  }
+}

@@ -63,7 +63,7 @@
 - jarvis_autostart.vbs Windows Startup'a eklendi - PC acilinca otomatik baslar
 
 ### 7. OLLAMA API Key
-- Key: ee772cf9b7ac4c0c90fff1de8ce1c61a.IABOZ2BhMZ_4x4J3ojNOczI4
+- Key: [redacted - use .env]
 - .env dosyasina kaydedildi (.gitignore'a eklendi)
 - call_ollama() cloud modeller icin Authorization: Bearer header gonderiyor
 
@@ -94,9 +94,9 @@
 
 ## API ANAHTARLARI (.env'de)
 
-OLLAMA_API_KEY=ee772cf9b7ac4c0c90fff1de8ce1c61a.IABOZ2BhMZ_4x4J3ojNOczI4
-TELEGRAM_BOT_TOKEN=8295826032:AAGn4XRJxQi98hqqZLRMcvOEaeowSGYDt-k
-TELEGRAM_CHAT_ID=5847386182
+OLLAMA_API_KEY=[redacted - use .env]
+TELEGRAM_BOT_TOKEN=[redacted - use .env]
+TELEGRAM_CHAT_ID=[redacted - use .env]
 
 ---
 

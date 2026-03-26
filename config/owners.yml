@@ -1,0 +1,15 @@
+﻿label_owners:
+  bug: backend-team
+  ci: platform-team
+  documentation: docs-team
+  performance: platform-team
+  security: security-team
+  tests: qa-team
+fallback_owner: repo-maintainer
+mention_map:
+  backend-team: '@backend-team'
+  platform-team: '@platform-team'
+  docs-team: '@docs-team'
+  security-team: '@security-team'
+  qa-team: '@qa-team'
+  repo-maintainer: '@repo-maintainer'

@@ -1,0 +1,20 @@
+source_root: C:/pinokio/api/ekrem/app/agent_prompts
+imports:
+  - source: iannuttall/agents/project-task-planner.md
+    target: donor/planner/project_task_planner.md
+    purpose: Task breakdown and acceptance criteria
+  - source: ultimate_library/engineering/devops-automator.md
+    target: donor/automation/devops_automator.md
+    purpose: CI/CD and automation heuristics
+  - source: ultimate_library/testing/test-results-analyzer.md
+    target: donor/testing/test_results_analyzer.md
+    purpose: CI failure analysis reference
+  - source: ultimate_library/testing/performance-benchmarker.md
+    target: donor/testing/performance_benchmarker.md
+    purpose: Performance regression ideas
+  - source: wshobson/plugins/agent-teams/agents/team-lead.md
+    target: donor/teams/team_lead.md
+    purpose: Multi-agent coordination pattern
+  - source: wshobson/plugins/agent-teams/agents/team-reviewer.md
+    target: donor/teams/team_reviewer.md
+    purpose: Review-oriented team role pattern

@@ -18,8 +18,8 @@ from urllib.error import URLError
 
 # ─────────────────────────── CONFIG ───────────────────────────────
 CONFIG = {
-    "telegram_token": "8295826032:AAGn4XRJxQi98hqqZLRMcvOEaeowSGYDt-k",
-    "authorized_chat_id": 5847386182,
+    "telegram_token": os.environ.get("TELEGRAM_BOT_TOKEN", ""),
+    "authorized_chat_id": int(os.environ.get("TELEGRAM_CHAT_ID", "0") or 0),
     "ollama_url": "http://127.0.0.1:11434",
     "web_port": 8080,
     "log_file": "/home/userk/.jarvis/jarvis.log",

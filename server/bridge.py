@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-JARVIS MISSION CONTROL — bridge.py v2.2 (Windows/Pinokio Edition)
+JARVIS MISSION CONTROL — bridge.py v2.3 (Windows Standalone)
 Multi-Model AI Router | Telegram + Web Dashboard | eBay + Trendyol Skills
 """
 
@@ -10,6 +10,7 @@ import time
 import logging
 import threading
 import queue
+import socket
 from concurrent.futures import ThreadPoolExecutor
 import subprocess
 import sys
@@ -23,19 +24,22 @@ from urllib.error import URLError
 BASE_DIR = Path(__file__).parent          # app/
 DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(exist_ok=True)
+ROOT_DIR = BASE_DIR.parent
+
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
 # ─────────────────────────── ENV / API KEYS ───────────────────────
-try:
-    from dotenv import load_dotenv
-    load_dotenv(BASE_DIR / ".env")
-except ImportError:
-    pass
+from runtime_config import load_runtime_config, validate_runtime_config
+from model_router import build_model_router
+from runtime_state import RuntimeState
+
 
 OPENAI_API_KEY    = os.environ.get("OPENAI_API_KEY", "")
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 ELEVENLABS_API_KEY = os.environ.get("ELEVENLABS_API_KEY", "")
 SERPER_API_KEY    = os.environ.get("SERPER_API_KEY", "")
-OLLAMA_API_KEY    = os.environ.get("OLLAMA_API_KEY", "ee772cf9b7ac4c0c90fff1de8ce1c61a.IABOZ2BhMZ_4x4J3ojNOczI4")
+OLLAMA_API_KEY    = os.environ.get("OLLAMA_API_KEY", "")
 
 KNOWLEDGE_DIR = str(BASE_DIR / "knowledge")
 SOUL_PATH     = str(BASE_DIR / "soul.md")
@@ -47,14 +51,18 @@ if SKILLS_PATH not in sys.path:
     sys.path.insert(0, SKILLS_PATH)
 
 # ─────────────────────────── CONFIG ───────────────────────────────
-CONFIG = {
-    "telegram_token": "8295826032:AAGn4XRJxQi98hqqZLRMcvOEaeowSGYDt-k",
-    "authorized_chat_id": 5847386182,
-    "ollama_url": "http://127.0.0.1:11434",
-    "web_port": 8081,
-    "log_file": str(DATA_DIR / "jarvis.log"),
-    "memory_file": str(DATA_DIR / "memory.json"),
-}
+RUNTIME_CONFIG = load_runtime_config(ROOT_DIR, BASE_DIR)
+CONFIG = RUNTIME_CONFIG.as_dict()
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", OPENAI_API_KEY)
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", ANTHROPIC_API_KEY)
+ELEVENLABS_API_KEY = os.environ.get("ELEVENLABS_API_KEY", ELEVENLABS_API_KEY)
+SERPER_API_KEY = os.environ.get("SERPER_API_KEY", SERPER_API_KEY)
+OLLAMA_API_KEY = os.environ.get("OLLAMA_API_KEY", OLLAMA_API_KEY)
+MODEL_ROUTER = build_model_router(
+    root_dir=ROOT_DIR,
+    default_ollama_url=str(CONFIG["ollama_url"]),
+    request_timeout=int(CONFIG["request_timeout"]),
+)
 
 # ─────────────────────────── LOGGING ──────────────────────────────
 logging.basicConfig(
@@ -177,8 +185,9 @@ MODEL_ROUTES = {
 }
 
 # ─── ACTIVE AGENT STATE ───────────────────────────────────────────
-ACTIVE_AGENTS = {}
-CONTENT_FACTORY_SESSIONS = {}
+STATE = RuntimeState(CONFIG["memory_file"])
+ACTIVE_AGENTS = STATE.active_agents
+CONTENT_FACTORY_SESSIONS = STATE.content_factory_sessions
 
 # ─── MEMORY SKILL ─────────────────────────────────────────────────
 try:
@@ -290,44 +299,7 @@ except Exception:
     def handle_with_intent(t, u=None): return None
 
 # ─── MEMORY (JSON fallback) ───────────────────────────────────────
-class Memory:
-    def __init__(self, filepath):
-        self.filepath = filepath
-        self.data = self._load()
-
-    def _load(self):
-        try:
-            with open(self.filepath, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except:
-            return {"sessions": {}, "history": [], "stats": {"total_queries": 0}}
-
-    def _save(self):
-        with open(self.filepath, "w", encoding="utf-8") as f:
-            json.dump(self.data, f, ensure_ascii=False, indent=2)
-
-    def add_message(self, chat_id, role, content, model=None):
-        key = str(chat_id)
-        if key not in self.data["sessions"]:
-            self.data["sessions"][key] = []
-        self.data["sessions"][key].append({
-            "role": role, "content": content,
-            "model": model, "time": datetime.now().isoformat()
-        })
-        self.data["sessions"][key] = self.data["sessions"][key][-20:]
-        self.data["stats"]["total_queries"] += 1
-        self._save()
-
-    def get_history(self, chat_id, last_n=10):
-        key = str(chat_id)
-        msgs = self.data["sessions"].get(key, [])
-        return [{"role": m["role"], "content": m["content"]} for m in msgs[-last_n:]]
-
-    def clear(self, chat_id):
-        self.data["sessions"][str(chat_id)] = []
-        self._save()
-
-memory = Memory(CONFIG["memory_file"])
+memory = STATE.memory
 
 # ─────────────────────────── HELPERS ──────────────────────────────
 def detect_route(text: str):
@@ -340,6 +312,80 @@ def detect_route(text: str):
                 return route_name, route
     return "chat", MODEL_ROUTES["chat"]
 
+
+def get_selected_candidate(default_model: str) -> str:
+    trace = STATE.last_route_trace if isinstance(STATE.last_route_trace, dict) else {}
+    selected = str(trace.get("selected_candidate", "")).strip()
+    return selected or default_model
+
+
+def get_provider_health() -> dict:
+    providers = MODEL_ROUTER.settings.providers
+    local_models = get_available_models()
+    health = {}
+    for name, provider in providers.items():
+        if name == "ollama":
+            ok = bool(local_models)
+            health[name] = {
+                "ok": ok,
+                "label": "ready" if ok else "offline",
+                "detail": f"{len(local_models)} model",
+            }
+            continue
+        key_ok = bool(provider.api_key)
+        health[name] = {
+            "ok": key_ok,
+            "label": "ready" if key_ok else "missing_key",
+            "detail": provider.kind,
+        }
+    return health
+
+
+def get_agent_os_runtime():
+    if STATE.agent_os_runtime is None:
+        sys.path.insert(0, str(BASE_DIR / "core"))
+        sys.path.insert(0, str(BASE_DIR / "agent_os"))
+        from runtime import AgentOSRuntime
+
+        STATE.agent_os_runtime = AgentOSRuntime(call_ollama, base_dir=BASE_DIR)
+    return STATE.agent_os_runtime
+
+
+def should_use_team_mode(text: str) -> bool:
+    lower = text.lower()
+    triggers = [
+        "agent team",
+        "otomat",
+        "otomasyon",
+        "orchestrator",
+        "workflow",
+        "mimari",
+        "architecture",
+        "auth",
+        "login",
+        "register",
+        "security review",
+        "guvenlik incele",
+        "kod yaz",
+        "code review",
+        "refactor",
+        "entegrasyon",
+    ]
+    strong_matches = sum(1 for item in triggers if item in lower)
+    return strong_matches >= 2 or (len(text) > 140 and any(item in lower for item in triggers))
+
+
+def run_team_task(chat_id: int, goal: str) -> str:
+    runtime = get_agent_os_runtime()
+    result = runtime.run(goal, chat_id=str(chat_id))
+    status = result.get("status", "unknown")
+    synthesis = result.get("summary") or result.get("synthesis") or result.get("reason") or "Team sonucu uretemedi."
+    memory.add_message(chat_id, "user", f"/team {goal}")
+    memory.add_message(chat_id, "assistant", synthesis, "agent_os")
+    task_id = result.get("task_id", "-")
+    badge = "✅" if result.get("guard_passed") else "⚠️"
+    return f"{badge} *Team Task #{task_id}* (`{status}`)\n\n{synthesis}"
+
 def get_available_models() -> list:
     try:
         req = Request(f"{CONFIG['ollama_url']}/api/tags")
@@ -349,42 +395,100 @@ def get_available_models() -> list:
     except:
         return []
 
-def call_ollama(model: str, messages: list, system: str = None, max_tokens: int = 1024, num_ctx: int = 2048) -> str:
-    # Cloud modeller (:cloud suffix) available kontrolü atla — Ollama direkt yönlendirir
-    if not model.endswith(":cloud"):
-        available = get_available_models()
-        if not any(model.split(":")[0] in m for m in available):
-            model = available[0] if available else None
-        if not model:
-            return "Hicbir Ollama modeli bulunamadi. Ollama'nin calistigini kontrol edin."
-    payload = {
-        "model": model,
-        "messages": messages,
-        "stream": False,
-        "options": {"temperature": 0.7, "num_predict": max_tokens, "num_ctx": num_ctx}
+
+def get_agent_os_visual_status() -> dict:
+    status_path = BASE_DIR / "logs" / "agent_os_status.json"
+    if status_path.exists():
+        try:
+            return json.loads(status_path.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    return {
+        "mode": "agent_os",
+        "status": "idle",
+        "current_job": None,
+        "updated_at": datetime.now().isoformat(),
+        "agents": {
+            "jarvis": "idle",
+            "claude": "idle",
+            "ollama": "idle",
+            "research": "idle",
+            "guard": "idle",
+        },
+        "jobs": [],
+        "stats": {},
     }
-    if system:
-        payload["system"] = system
+
+
+def get_agent_os_visual_events(limit: int = 25) -> list:
+    events_path = BASE_DIR / "logs" / "agent_os_events.jsonl"
+    if not events_path.exists():
+        return []
     try:
-        data = json.dumps(payload).encode()
-        headers = {"Content-Type": "application/json"}
-        if OLLAMA_API_KEY:
-            headers["Authorization"] = f"Bearer {OLLAMA_API_KEY}"
-        req = Request(f"{CONFIG['ollama_url']}/api/chat", data=data,
-                     headers=headers, method="POST")
-        with urlopen(req, timeout=120) as resp:
-            result = json.loads(resp.read())
-            return result.get("message", {}).get("content", "Bos yanit")
-    except URLError as e:
-        for _retry in range(2):
-            time.sleep(2 ** _retry)
-            try:
-                with urlopen(req, timeout=120) as _resp:
-                    _result = json.loads(_resp.read())
-                    return _result.get("message", {}).get("content", "Bos yanit")
-            except Exception:
-                pass
-        return f"Ollama baglanamadi: {e}"
+        lines = events_path.read_text(encoding="utf-8", errors="ignore").splitlines()[-limit:]
+        return [json.loads(line) for line in lines if line.strip()]
+    except Exception:
+        return []
+
+
+def is_local_port_busy(port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.settimeout(1)
+        return sock.connect_ex(("127.0.0.1", port)) == 0
+
+def call_ollama(
+    model: str,
+    messages: list,
+    system: str = None,
+    max_tokens: int = 1024,
+    num_ctx: int = 2048,
+    fallback_model: str = None,
+    route_name: str | None = None,
+):
+    """
+    Multi-provider model router.
+    1) Primary model
+    2) Route fallback (if any)
+    3) config/model_router.yml chain
+    """
+    if model and not model.endswith(":cloud"):
+        available = get_available_models()
+        if available and not any(model.split(":")[0] in item for item in available):
+            model = available[0]
+
+    response, trace = MODEL_ROUTER.chat(
+        route_name=route_name,
+        primary_model=model,
+        fallback_model=fallback_model,
+        messages=messages,
+        system=system,
+        max_tokens=max_tokens,
+        num_ctx=num_ctx,
+    )
+
+    trace["requested_model"] = model
+    trace["requested_fallback_model"] = fallback_model
+    STATE.last_route_trace = trace
+
+    if trace.get("ok"):
+        selected = trace.get("selected_candidate") or model
+        if trace.get("fallback_used"):
+            log.info(f"Fallback kullanildi: {selected}")
+        else:
+            log.info(f"Model secildi: {selected}")
+        return response
+
+    attempts = trace.get("attempts", [])
+    if attempts:
+        failed = ", ".join(
+            f"{item.get('provider')}/{item.get('model')}"
+            for item in attempts
+            if not item.get("ok")
+        )
+        log.error(f"Model router basarisiz: {trace.get('error')} | Denenenler: {failed}")
+    else:
+        log.error(f"Model router basarisiz: {trace.get('error')}")
+    return f"LLM yaniti alinamadi: {trace.get('error')}"
 
 def get_system_info() -> dict:
     """Cross-platform sistem bilgisi"""
@@ -482,6 +586,15 @@ def handle_command(chat_id: int, cmd: str) -> str:
   `/code [gorev]` -> Kod yaz
   `/plan [proje]` -> Plan olustur
   `/task [hedef]` -> Otonom gorev (Plan+Execute)
+  `/team [hedef]` -> Planner+Builder+Guard agent team
+  `/onaylar` -> Bekleyen onay kuyruğu
+  `/onay-ekle [baslik] | [ozet]` -> Onay isteği ekle
+  `/onay [id] | [not]` -> Onay ver
+  `/red [id] | [not]` -> Onayı reddet
+  `/claude-uyandir [saat] | [not]` -> Claude resume saati planla
+  `/claude-durum` -> Claude resume durumunu göster
+  `/uyku-modu [ac|kapat]` -> Kullanici uyurken otomatik onay modu
+  `/otopilot [start|stop]` -> Durmadan calisan gece/sabah otomasyon motoru
 
 *AI Uzman Ajanlar:*
   `/jcoder [gorev]` -> Jarvis Coder - bridge.py bilir, kod yazar
@@ -550,12 +663,20 @@ def handle_command(chat_id: int, cmd: str) -> str:
             info = get_system_info()
             models = get_available_models()
             stats = memory.data["stats"]
+            provider_health = get_provider_health()
+            trace = STATE.last_route_trace if isinstance(STATE.last_route_trace, dict) else {}
+            last_sel = trace.get("selected_candidate", "-")
+            fallback = "evet" if trace.get("fallback_used") else "hayir"
             return f"""*Jarvis Sistem Durumu*
 CPU: `{info['cpu']}` | RAM: `{info['ram']}`
 AI Modeller: {len(models)} aktif
 Toplam Sorgu: {stats['total_queries']}
 Saat: {datetime.now().strftime('%H:%M:%S')}
-Servis: Aktif (Pinokio)"""
+Servis: Aktif ({CONFIG['runtime_label']})
+Ollama: `{provider_health.get('ollama', {}).get('label', '-')}`
+OpenRouter: `{provider_health.get('openrouter', {}).get('label', '-')}`
+OpenAI: `{provider_health.get('openai', {}).get('label', '-')}`
+Son Model: `{last_sel}` | Fallback: `{fallback}`"""
         except Exception as e:
             return f"Durum alinamadi: {e}"
 
@@ -563,10 +684,13 @@ Servis: Aktif (Pinokio)"""
         try:
             info = get_system_info()
             models = get_available_models()
+            provider_health = get_provider_health()
             lines = ["*Jarvis Sistem Durumu*\n"]
             lines.append(f"CPU: `{info['cpu']}`")
             lines.append(f"RAM: `{info['ram']}`")
             lines.append(f"Disk: `{info['disk']}`")
+            lines.append(f"OpenRouter: `{provider_health.get('openrouter', {}).get('label', '-')}`")
+            lines.append(f"OpenAI: `{provider_health.get('openai', {}).get('label', '-')}`")
             lines.append(f"\nOllama ({len(models)} model):")
             for m in models:
                 lines.append(f"  - `{m}`")
@@ -632,9 +756,16 @@ Servis: Aktif (Pinokio)"""
 3. Tedarikci kaynagi
 4. Rekabet seviyesi"""
             history = [{"role": "user", "content": prompt}]
-            response = call_ollama(route["model"], history, route["system"])
+            response = call_ollama(
+                route["model"],
+                history,
+                route["system"],
+                fallback_model=route.get("fallback"),
+                route_name="search",
+            )
+            selected_candidate = get_selected_candidate(route["model"])
             memory.add_message(chat_id, "user", f"/ebay {query}")
-            memory.add_message(chat_id, "assistant", response, route["model"])
+            memory.add_message(chat_id, "assistant", response, selected_candidate)
             return f"*eBay Analizi:*\n\n{response}"
 
     elif command == "/hava":
@@ -730,16 +861,32 @@ Servis: Aktif (Pinokio)"""
 3. AliExpress karsilastirmasi
 4. Dropshipping fizibilitesi"""
             history = [{"role": "user", "content": prompt}]
-            response = call_ollama(route["model"], history, route["system"])
+            response = call_ollama(
+                route["model"],
+                history,
+                route["system"],
+                fallback_model=route.get("fallback"),
+                route_name="search",
+            )
+            selected_candidate = get_selected_candidate(route["model"])
+            memory.add_message(chat_id, "user", f"/trendyol {query}")
+            memory.add_message(chat_id, "assistant", response, selected_candidate)
             return f"*Trendyol Analizi:*\n\n{response}"
 
     elif command == "/code":
         task = args or "Merhaba dunya"
         route = MODEL_ROUTES["code"]
         history = [{"role": "user", "content": f"Su gorevi icin tam calisir kod yaz: {task}"}]
-        response = call_ollama(route["model"], history, route["system"])
+        response = call_ollama(
+            route["model"],
+            history,
+            route["system"],
+            fallback_model=route.get("fallback"),
+            route_name="code",
+        )
+        selected_candidate = get_selected_candidate(route["model"])
         memory.add_message(chat_id, "user", f"/code {task}")
-        memory.add_message(chat_id, "assistant", response, route["model"])
+        memory.add_message(chat_id, "assistant", response, selected_candidate)
         return f"*Kod:*\n\n{response}"
 
     elif command == "/plan":
@@ -747,28 +894,55 @@ Servis: Aktif (Pinokio)"""
         route = MODEL_ROUTES["reasoning"]
         prompt = f"Su proje icin detayli plan olustur: {task}\n1.Hedef 2.Gereksinimler 3.Adimlar 4.Riskler 5.Basari kriterleri"
         history = [{"role": "user", "content": prompt}]
-        response = call_ollama(route["model"], history, route["system"])
+        response = call_ollama(
+            route["model"],
+            history,
+            route["system"],
+            fallback_model=route.get("fallback"),
+            route_name="reasoning",
+        )
+        selected_candidate = get_selected_candidate(route["model"])
         memory.add_message(chat_id, "user", f"/plan {task}")
-        memory.add_message(chat_id, "assistant", response, route["model"])
+        memory.add_message(chat_id, "assistant", response, selected_candidate)
         return f"*Plan:*\n\n{response}"
 
     elif command == "/task":
         task_goal = args or "Genel durum ozeti ve yapilacaklar listesi hazirla"
         try:
-            sys.path.insert(0, str(BASE_DIR))
-            from agent_loop import run as agent_run
-            result = agent_run(task_goal, chat_id=str(chat_id))
-            memory.add_message(chat_id, "user", f"/task {task_goal}")
-            memory.add_message(chat_id, "assistant", result, "agent_loop")
-            return result
+            return run_team_task(chat_id, task_goal)
         except Exception as e:
-            log.warning(f"agent_loop hatasi: {e}, fallback")
-            route = MODEL_ROUTES["code"]
-            history = [{"role": "user", "content": f"Bu gorevi tamamla: {task_goal}"}]
-            response = call_ollama(route["model"], history, route["system"])
-            memory.add_message(chat_id, "user", f"/task {task_goal}")
-            memory.add_message(chat_id, "assistant", response, route["model"])
-            return f"*Task Sonucu:*\n\n{response}"
+            log.warning(f"team orchestrator hatasi: {e}, agent_loop fallback")
+            try:
+                sys.path.insert(0, str(BASE_DIR))
+                from agent_loop import run as agent_run
+
+                result = agent_run(task_goal, chat_id=str(chat_id))
+                memory.add_message(chat_id, "user", f"/task {task_goal}")
+                memory.add_message(chat_id, "assistant", result, "agent_loop")
+                return result
+            except Exception as inner_e:
+                log.warning(f"agent_loop hatasi: {inner_e}, llm fallback")
+                route = MODEL_ROUTES["code"]
+                history = [{"role": "user", "content": f"Bu gorevi tamamla: {task_goal}"}]
+                response = call_ollama(
+                    route["model"],
+                    history,
+                    route["system"],
+                    fallback_model=route.get("fallback"),
+                    route_name="code",
+                )
+                selected_candidate = get_selected_candidate(route["model"])
+                memory.add_message(chat_id, "user", f"/task {task_goal}")
+                memory.add_message(chat_id, "assistant", response, selected_candidate)
+                return f"*Task Sonucu:*\n\n{response}"
+
+    elif command == "/team":
+        team_goal = args or "Jarvis icin uzman agent team workflow'u calistir"
+        try:
+            return run_team_task(chat_id, team_goal)
+        except Exception as e:
+            log.error(f"/team hatasi: {e}")
+            return f"Team orchestrator hatasi: {e}"
 
     elif command == "/gorevler":
         try:
@@ -871,9 +1045,10 @@ Servis: Aktif (Pinokio)"""
         history = [{"role": "user", "content": user_prompt}]
         response = call_ollama(route["model"], history,
             "Turkce e-ticaret reklam uzmanisin. Cok kisa yaz. Sadece Turkce.",
-            max_tokens=110, num_ctx=512)
+            max_tokens=110, num_ctx=512, fallback_model=route.get("fallback"), route_name="general")
+        selected_candidate = get_selected_candidate(route["model"])
         memory.add_message(chat_id, "user", f"/reklam {urun}")
-        memory.add_message(chat_id, "assistant", response, route["model"])
+        memory.add_message(chat_id, "assistant", response, selected_candidate)
         return f"*Reklam:* `{urun[:40]}`\n\n{response}"
 
     elif command == "/icerik":
@@ -893,9 +1068,10 @@ Servis: Aktif (Pinokio)"""
         history = [{"role": "user", "content": user_prompt}]
         response = call_ollama(route["model"], history,
             "Sosyal medya uzmanisin. Cok kisa, sadece Turkce.",
-            max_tokens=130, num_ctx=512)
+            max_tokens=130, num_ctx=512, fallback_model=route.get("fallback"), route_name="general")
+        selected_candidate = get_selected_candidate(route["model"])
         memory.add_message(chat_id, "user", f"/icerik {metin[:50]}")
-        memory.add_message(chat_id, "assistant", response, route["model"])
+        memory.add_message(chat_id, "assistant", response, selected_candidate)
         return f"*5 Platform:*\n\n{response}"
 
     elif command == "/rakip":
@@ -918,9 +1094,10 @@ Servis: Aktif (Pinokio)"""
         history = [{"role": "user", "content": user_prompt}]
         response = call_ollama(route["model"], history,
             "Pazar analisti. Cok kisa, sadece Turkce.",
-            max_tokens=120, num_ctx=512)
+            max_tokens=120, num_ctx=512, fallback_model=route.get("fallback"), route_name="general")
+        selected_candidate = get_selected_candidate(route["model"])
         memory.add_message(chat_id, "user", f"/rakip {hedef}")
-        memory.add_message(chat_id, "assistant", response, route["model"])
+        memory.add_message(chat_id, "assistant", response, selected_candidate)
         return f"*Rakip Analizi:* `{hedef[:40]}`\n\n{response}"
 
     elif command == "/abtest":
@@ -938,9 +1115,10 @@ Servis: Aktif (Pinokio)"""
         history = [{"role": "user", "content": user_prompt}]
         response = call_ollama(route["model"], history,
             "CRO uzmanisin. Kisa, sadece Turkce.",
-            max_tokens=130, num_ctx=512)
+            max_tokens=130, num_ctx=512, fallback_model=route.get("fallback"), route_name="general")
+        selected_candidate = get_selected_candidate(route["model"])
         memory.add_message(chat_id, "user", f"/abtest {sayfa[:50]}")
-        memory.add_message(chat_id, "assistant", response, route["model"])
+        memory.add_message(chat_id, "assistant", response, selected_candidate)
         return f"*A/B Test:* `{sayfa[:40]}`\n\n{response}"
 
     elif command == "/analiz":
@@ -959,9 +1137,10 @@ Servis: Aktif (Pinokio)"""
         history = [{"role": "user", "content": user_prompt}]
         response = call_ollama(route["model"], history,
             "Marketing analistsin. Matematik dogru yap. Kisa, sadece Turkce.",
-            max_tokens=120, num_ctx=512)
+            max_tokens=120, num_ctx=512, fallback_model=route.get("fallback"), route_name="general")
+        selected_candidate = get_selected_candidate(route["model"])
         memory.add_message(chat_id, "user", f"/analiz {veri[:50]}")
-        memory.add_message(chat_id, "assistant", response, route["model"])
+        memory.add_message(chat_id, "assistant", response, selected_candidate)
         return f"*Marketing Analizi:*\n\n{response}"
 
 
@@ -1141,8 +1320,14 @@ Servis: Aktif (Pinokio)"""
             f"eger Ingilizce ise Turkceye cevirdir. "
             f"SADECE cevirisi olan metni yaz, baska hicbir sey ekleme:" + chr(10) + args
         )
-        reply = call_ollama(route["model"], [{"role": "user", "content": prompt}],
-                           max_tokens=800, num_ctx=2048)
+        reply = call_ollama(
+            route["model"],
+            [{"role": "user", "content": prompt}],
+            max_tokens=800,
+            num_ctx=2048,
+            fallback_model=route.get("fallback"),
+            route_name="chat",
+        )
         return f"*Ceviri:*{chr(10)}{reply}"
 
     elif command == "/gpt":
@@ -1191,8 +1376,14 @@ Servis: Aktif (Pinokio)"""
         else:
             text_to_sum = args
         prompt = f"Asagidaki metni Turkce olarak 3-5 madde halinde ozetle:{chr(10)}{text_to_sum}"
-        reply = call_ollama(route["model"], [{"role": "user", "content": prompt}],
-                           max_tokens=600, num_ctx=4096)
+        reply = call_ollama(
+            route["model"],
+            [{"role": "user", "content": prompt}],
+            max_tokens=600,
+            num_ctx=4096,
+            fallback_model=route.get("fallback"),
+            route_name="chat",
+        )
         return f"*Ozet:*{chr(10)}{reply}"
 
     elif command == "/jcoder":
@@ -1205,8 +1396,15 @@ Servis: Aktif (Pinokio)"""
             "bridge.py yapisina hakimsin. f-string icinde chr(10) kullan. "
             "Kisa, net, calisir kod yaz. Turkce acikla."
         )
-        reply = call_ollama(route["model"], [{"role":"user","content":args}],
-                           system=system_prompt, max_tokens=1500, num_ctx=4096)
+        reply = call_ollama(
+            route["model"],
+            [{"role":"user","content":args}],
+            system=system_prompt,
+            max_tokens=1500,
+            num_ctx=4096,
+            fallback_model=route.get("fallback"),
+            route_name="code",
+        )
         return f"*Jarvis Coder:*{chr(10)}{reply}"
 
     elif command == "/skill":
@@ -1220,9 +1418,15 @@ Servis: Aktif (Pinokio)"""
             "Ollama icin urllib kullan (http://127.0.0.1:11434/api/generate). "
             "Sadece calisir Python kodu yaz, Turkce yorum ekle."
         )
-        reply = call_ollama(route["model"],
-                           [{"role":"user","content":f"Skill yaz: {args}"}],
-                           system=system_prompt, max_tokens=1500, num_ctx=4096)
+        reply = call_ollama(
+            route["model"],
+            [{"role":"user","content":f"Skill yaz: {args}"}],
+            system=system_prompt,
+            max_tokens=1500,
+            num_ctx=4096,
+            fallback_model=route.get("fallback"),
+            route_name="code",
+        )
         return f"*Skill Yazici:*{chr(10)}{reply}"
 
     elif command == "/analyst":
@@ -1236,8 +1440,15 @@ Servis: Aktif (Pinokio)"""
             "Hedef: 20 musteri = 80.000 TL/ay. "
             "Veriye dayali, somut, aksiyon odakli Turkce analiz yap."
         )
-        reply = call_ollama(route["model"], [{"role":"user","content":args}],
-                           system=system_prompt, max_tokens=1200, num_ctx=4096)
+        reply = call_ollama(
+            route["model"],
+            [{"role":"user","content":args}],
+            system=system_prompt,
+            max_tokens=1200,
+            num_ctx=4096,
+            fallback_model=route.get("fallback"),
+            route_name="reasoning",
+        )
         return f"*Jarvis Analyst:*{chr(10)}{reply}"
 
     elif command in ("/mouse", "/git", "/tıkla", "/tikla", "/click",
@@ -1278,6 +1489,110 @@ Servis: Aktif (Pinokio)"""
                 return f"❌ AnyDesk kabul başarısız:\n{out or err or 'Pencere bulunamadı.'}"
         except Exception as e:
             return f"❌ Hata: {e}"
+
+    elif command in ("/onaylar", "/bekleyen", "/approval"):
+        try:
+            sys.path.insert(0, r"C:\Users\sergen\Desktop\jarvis-mission-control\server\skills")
+            from approval_skill import list_approval_requests
+
+            status = args.strip() if args else "pending"
+            return list_approval_requests(status)
+        except Exception as e:
+            return f"❌ Onay kuyruğu hatası: {e}"
+
+    elif command in ("/onay-ekle", "/approval-add"):
+        if not args:
+            return "Kullanim: /onay-ekle [baslik] | [ozet]"
+        try:
+            sys.path.insert(0, r"C:\Users\sergen\Desktop\jarvis-mission-control\server\skills")
+            from approval_skill import add_approval_request
+
+            title, _, summary = args.partition("|")
+            return add_approval_request(title, summary, source="manual")
+        except Exception as e:
+            return f"❌ Onay ekleme hatası: {e}"
+
+    elif command in ("/onay", "/approve"):
+        if not args:
+            return "Kullanim: /onay [id] | [not]"
+        try:
+            sys.path.insert(0, r"C:\Users\sergen\Desktop\jarvis-mission-control\server\skills")
+            from approval_skill import decide_approval
+
+            item_id, _, note = args.partition("|")
+            return decide_approval(item_id.strip(), "approve", note)
+        except Exception as e:
+            return f"❌ Onay işleme hatası: {e}"
+
+    elif command in ("/red", "/reject"):
+        if not args:
+            return "Kullanim: /red [id] | [not]"
+        try:
+            sys.path.insert(0, r"C:\Users\sergen\Desktop\jarvis-mission-control\server\skills")
+            from approval_skill import decide_approval
+
+            item_id, _, note = args.partition("|")
+            return decide_approval(item_id.strip(), "reject", note)
+        except Exception as e:
+            return f"❌ Red işleme hatası: {e}"
+
+    elif command in ("/claude-uyandir", "/claude-wake"):
+        try:
+            sys.path.insert(0, r"C:\Users\sergen\Desktop\jarvis-mission-control\server\skills")
+            from approval_skill import schedule_claude_resume
+
+            schedule_part = args or "09:02"
+            resume_at, _, note = schedule_part.partition("|")
+            return schedule_claude_resume(resume_at.strip() or "09:02", note, "Claude collaboration protocol")
+        except Exception as e:
+            return f"❌ Claude uyandırma planlama hatası: {e}"
+
+    elif command in ("/claude-durum", "/claude-status"):
+        try:
+            sys.path.insert(0, r"C:\Users\sergen\Desktop\jarvis-mission-control\server\skills")
+            from approval_skill import get_claude_resume_status
+
+            return get_claude_resume_status()
+        except Exception as e:
+            return f"❌ Claude durum hatası: {e}"
+
+    elif command in ("/uyku-modu", "/sleep-mode", "/oto-onay"):
+        try:
+            sys.path.insert(0, r"C:\Users\sergen\Desktop\jarvis-mission-control\server\skills")
+            from approval_skill import set_autopilot, get_autopilot_status, process_pending_auto_approvals
+
+            action = (args or "status").strip().lower()
+            if action in ("ac", "on", "aktif"):
+                result = set_autopilot(True, "sleep", "Kullanici uyurken otomatik onay ve devam modu aktif.")
+                batch = process_pending_auto_approvals()
+                return result + "\n" + batch
+            if action in ("kapat", "off", "pasif"):
+                return set_autopilot(False, "manual", "Kullanici geri donene kadar manuel moda alindi.")
+            return get_autopilot_status()
+        except Exception as e:
+            return f"❌ Uyku modu hatası: {e}"
+
+    elif command in ("/otopilot", "/autopilot"):
+        try:
+            root = r"C:\Users\sergen\Desktop\jarvis-mission-control"
+            if (args or "").strip().lower() in ("baslat", "start"):
+                result = subprocess.run(
+                    ["powershell.exe", "-ExecutionPolicy", "Bypass", "-File", rf"{root}\start_autopilot_background.ps1"],
+                    capture_output=True, text=True, timeout=20
+                )
+                return (result.stdout or result.stderr or "Autopilot baslatildi.").strip()
+            if (args or "").strip().lower() in ("durdur", "stop"):
+                result = subprocess.run(
+                    ["powershell.exe", "-ExecutionPolicy", "Bypass", "-File", rf"{root}\stop_autopilot.ps1"],
+                    capture_output=True, text=True, timeout=20
+                )
+                return (result.stdout or result.stderr or "Autopilot durdurma sinyali gonderildi.").strip()
+            runtime_path = Path(root) / "server" / "agent_workspace" / "approval_state" / "autopilot_runtime.json"
+            if runtime_path.exists():
+                return runtime_path.read_text(encoding="utf-8")
+            return "Autopilot runtime durumu henuz yok. /otopilot start ile baslat."
+        except Exception as e:
+            return f"❌ Autopilot hatası: {e}"
 
     return f"Bilinmeyen komut: {command}\n/help yaz yardim icin."
 
@@ -1381,9 +1696,16 @@ def process_message(chat_id: int, text: str) -> str:
         hist.append({"role": "user", "content": text})
         model = active_agent.get("model", "llama3.2:latest")
         response = call_ollama(model, hist, active_agent["prompt"])
+        selected_candidate = get_selected_candidate(model)
         memory.add_message(chat_id, "user", text)
-        memory.add_message(chat_id, "assistant", response, model)
+        memory.add_message(chat_id, "assistant", response, selected_candidate)
         return f"[{active_agent['name'].upper()}] {response}"
+
+    if should_use_team_mode(text):
+        try:
+            return run_team_task(chat_id, text)
+        except Exception as e:
+            log.warning(f"dogal dil team modu hatasi: {e}")
 
     # Normal routing
     route_name, route = detect_route(text)
@@ -1400,12 +1722,21 @@ def process_message(chat_id: int, text: str) -> str:
         _system = route["system"] + ("\n\n" + _extra if _extra else "")
     except Exception:
         _system = route["system"]
-    response = call_ollama(model, hist, _system)
+    response = call_ollama(
+        model,
+        hist,
+        _system,
+        fallback_model=route.get("fallback"),
+        route_name=route_name,
+    )
+    selected_candidate = get_selected_candidate(model)
+    selected_model = selected_candidate.split("/", 1)[-1]
+    selected_provider = selected_candidate.split("/", 1)[0] if "/" in selected_candidate else "ollama"
     memory.add_message(chat_id, "user", text)
-    memory.add_message(chat_id, "assistant", response, model)
+    memory.add_message(chat_id, "assistant", response, selected_candidate)
     reme_save(text, response)
-    model_short = model.split(":")[0].replace("deepseek-", "DS-")
-    return f"[{model_short}] {response}"
+    model_short = selected_model.split(":")[0].replace("deepseek-", "DS-")
+    return f"[{selected_provider}/{model_short}] {response}"
 
 # ─────────────────────────── TELEGRAM ─────────────────────────────
 class TelegramBot:
@@ -1443,7 +1774,7 @@ class TelegramBot:
     def run(self):
         log.info("Jarvis Telegram bot basladi")
         self.send(self.authorized_id,
-                  "*Jarvis Mission Control v2.4 Aktif!* (Pinokio Edition)\nMulti-model AI router + Uzak Yonetim hazir.\n`/help` yaz yardim icin.")
+            f"*Jarvis Mission Control v2.4 Aktif!* ({CONFIG['runtime_label']})\nMulti-model AI router + Uzak Yonetim hazir.\n`/help` yaz yardim icin.")
         while self.running:
             updates = self.get_updates()
             for update in updates:
@@ -1602,6 +1933,13 @@ class WebHandler(BaseHTTPRequestHandler):
         if self.path in ("/", "/dashboard"):
             models = get_available_models()
             stats = memory.data["stats"]
+            last_trace = STATE.last_route_trace if isinstance(STATE.last_route_trace, dict) else {}
+            last_selected = last_trace.get("selected_candidate", "-")
+            last_fallback = "evet" if last_trace.get("fallback_used") else "hayir"
+            last_route = last_trace.get("route") or "-"
+            provider_health = get_provider_health()
+            openrouter_label = provider_health.get("openrouter", {}).get("label", "-")
+            openai_label = provider_health.get("openai", {}).get("label", "-")
             html = f"""<!DOCTYPE html>
 <html lang="tr"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -1623,6 +1961,24 @@ header p{{color:#888;font-size:.9em}}
 .stat-label{{color:#666;font-size:.9em}}
 .stat-val{{color:#00ff88;font-weight:bold;font-family:monospace}}
 .full{{grid-column:1/-1}}
+.mission-map{{display:grid;grid-template-columns:repeat(5,minmax(120px,1fr));gap:14px;margin-top:10px}}
+@media(max-width:900px){{.mission-map{{grid-template-columns:repeat(2,minmax(120px,1fr))}}}}
+.agent-node{{position:relative;background:linear-gradient(180deg,#13192b,#0d1220);border:1px solid #25314f;border-radius:16px;padding:16px;min-height:110px;overflow:hidden}}
+.agent-node::after{{content:'';position:absolute;inset:auto -20% -35% -20%;height:70px;background:radial-gradient(circle,#00ff8840,transparent 60%);opacity:.2;transform:translateY(25px);transition:.35s}}
+.agent-node.active::after{{opacity:.8;transform:translateY(0)}}
+.agent-node h3{{font-size:1em;margin-bottom:8px}}
+.agent-node p{{font-size:.8em;color:#7f8ca8}}
+.agent-state{{display:inline-block;margin-top:10px;padding:4px 10px;border-radius:999px;font-family:monospace;font-size:.75em;border:1px solid #31415f}}
+.state-idle{{color:#9aa4b2;border-color:#3a465f}}
+.state-running{{color:#ffd166;border-color:#7f6514;box-shadow:0 0 0 1px #7f6514 inset}}
+.state-done{{color:#00ff88;border-color:#0d6a46}}
+.state-blocked{{color:#ff6b6b;border-color:#7c1f28}}
+.state-thinking{{color:#6bc5ff;border-color:#1e5f8d}}
+.mission-flow{{display:flex;gap:10px;align-items:center;margin-top:16px;overflow:auto;padding-bottom:4px}}
+.flow-pill{{padding:8px 12px;border-radius:999px;background:#141b2d;border:1px solid #25314f;font-size:.8em;white-space:nowrap}}
+.event-feed{{max-height:220px;overflow:auto;display:flex;flex-direction:column;gap:8px}}
+.event-item{{padding:10px 12px;border-radius:10px;background:#0d1220;border:1px solid #1f2840;font-size:.82em}}
+.event-time{{color:#6f809f;font-family:monospace;font-size:.75em;margin-bottom:4px}}
 .chat{{background:#0d0d1a;border-radius:12px;padding:20px}}
 .chat-row{{display:flex;gap:10px;margin-bottom:15px}}
 .chat-row input{{flex:1;background:#1a1a2e;border:1px solid #333;border-radius:8px;padding:10px 15px;color:#e0e0e0}}
@@ -1640,7 +1996,7 @@ header p{{color:#888;font-size:.9em}}
 </style></head><body>
 <header>
 <div class="dot"></div>
-<div><h1>Jarvis Mission Control</h1><p>Pinokio Edition — {datetime.now().strftime('%H:%M:%S')}</p></div>
+<div><h1>Jarvis Mission Control</h1><p>{CONFIG['runtime_label']} — {datetime.now().strftime('%H:%M:%S')}</p></div>
 </header>
 <div class="grid">
 <div class="card">
@@ -1648,14 +2004,16 @@ header p{{color:#888;font-size:.9em}}
 <div class="stat"><span class="stat-label">Toplam Sorgu</span><span class="stat-val">{stats['total_queries']}</span></div>
 <div class="stat"><span class="stat-label">AI Modeller</span><span class="stat-val">{len(models)} aktif</span></div>
 <div class="stat"><span class="stat-label">Web Port</span><span class="stat-val">:{CONFIG['web_port']}</span></div>
-<div class="stat"><span class="stat-label">Platform</span><span class="stat-val">Pinokio/Windows</span></div>
+<div class="stat"><span class="stat-label">Platform</span><span class="stat-val">{CONFIG['platform_label']}</span></div>
 </div>
 <div class="card">
 <h2>Router</h2>
-<div class="stat"><span class="stat-label">Sohbet</span><span class="stat-val">llama3.2</span></div>
-<div class="stat"><span class="stat-label">Kod</span><span class="stat-val">deepseek-coder</span></div>
-<div class="stat"><span class="stat-label">Akil/Plan</span><span class="stat-val">llama3.2</span></div>
-<div class="stat"><span class="stat-label">eBay/Trendyol</span><span class="stat-val">llama3.2</span></div>
+<div class="stat"><span class="stat-label">Default Provider</span><span class="stat-val">{MODEL_ROUTER.settings.default_provider}</span></div>
+<div class="stat"><span class="stat-label">Son Secim</span><span class="stat-val" id="router-selected">{last_selected}</span></div>
+<div class="stat"><span class="stat-label">Fallback</span><span class="stat-val" id="router-fallback">{last_fallback}</span></div>
+<div class="stat"><span class="stat-label">Route</span><span class="stat-val" id="router-route">{last_route}</span></div>
+<div class="stat"><span class="stat-label">OpenRouter</span><span class="stat-val" id="router-openrouter">{openrouter_label}</span></div>
+<div class="stat"><span class="stat-label">OpenAI</span><span class="stat-val" id="router-openai">{openai_label}</span></div>
 </div>
 <div class="card full">
 <h2>Web Chat</h2>
@@ -1670,6 +2028,31 @@ header p{{color:#888;font-size:.9em}}
 <div class="card full"><h2>Modeller</h2>
 <div class="tags">{"".join(f'<span class="tag on">{m}</span>' for m in models) or '<span class="tag">Ollama bagli degil</span>'}</div>
 </div>
+<div class="card full">
+<h2>Agent OS Mission Map</h2>
+<div class="mission-map" id="mission-map">
+  <div class="agent-node" data-agent="jarvis"><h3>Jarvis</h3><p>CEO / Orchestrator</p><span class="agent-state state-idle">idle</span></div>
+  <div class="agent-node" data-agent="claude"><h3>Claude</h3><p>Deep analysis worker</p><span class="agent-state state-idle">idle</span></div>
+  <div class="agent-node" data-agent="ollama"><h3>Ollama</h3><p>Local model runner</p><span class="agent-state state-idle">idle</span></div>
+  <div class="agent-node" data-agent="research"><h3>Research</h3><p>Repo + trend scout</p><span class="agent-state state-idle">idle</span></div>
+  <div class="agent-node" data-agent="guard"><h3>Guard</h3><p>Safety + review</p><span class="agent-state state-idle">idle</span></div>
+</div>
+<div class="mission-flow" id="mission-flow">
+  <div class="flow-pill">Queued</div>
+  <div class="flow-pill">Planning</div>
+  <div class="flow-pill">Build</div>
+  <div class="flow-pill">Review</div>
+  <div class="flow-pill">Report</div>
+</div>
+</div>
+<div class="card">
+<h2>Current Job</h2>
+<div id="current-job" class="msg sys">No active night job.</div>
+</div>
+<div class="card">
+<h2>Event Feed</h2>
+<div id="event-feed" class="event-feed"><div class="event-item">Agent OS event stream waiting...</div></div>
+</div>
 </div>
 <script>
 async function send(){{
@@ -1680,12 +2063,14 @@ try{{
 const r=await fetch('/api/chat',{{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify({{message:text}})}});
 const d=await r.json();
 removeLastSys(); addMsg('ai',d.response,d.model);
+if(d.fallback_used){{addMsg('sys','Fallback aktif: '+(d.model||'-'));}}
+await refreshRuntimeStatus();
 }}catch(e){{removeLastSys();addMsg('sys','Hata: '+e);}}
 }}
 function addMsg(role,text,model){{
 const c=document.getElementById('msgs');
 const d=document.createElement('div'); d.className='msg '+role;
-if(model){{const b=document.createElement('div');b.className='badge';b.textContent=model.split(':')[0];d.appendChild(b);}}
+if(model){{const b=document.createElement('div');b.className='badge';b.textContent=(model.length>50?model.slice(0,50)+'...':model);d.appendChild(b);}}
 const t=document.createElement('div');
 t.innerHTML=text.replace(/```([\\s\\S]*?)```/g,'<pre>$1</pre>').replace(/\\*\\*(.+?)\\*\\*/g,'<b>$1</b>').replace(/\\n/g,'<br>');
 d.appendChild(t); c.appendChild(d); c.scrollTop=c.scrollHeight;
@@ -1694,6 +2079,57 @@ function removeLastSys(){{
 const s=document.querySelectorAll('.msg.sys');
 if(s.length)s[s.length-1].remove();
 }}
+async function refreshRuntimeStatus(){{
+ try{{
+   const statusRes = await fetch('/api/status');
+   const status = await statusRes.json();
+   const trace = status.last_route_trace || {{}};
+   const health = status.provider_health || {{}};
+   const selected = trace.selected_candidate || '-';
+   const fallback = trace.fallback_used ? 'evet' : 'hayir';
+   const route = trace.route || '-';
+   const openrouter = (health.openrouter && health.openrouter.label) ? health.openrouter.label : '-';
+   const openai = (health.openai && health.openai.label) ? health.openai.label : '-';
+   document.getElementById('router-selected').textContent = selected;
+   document.getElementById('router-fallback').textContent = fallback;
+   document.getElementById('router-route').textContent = route;
+   document.getElementById('router-openrouter').textContent = openrouter;
+   document.getElementById('router-openai').textContent = openai;
+ }}catch(e){{}}
+}}
+function paintNode(name,state){{
+ const node=document.querySelector(`.agent-node[data-agent="${{name}}"]`);
+ if(!node) return;
+ const badge=node.querySelector('.agent-state');
+ node.classList.toggle('active', state==='running'||state==='thinking');
+ badge.className='agent-state state-'+(state||'idle');
+ badge.textContent=state||'idle';
+}}
+async function refreshAgentOS(){{
+ try{{
+   const [statusRes, eventsRes]=await Promise.all([
+     fetch('/api/agent-os/status'),
+     fetch('/api/agent-os/events')
+   ]);
+   const status=await statusRes.json();
+   const events=await eventsRes.json();
+   Object.entries(status.agents||{{}}).forEach(([name,state])=>paintNode(name,state));
+   const current=document.getElementById('current-job');
+   current.textContent=status.current_job ? `${{status.current_job.id}} (${{status.current_job.type}})` : 'No active night job.';
+   const feed=document.getElementById('event-feed');
+   feed.innerHTML='';
+   (events.events||[]).slice().reverse().forEach(ev=>{{
+     const item=document.createElement('div'); item.className='event-item';
+     item.innerHTML=`<div class="event-time">${{new Date(ev.time).toLocaleTimeString()}}</div><div>${{ev.message}}</div>`;
+     feed.appendChild(item);
+   }});
+   if(!feed.innerHTML){{feed.innerHTML='<div class="event-item">No events yet.</div>';}}
+ }}catch(e){{}}
+}}
+setInterval(refreshAgentOS,3000);
+setInterval(refreshRuntimeStatus,3000);
+refreshAgentOS();
+refreshRuntimeStatus();
 </script></body></html>"""
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -1701,9 +2137,16 @@ if(s.length)s[s.length-1].remove();
             self.wfile.write(html.encode("utf-8"))
 
         elif self.path == "/api/status":
+            provider_health = get_provider_health()
             data = {"status": "online", "models": get_available_models(),
-                    "stats": memory.data["stats"], "time": datetime.now().isoformat()}
+                    "stats": memory.data["stats"], "time": datetime.now().isoformat(),
+                    "last_route_trace": STATE.last_route_trace,
+                    "provider_health": provider_health}
             self._json(data)
+        elif self.path == "/api/agent-os/status":
+            self._json(get_agent_os_visual_status())
+        elif self.path == "/api/agent-os/events":
+            self._json({"events": get_agent_os_visual_events()})
         else:
             self.send_error(404)
 
@@ -1715,7 +2158,18 @@ if(s.length)s[s.length-1].remove();
                 text = body.get("message", "")
                 route_name, route = detect_route(text)
                 response = process_message(9999, text)
-                self._json({"response": response, "model": route["model"], "route": route_name})
+                trace = STATE.last_route_trace if isinstance(STATE.last_route_trace, dict) else {}
+                selected_candidate = trace.get("selected_candidate") or route["model"]
+                self._json(
+                    {
+                        "response": response,
+                        "model": selected_candidate,
+                        "provider": trace.get("selected_provider", ""),
+                        "route": route_name,
+                        "fallback_used": bool(trace.get("fallback_used")),
+                        "attempts": trace.get("attempts", []),
+                    }
+                )
             except Exception as e:
                 self._json({"error": str(e)}, 500)
         else:
@@ -1734,8 +2188,9 @@ def start_web():
     HTTPServer(("127.0.0.1", CONFIG["web_port"]), WebHandler).serve_forever()
 
 def main():
+    validate_runtime_config(RUNTIME_CONFIG)
     log.info("=" * 55)
-    log.info("  JARVIS MISSION CONTROL v2.2 — Pinokio Edition")
+    log.info(f"  JARVIS MISSION CONTROL v2.3 — {CONFIG['runtime_label']}")
     log.info("=" * 55)
     log.info(f"BASE_DIR: {BASE_DIR}")
     models = get_available_models()
@@ -1743,16 +2198,29 @@ def main():
         log.info(f"Ollama aktif — {len(models)} model: {', '.join(models[:3])}")
     else:
         log.warning("Ollama bagli degil! Ollama'yi baslatin.")
+
+    if is_local_port_busy(CONFIG["web_port"]):
+        log.error(f"Port {CONFIG['web_port']} zaten kullanimda. Ikinci bridge ornegi baslatilmayacak.")
+        return
+
     threading.Thread(target=start_web, daemon=True).start()
     time.sleep(1)
     url = f"http://127.0.0.1:{CONFIG['web_port']}"
     log.info(f"Web dashboard: {url}")
     print(url, flush=True)
-    bot = TelegramBot(CONFIG["telegram_token"], CONFIG["authorized_chat_id"])
-    try:
-        bot.run()
-    except KeyboardInterrupt:
-        bot.running = False
+    if CONFIG["enable_telegram"]:
+        bot = TelegramBot(CONFIG["telegram_token"], CONFIG["authorized_chat_id"])
+        try:
+            bot.run()
+        except KeyboardInterrupt:
+            bot.running = False
+    else:
+        log.info("Telegram adapter disabled. Running in dashboard/HTTP mode only.")
+        try:
+            while True:
+                time.sleep(3600)
+        except KeyboardInterrupt:
+            return
 
 if __name__ == "__main__":
     main()

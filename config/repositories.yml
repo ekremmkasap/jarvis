@@ -1,0 +1,4 @@
+﻿default:
+  repository: ${GITHUB_REPOSITORY}
+  default_branch: main
+  local_path: .

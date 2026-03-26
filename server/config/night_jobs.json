@@ -1,0 +1,114 @@
+{
+  "jobs": [
+    {
+      "id": "analyze_recent_logs",
+      "type": "analyze_logs",
+      "priority": 1,
+      "enabled": true,
+      "params": {
+        "days_back": 1,
+        "error_patterns": ["ERROR", "Exception", "Traceback", "CRITICAL"]
+      },
+      "description": "Son 24 saatin loglarını analiz et"
+    },
+    {
+      "id": "scan_todos_and_fixmes",
+      "type": "scan_todos",
+      "priority": 2,
+      "enabled": true,
+      "params": {
+        "auto_categorize": true,
+        "patterns": ["TODO", "FIXME", "HACK", "XXX", "NOTE"]
+      },
+      "description": "Koddaki TODO/FIXME'leri topla ve kategorize et"
+    },
+    {
+      "id": "research_async_patterns",
+      "type": "research",
+      "priority": 3,
+      "enabled": true,
+      "params": {
+        "topics": [
+          "Python async await best practices",
+          "Windows service development",
+          "Voice assistant optimization"
+        ],
+        "use_ollama": true
+      },
+      "description": "Self-learning ile yeni konular öğren"
+    },
+    {
+      "id": "analyze_agent_code",
+      "type": "ollama_analysis",
+      "priority": 4,
+      "enabled": true,
+      "params": {
+        "directory": "server/agents",
+        "analysis_type": "code_quality",
+        "model": "qwen3-vl:235b-cloud"
+      },
+      "description": "Ollama ile agent kodlarını analiz et"
+    },
+    {
+      "id": "generate_skill_docs",
+      "type": "generate_docs",
+      "priority": 5,
+      "enabled": true,
+      "params": {
+        "target_directory": "server/skills",
+        "use_ollama": true
+      },
+      "description": "Skill dosyaları için dokümantasyon oluştur"
+    },
+    {
+      "id": "check_system_health",
+      "type": "health_check",
+      "priority": 6,
+      "enabled": true,
+      "params": {
+        "components": [
+          "ollama",
+          "vector_db",
+          "web_crawler",
+          "knowledge_manager"
+        ]
+      },
+      "description": "Sistem componentlerinin sağlık kontrolü"
+    },
+    {
+      "id": "scrape_github_trending",
+      "type": "github_trending",
+      "priority": 7,
+      "enabled": true,
+      "params": {},
+      "description": "GitHub trending repos ve developers scrape et, knowledge base'e ekle"
+    },
+    {
+      "id": "analyze_curated_repositories",
+      "type": "github_repo_analysis",
+      "priority": 8,
+      "enabled": true,
+      "params": {
+        "source_file": "server/config/repo_sources.json",
+        "max_repos": 10
+      },
+      "description": "Kullanici tarafindan secilen populer repolari analiz et ve pattern cikar"
+    },
+    {
+      "id": "optimize_imports",
+      "type": "code_optimization",
+      "priority": 7,
+      "enabled": false,
+      "params": {
+        "target_files": ["server/agents/*.py"],
+        "optimization_type": "imports"
+      },
+      "description": "Unused import'ları temizle (güvenli değil, kapalı)"
+    }
+  ],
+  "metadata": {
+    "last_updated": "2026-03-26",
+    "version": "1.0.0",
+    "description": "JARVIS Night Runner job queue"
+  }
+}

@@ -6,6 +6,16 @@ Her mesajı JarvisRouter'a iletir.
 import telebot
 import logging
 import sys
+import os
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+from env_utils import get_int_env, load_env_files
+
+load_env_files(ROOT_DIR / ".env", ROOT_DIR / "server" / ".env")
+
 sys.path.insert(0, '/opt/jarvis/core')
 sys.path.insert(0, '/home/userk')
 sys.path.insert(0, '/opt/jarvis/skills/execution')
@@ -22,8 +32,11 @@ logging.basicConfig(
 )
 log = logging.getLogger("telegram.gateway")
 
-BOT_TOKEN = "8295826032:AAGn4XRJxQi98hqqZLRMcvOEaeowSGYDt-k"
-AUTHORIZED_CHAT_ID = 5847386182
+BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+AUTHORIZED_CHAT_ID = get_int_env("TELEGRAM_CHAT_ID", 0)
+
+if not BOT_TOKEN or not AUTHORIZED_CHAT_ID:
+    raise RuntimeError("TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID are required for telegram_gateway_v2.py")
 
 bot = telebot.TeleBot(BOT_TOKEN)
 router = get_router()

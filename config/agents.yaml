@@ -1,0 +1,128 @@
+##############################################################
+# Jarvis Agent Configuration
+# Controls which agents are enabled, their models, and behavior
+##############################################################
+
+agents:
+  planner:
+    enabled: true
+    description: "Breaks goals into structured execution plans"
+    model_chain: "reasoning"
+    max_tokens: 1500
+    max_retries: 2
+    timeout_seconds: 120
+    risk_level: "low"
+    auto_approve: true
+
+  repo_analyst:
+    enabled: true
+    description: "Analyzes repository health, architecture, code quality"
+    model_chain: "code"
+    max_tokens: 2000
+    max_retries: 2
+    timeout_seconds: 180
+    risk_level: "low"
+    auto_approve: true
+    schedule:
+      daily_summary: true
+      stale_pr_check: true
+
+  developer:
+    enabled: true
+    description: "Implements features, fixes bugs using Claude Code"
+    model_chain: "code"
+    max_tokens: 3000
+    max_retries: 1
+    timeout_seconds: 300
+    risk_level: "medium"
+    auto_approve: false         # requires review before applying changes
+    requires_review: true
+
+  reviewer:
+    enabled: true
+    description: "Reviews PRs and code for quality and security"
+    model_chain: "code"
+    max_tokens: 2000
+    max_retries: 2
+    timeout_seconds: 180
+    risk_level: "low"
+    auto_approve: true
+    trigger_on:
+      - "pull_request.opened"
+      - "pull_request.synchronize"
+
+  debug:
+    enabled: true
+    description: "Diagnoses CI failures, runtime errors, suggests fixes"
+    model_chain: "reasoning"
+    max_tokens: 2000
+    max_retries: 2
+    timeout_seconds: 120
+    risk_level: "low"
+    auto_approve: true
+    trigger_on:
+      - "workflow_run.failure"
+
+  release:
+    enabled: true
+    description: "Drafts changelogs, release notes, version management"
+    model_chain: "default"
+    max_tokens: 2000
+    max_retries: 2
+    timeout_seconds: 120
+    risk_level: "medium"
+    auto_approve: true  # only drafts, does not publish
+
+  docs:
+    enabled: true
+    description: "Writes README, AGENTS.md, RUNBOOK, API docs"
+    model_chain: "default"
+    max_tokens: 2500
+    max_retries: 2
+    timeout_seconds: 120
+    risk_level: "low"
+    auto_approve: true
+    allowed_files:
+      - "README.md"
+      - "AGENTS.md"
+      - "RUNBOOK.md"
+      - "docs/**"
+      - "prompts/**"
+
+  voice_narrator:
+    enabled: true
+    description: "Converts technical results to spoken announcements"
+    model_chain: "chat"
+    max_tokens: 200
+    max_retries: 1
+    timeout_seconds: 30
+    risk_level: "low"
+    auto_approve: true
+
+  mission_control:
+    enabled: true
+    description: "Monitors all agents, maintains system health"
+    model_chain: "reasoning"
+    max_tokens: 1500
+    max_retries: 2
+    timeout_seconds: 60
+    risk_level: "low"
+    auto_approve: true
+    schedule:
+      weekly_digest: true
+
+# ── Model Assignment per Agent ───────────────────────────────
+# Override individual agents to use specific models
+model_overrides:
+  # planner: "openrouter::anthropic/claude-opus-4.6"
+  # developer: "openrouter::anthropic/claude-sonnet-4-6"
+
+# ── Fallback Chain ───────────────────────────────────────────
+# If agent's primary chain fails, fall through in order
+global_fallback_chain:
+  - provider: openrouter
+    model: deepseek/deepseek-v3.2
+  - provider: openrouter
+    model: stepfun/step-3.5-flash:free
+  - provider: ollama
+    model: qwen3:8b

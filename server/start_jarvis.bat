@@ -1,6 +1,6 @@
 @echo off
 echo ============================================
-echo   Jarvis Mission Control v2.2 (Pinokio)
+echo   Jarvis Mission Control v2.3 (Standalone)
 echo ============================================
 cd /d "%~dp0"
 
@@ -20,7 +20,7 @@ if not exist ".env" (
 )
 
 echo Jarvis baslatiliyor...
-echo Web: http://127.0.0.1:8080
+echo Web: http://127.0.0.1:8081
 echo Durdurmak icin Ctrl+C
 echo.
 python bridge.py

@@ -4,15 +4,26 @@ Jarvis Heartbeat — Sabah 08:00 Günlük Brief
 Cron: 0 8 * * * /usr/bin/python3 /opt/jarvis/skills/heartbeat.py
 """
 
+import os
 import subprocess
 import json
+import sys
+from pathlib import Path
 from datetime import datetime
 from urllib.request import urlopen, Request
 from urllib.error import URLError
 
-TELEGRAM_TOKEN = "8295826032:AAGn4XRJxQi98hqqZLRMcvOEaeowSGYDt-k"
-CHAT_ID = 5847386182
-OLLAMA_URL = "http://127.0.0.1:11434"
+ROOT_DIR = Path(__file__).resolve().parents[2]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from env_utils import load_env_files
+
+load_env_files(ROOT_DIR / ".env", ROOT_DIR / "server" / ".env")
+
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
+OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434")
 
 def get_system_stats():
     """Sistem istatistiklerini topla"""

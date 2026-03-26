@@ -1,0 +1,36 @@
+﻿default_labels:
+  - needs-triage
+keyword_labels:
+  bug:
+    - bug
+  crash:
+    - bug
+    - priority:high
+  ci:
+    - ci
+  docs:
+    - documentation
+  performance:
+    - performance
+  slow:
+    - performance
+  security:
+    - security
+    - priority:high
+  test:
+    - tests
+  flaky:
+    - tests
+priority_keywords:
+  high:
+    - outage
+    - crash
+    - security
+    - data loss
+  medium:
+    - failure
+    - bug
+    - broken
+  low:
+    - docs
+    - typo

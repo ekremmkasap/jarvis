@@ -1,0 +1,62 @@
+{
+  "web_crawler": {
+    "enabled": true,
+    "user_agent": "JARVIS-Bot/1.0 (Self-Learning AI Assistant)",
+    "timeout": 10,
+    "max_retries": 3,
+    "rate_limits": {
+      "google": 1,
+      "wikipedia": 2,
+      "github": 5,
+      "stackoverflow": 2,
+      "reddit": 1
+    },
+    "sources": {
+      "google": true,
+      "wikipedia": true,
+      "github": true,
+      "stackoverflow": true,
+      "reddit": false,
+      "arxiv": false
+    }
+  },
+  "knowledge_manager": {
+    "enabled": true,
+    "vector_db": "chromadb",
+    "embedding_model": "all-MiniLM-L6-v2",
+    "max_documents": 10000,
+    "chunk_size": 512,
+    "chunk_overlap": 50,
+    "rag_enabled": true,
+    "rag_top_k": 5,
+    "rag_max_context_tokens": 2000
+  },
+  "auto_trainer": {
+    "enabled": false,
+    "training_mode": "lora",
+    "base_model": "minimax-m2.7:cloud",
+    "training_interval_hours": 24,
+    "min_examples": 100,
+    "max_training_time_minutes": 60
+  },
+  "continuous_learning": {
+    "enabled": true,
+    "learn_on_query": true,
+    "learn_on_error": true,
+    "auto_scrape_schedule": "daily",
+    "knowledge_refresh_interval_hours": 168
+  },
+  "storage": {
+    "knowledge_base_path": "server/knowledge_base",
+    "web_scraped_path": "server/knowledge_base/web_scraped",
+    "vector_db_path": "server/knowledge_base/vector_db",
+    "training_data_path": "server/training/datasets",
+    "models_path": "server/training/fine_tuned_models"
+  },
+  "security": {
+    "respect_robots_txt": true,
+    "filter_harmful_content": true,
+    "cite_sources": true,
+    "store_pii": false
+  }
+}

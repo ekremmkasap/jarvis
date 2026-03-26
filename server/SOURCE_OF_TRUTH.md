@@ -1,19 +1,25 @@
 # Jarvis Source of Truth
 
-Bu dokuman, daginik kopya riskini azaltmak icin resmi calisma hattini tanimlar.
+Bu dokuman aktif standalone runtime'i ve legacy dosyalari ayirir.
 
-## Resmi Hat
-- Uygulama cekirdegi: `server/openclaw/bridge.py`
-- Tenancy ayarlari: `server/tenants/*/config.json`
-- Operasyon notlari: `server/DEVLOG.md`
+## Canonical Runtime
 
-## Legacy Olarak Degerlendirilecekler
-- `server/bridge.py`
+- Backend gateway: `server/bridge.py`
+- Agent runtime: `server/agent_os/runtime.py`
+- Team orchestration: `server/core/team_orchestrator.py`
+- Tenant config schema: `server/tenants/*/config.json`
+- Operational notes: `server/ARCHITECTURE.md`, `server/DEVLOG.md`, `server/ROADMAP.md`
+
+## Legacy / Reference Only
+
+- `server/bridge_server.py`
 - `src/runtime/dev/bridge.py`
-- `faz2a/jarvis_router.py`
-- Klasor kokundeki deneysel deploy/fix scriptleri
+- root `bridge_*.py`
+- root `telegram_gateway_v2.py`
+- Pinokio donor source: `C:\pinokio\api\ekrem\app`
 
-## Kural
-1. Uretim degisikligi sadece resmi hat dosyalarinda yapilir.
-2. Legacy dosyalarda bug fix uygulanmaz.
-3. Deploy oncesi `holding_merkezi/outputs/sistem_durum_raporu.md` kontrol edilir.
+## Rules
+
+1. Production-facing runtime changes go to `server/bridge.py`.
+2. Legacy files are not a second source of truth.
+3. Donor sources may contribute prompts or patterns only; do not copy runtime state, logs, secrets, or launcher logic.

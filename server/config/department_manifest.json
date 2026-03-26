@@ -1,0 +1,63 @@
+{
+  "default_route": "operations",
+  "default_department": "assistant",
+  "max_departments": 4,
+  "route_keywords": {
+    "engineering": ["kod", "code", "python", "login", "register", "auth", "debug", "fix", "api"],
+    "marketing": ["marketing", "reklam", "landing", "sosyal medya", "content", "seo", "copy"],
+    "sales": ["sales", "satis", "lead", "crm", "email", "offer", "proposal"],
+    "research": ["research", "arastir", "rakip", "trend", "compare", "analyze", "mimari"],
+    "operations": ["workflow", "agent", "team", "orchestrator", "otomasyon", "operasyon", "telegram", "deploy"]
+  },
+  "route_map": {
+    "engineering": ["assistant", "builder", "guard", "research"],
+    "marketing": ["assistant", "marketing", "research"],
+    "sales": ["assistant", "sales", "research"],
+    "research": ["assistant", "research"],
+    "operations": ["assistant", "research", "builder", "guard"]
+  },
+  "departments": [
+    {
+      "id": "assistant",
+      "name": "Executive Assistant",
+      "mission": "Intake, task routing, and executive summaries.",
+      "tools": ["routing", "memory", "summary"],
+      "keywords": ["yardim", "help", "plan", "summary", "ozet", "yap"]
+    },
+    {
+      "id": "builder",
+      "name": "Engineering Builder",
+      "mission": "Code generation, implementation planning, and patch drafting.",
+      "tools": ["code", "files", "tests"],
+      "keywords": ["python", "javascript", "typescript", "auth", "api", "bug", "debug"]
+    },
+    {
+      "id": "guard",
+      "name": "Security Guard",
+      "mission": "Security and logic review before promotion.",
+      "tools": ["review", "security", "audit"],
+      "keywords": ["security", "guvenlik", "review", "audit", "token", "xss", "csrf"]
+    },
+    {
+      "id": "research",
+      "name": "Research Desk",
+      "mission": "Architecture, trend, and tool comparison.",
+      "tools": ["analysis", "comparison", "context"],
+      "keywords": ["arastir", "research", "trend", "mimari", "compare", "tool"]
+    },
+    {
+      "id": "marketing",
+      "name": "Marketing Studio",
+      "mission": "Campaign, social, content, and landing page strategy.",
+      "tools": ["copy", "campaign", "seo"],
+      "keywords": ["seo", "copy", "landing", "campaign", "social", "icerik"]
+    },
+    {
+      "id": "sales",
+      "name": "Sales Desk",
+      "mission": "Lead generation, outreach, offer packaging, and CRM suggestions.",
+      "tools": ["crm", "outreach", "offer"],
+      "keywords": ["lead", "crm", "proposal", "offer", "email", "cold"]
+    }
+  ]
+}
