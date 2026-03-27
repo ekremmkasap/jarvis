@@ -2147,6 +2147,28 @@ refreshRuntimeStatus();
             self._json(get_agent_os_visual_status())
         elif self.path == "/api/agent-os/events":
             self._json({"events": get_agent_os_visual_events()})
+        elif self.path == "/api/desktop-assistant":
+            p = BASE_DIR / "logs" / "desktop_assistant.json"
+            if p.exists():
+                self._json(json.loads(p.read_text(encoding="utf-8")))
+            else:
+                self._json({"phase": "idle", "text": "Jarvis hazir.", "agent": "jarvis", "updated_at": 0})
+        elif self.path == "/api/office/presence":
+            online = []
+            try:
+                ev_path = BASE_DIR / "logs" / "agent_os_events.jsonl"
+                if ev_path.exists():
+                    lines = ev_path.read_text(encoding="utf-8").strip().splitlines()
+                    seen = set()
+                    for line in reversed(lines[-20:]):
+                        ev = json.loads(line)
+                        ag = ev.get("agent")
+                        if ag and ag not in seen:
+                            seen.add(ag)
+                            online.append(ag)
+            except Exception:
+                pass
+            self._json({"online_agents": online, "bridge": "online", "updated_at": __import__("time").time()})
         else:
             self.send_error(404)
 

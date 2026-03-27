@@ -1,0 +1,56 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: transparent;
+  font-family: 'Segoe UI', sans-serif;
+  color: #c8e6ff;
+  user-select: none;
+  -webkit-app-region: drag;
+}
+
+#shell {
+  width: 320px;
+  padding: 18px;
+  background: rgba(5, 15, 40, 0.72);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(80, 160, 255, 0.25);
+  border-radius: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+#agentName { font-size: 18px; font-weight: 700; letter-spacing: 3px; color: #7ecfff; }
+#agentRole { font-size: 11px; color: #4a7fa0; letter-spacing: 1px; }
+#agentState { font-size: 13px; color: #a0cfee; }
+#speechText { font-size: 12px; color: #d0e8ff; text-align: center; min-height: 16px; }
+#previewText { font-size: 11px; color: #607080; text-align: center; font-style: italic; }
+#agentSkills { font-size: 10px; color: #3a6080; letter-spacing: 1px; }
+#connectionState { font-size: 10px; color: #2a5060; }
+
+/* Hologram ring */
+.hologram { position: relative; width: 120px; height: 120px; display: flex; align-items: center; justify-content: center; }
+.ring { position: absolute; border-radius: 50%; border: 2px solid rgba(80,160,255,0.4); }
+.ring.outer  { width: 110px; height: 110px; animation: pulse 3s ease-in-out infinite; }
+.ring.middle { width: 80px;  height: 80px;  animation: pulse 2s ease-in-out infinite 0.5s; }
+.core { width: 40px; height: 40px; border-radius: 50%; background: radial-gradient(circle, #2090ff 0%, #0040a0 100%); animation: glow 2s ease-in-out infinite; }
+.wave { position: absolute; width: 120px; height: 120px; border-radius: 50%; border: 1px solid rgba(80,160,255,0.15); animation: wave 4s linear infinite; }
+
+/* State modifiers */
+.hologram.idle      .core { background: radial-gradient(circle, #1060a0 0%, #003060 100%); }
+.hologram.listening .core { background: radial-gradient(circle, #00d4ff 0%, #0080c0 100%); }
+.hologram.thinking  .core { background: radial-gradient(circle, #a060ff 0%, #4020a0 100%); }
+.hologram.speaking  .core { background: radial-gradient(circle, #20ff80 0%, #008040 100%); animation: glow 0.5s ease-in-out infinite; }
+.hologram.offline   .core { background: radial-gradient(circle, #404040 0%, #202020 100%); }
+.hologram.error     .core { background: radial-gradient(circle, #ff4040 0%, #800000 100%); }
+
+/* Activity meter */
+#activityMeter { width: 100%; height: 4px; background: rgba(40,80,120,0.4); border-radius: 2px; overflow: hidden; }
+#activityFill { height: 100%; width: 10%; background: linear-gradient(90deg, #0080ff, #00d4ff); border-radius: 2px; transition: width 0.8s ease; }
+
+/* Keyframes */
+@keyframes pulse { 0%,100% { opacity: 0.4; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.04); } }
+@keyframes glow  { 0%,100% { box-shadow: 0 0 8px #2090ff; } 50% { box-shadow: 0 0 20px #40b0ff; } }
+@keyframes wave  { from { transform: scale(1); opacity: 0.3; } to { transform: scale(1.5); opacity: 0; } }
+@keyframes textFlash { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }

@@ -154,6 +154,8 @@ class VoiceService:
         self._recording = False
         self._audio_buffer: list[bytes] = []
         self._record_start = 0.0
+        self._oww = None
+        self._load_oww()
 
     def send_to_orchestrator(self, text: str) -> dict:
         payload = json.dumps({"text": text, "session_id": "voice"}).encode()
@@ -268,7 +270,7 @@ class VoiceService:
                         else:
                             self.tts.speak("I didn't catch that. Please try again.")
                 else:
-                    if self._check_energy_wake(frame):
+                    if self._check_wake(frame):
                         self.on_wake_word()
 
         except KeyboardInterrupt:
