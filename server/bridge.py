@@ -386,6 +386,71 @@ def run_team_task(chat_id: int, goal: str) -> str:
     badge = "✅" if result.get("guard_passed") else "⚠️"
     return f"{badge} *Team Task #{task_id}* (`{status}`)\n\n{synthesis}"
 
+_VOICE_TEST_MANAGER = None
+_WEEK1_PIPELINE = None
+
+
+def get_voice_test_manager():
+    global _VOICE_TEST_MANAGER
+    if _VOICE_TEST_MANAGER is None:
+        from server.voice.voice_layer import VoiceConversationManager
+
+        _VOICE_TEST_MANAGER = VoiceConversationManager()
+    return _VOICE_TEST_MANAGER
+
+
+def get_week1_pipeline():
+    global _WEEK1_PIPELINE
+    if _WEEK1_PIPELINE is None:
+        from server.agents.week1_pipeline import Week1Pipeline
+
+        _WEEK1_PIPELINE = Week1Pipeline()
+    return _WEEK1_PIPELINE
+
+
+def run_week1_task(chat_id: int, goal: str) -> str:
+    result = get_week1_pipeline().run(goal)
+    memory.add_message(chat_id, "user", f"/task {goal}")
+    memory.add_message(chat_id, "assistant", result.get("summary", ""), "week1_pipeline")
+    return (
+        f"*Week 1 Task Flow* (`{result.get('status', 'unknown')}`)\n\n"
+        f"{result.get('summary', 'No summary available.')}"
+    )
+
+
+def handle_voice_test_command(chat_id: int, args: str) -> str:
+    manager = get_voice_test_manager()
+    parts = [part for part in str(args or "").split() if part]
+    action = parts[0].lower() if parts else "start"
+
+    if action == "stop":
+        status = manager.stop_session(chat_id)
+        return f"Voice test stopped. Turns: {status.turns}. Mode: {status.mode}."
+
+    if action == "status":
+        status = manager.get_status(chat_id)
+        if not status.active:
+            return "Voice test is inactive."
+        return (
+            f"Voice test active. Remaining seconds: {int(status.remaining_seconds)}. "
+            f"Turns: {status.turns}. Mode: {status.mode}."
+        )
+
+    duration_seconds = 300
+    if action == "start" and len(parts) > 1:
+        try:
+            duration_seconds = max(60, int(parts[1]) * 60)
+        except ValueError:
+            duration_seconds = 300
+
+    status = manager.start_session(chat_id, duration_seconds=duration_seconds)
+    return (
+        "Voice test started for 5 minutes. "
+        "Send normal messages for conversation, or prefix a message with `task:` to run the Week 1 task flow. "
+        f"Mode: {status.mode}."
+    )
+
+
 def get_available_models() -> list:
     try:
         req = Request(f"{CONFIG['ollama_url']}/api/tags")
@@ -586,6 +651,7 @@ def handle_command(chat_id: int, cmd: str) -> str:
   `/code [gorev]` -> Kod yaz
   `/plan [proje]` -> Plan olustur
   `/task [hedef]` -> Otonom gorev (Plan+Execute)
+  `/voice-test [start|stop|status]` -> 5 dakikalik sesli sohbet testi
   `/team [hedef]` -> Planner+Builder+Guard agent team
   `/onaylar` -> Bekleyen onay kuyruğu
   `/onay-ekle [baslik] | [ozet]` -> Onay isteği ekle
@@ -906,12 +972,19 @@ Son Model: `{last_sel}` | Fallback: `{fallback}`"""
         memory.add_message(chat_id, "assistant", response, selected_candidate)
         return f"*Plan:*\n\n{response}"
 
+    elif command == "/voice-test":
+        return handle_voice_test_command(chat_id, args)
+
     elif command == "/task":
         task_goal = args or "Genel durum ozeti ve yapilacaklar listesi hazirla"
         try:
-            return run_team_task(chat_id, task_goal)
+            return run_week1_task(chat_id, task_goal)
         except Exception as e:
-            log.warning(f"team orchestrator hatasi: {e}, agent_loop fallback")
+            log.warning(f"week1 task flow hatasi: {e}, team orchestrator fallback")
+            try:
+                return run_team_task(chat_id, task_goal)
+            except Exception as team_e:
+                log.warning(f"team orchestrator hatasi: {team_e}, agent_loop fallback")
             try:
                 sys.path.insert(0, str(BASE_DIR))
                 from agent_loop import run as agent_run
@@ -1622,6 +1695,20 @@ def process_message(chat_id: int, text: str) -> str:
         return handle_command(chat_id, text)
 
     # ── NATURAL LANGUAGE INTERCEPTS ────────────────────────────────
+    try:
+        voice_manager = get_voice_test_manager()
+        if voice_manager.get_status(chat_id).active:
+            voice_result = voice_manager.handle_message(
+                chat_id,
+                text,
+                task_runner=lambda goal: get_week1_pipeline().run(goal),
+            )
+            memory.add_message(chat_id, "user", text)
+            memory.add_message(chat_id, "assistant", voice_result["reply"], f"voice:{voice_result['mode']}")
+            return voice_result["reply"]
+    except Exception as voice_error:
+        log.warning(f"voice test handling failed: {voice_error}")
+
     _tl = text.lower()
     # AnyDesk kabul
     if any(k in _tl for k in ["kabul et", "anydesk", "bağlantıyı kabul", "isteği kabul", "gelen isteği", "accept"]):
