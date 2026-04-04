@@ -1,0 +1,173 @@
+{
+  "learning_config": {
+    "enabled": true,
+    "analysis_interval_hours": 3,
+    "auto_apply_improvements": true,
+    "max_replan_attempts": 2,
+    "failure_threshold": 0.5,
+    "success_threshold": 0.8
+  },
+
+  "improvement_rules": [
+    {
+      "id": "retry_exponential_backoff",
+      "type": "retry_strategy",
+      "priority": "high",
+      "description": "Retry failed actions with exponential backoff (1s, 2s, 4s, 8s)",
+      "enabled": true,
+      "applies_when": {
+        "error_rate": "> 0.3",
+        "action_pattern": "flaky_actions"
+      },
+      "implementation": {
+        "backoff_base": 1,
+        "backoff_multiplier": 2,
+        "max_retries": 3
+      },
+      "expected_gain": "+15-25% success rate"
+    },
+
+    {
+      "id": "parallelize_independent",
+      "type": "parallelization",
+      "priority": "high",
+      "description": "Run independent successful actions in parallel",
+      "enabled": true,
+      "applies_when": {
+        "success_rate": "> 0.8",
+        "num_actions": "> 3",
+        "dependencies": "none"
+      },
+      "implementation": {
+        "max_parallel": 5,
+        "timeout_per_action": 30
+      },
+      "expected_gain": "+30-40% throughput"
+    },
+
+    {
+      "id": "cache_results",
+      "type": "caching",
+      "priority": "medium",
+      "description": "Cache results of expensive operations",
+      "enabled": true,
+      "applies_when": {
+        "action_duration": "> 2.0",
+        "call_frequency": "> 5 per_hour",
+        "deterministic": true
+      },
+      "implementation": {
+        "cache_backend": "memory",
+        "ttl_seconds": 3600
+      },
+      "expected_gain": "+10-20% latency"
+    },
+
+    {
+      "id": "skip_low_value",
+      "type": "skip_low_value",
+      "priority": "medium",
+      "description": "Skip or defer actions with high failure rate",
+      "enabled": true,
+      "applies_when": {
+        "failure_rate": "> 0.5",
+        "impact": "low"
+      },
+      "implementation": {
+        "defer_delay": 300,
+        "max_skips": 3
+      },
+      "expected_gain": "+10-15% time savings"
+    },
+
+    {
+      "id": "double_down_trending",
+      "type": "double_down",
+      "priority": "high",
+      "description": "Increase investment in trending improvements",
+      "enabled": true,
+      "applies_when": {
+        "trend": "up",
+        "magnitude": "> 0.5"
+      },
+      "implementation": {
+        "allocation_increase": 1.5,
+        "duration_hours": 3
+      },
+      "expected_gain": "+5-15% additional gain"
+    },
+
+    {
+      "id": "reduce_timeout",
+      "type": "performance",
+      "priority": "low",
+      "description": "Reduce timeouts for fast operations",
+      "enabled": true,
+      "applies_when": {
+        "action_latency": "< 0.5s",
+        "consistency": "high"
+      },
+      "implementation": {
+        "timeout_reduction": 0.5
+      },
+      "expected_gain": "+5% responsiveness"
+    }
+  ],
+
+  "learning_triggers": [
+    {
+      "event": "execution_complete",
+      "action": "log_execution"
+    },
+    {
+      "event": "hourly_checkpoint",
+      "action": "analyze_patterns"
+    },
+    {
+      "event": "3hour_checkpoint",
+      "action": "generate_suggestions"
+    },
+    {
+      "event": "suggestion_available",
+      "action": "apply_improvement"
+    },
+    {
+      "event": "improvement_applied",
+      "action": "measure_impact"
+    },
+    {
+      "event": "negative_impact",
+      "action": "rollback_rule"
+    }
+  ],
+
+  "metrics_to_track": [
+    "throughput_tps",
+    "error_rate_pct",
+    "latency_ms",
+    "success_rate_pct",
+    "improvement_delta_pct",
+    "test_pass_rate_pct"
+  ],
+
+  "thresholds": {
+    "immediate_alert": {
+      "error_rate": 0.7,
+      "throughput_drop": 0.2,
+      "latency_spike": 2.0
+    },
+    "learning_threshold": {
+      "min_samples": 10,
+      "confidence": 0.8,
+      "trend_magnitude": 0.5
+    }
+  },
+
+  "safety_rules": [
+    "Never rollback more than 3 rules per iteration",
+    "Never apply more than 1 major rule change per hour",
+    "Always revert if negative impact detected",
+    "Conservative mode: apply only low-risk rules first",
+    "Require 95% confidence before auto-applying rules"
+  ]
+}
