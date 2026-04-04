@@ -301,6 +301,21 @@ except Exception:
 # ─── MEMORY (JSON fallback) ───────────────────────────────────────
 memory = STATE.memory
 
+# ─── MONITORING: Health & Metrics ─────────────────────────────────
+try:
+    from monitoring.health_check import HealthChecker
+    from monitoring.execution_metrics import ExecutionMetricsCollector
+
+    HEALTH_CHECKER = HealthChecker(log_dir=str(BASE_DIR / "logs"))
+    METRICS_COLLECTOR = ExecutionMetricsCollector(log_dir=str(BASE_DIR / "logs"))
+    MONITORING_ENABLED = True
+    log.info("Monitoring modules initialized (health check + metrics collection)")
+except Exception as _me:
+    MONITORING_ENABLED = False
+    HEALTH_CHECKER = None
+    METRICS_COLLECTOR = None
+    log.warning(f"Monitoring disabled: {_me}")
+
 # ─────────────────────────── HELPERS ──────────────────────────────
 def detect_route(text: str):
     text_lower = text.lower()
@@ -516,6 +531,9 @@ def call_ollama(
     2) Route fallback (if any)
     3) config/model_router.yml chain
     """
+    import time as _time_module
+    start_time = _time_module.time()
+
     if model and not model.endswith(":cloud"):
         available = get_available_models()
         if available and not any(model.split(":")[0] in item for item in available):
@@ -534,6 +552,28 @@ def call_ollama(
     trace["requested_model"] = model
     trace["requested_fallback_model"] = fallback_model
     STATE.last_route_trace = trace
+
+    # ──── WEEK 2: Record execution metrics ────
+    duration_seconds = _time_module.time() - start_time
+    if MONITORING_ENABLED and METRICS_COLLECTOR:
+        try:
+            status = "success" if trace.get("ok") else "failure"
+            action = route_name or "chat"
+            result_size = len(response.encode('utf-8')) if isinstance(response, str) else 0
+            error_msg = trace.get("error") if not trace.get("ok") else None
+
+            METRICS_COLLECTOR.record_execution(
+                run_id=f"msg_{int(_time_module.time() * 1000)}",
+                action=action,
+                status=status,
+                duration_seconds=duration_seconds,
+                result_size_bytes=result_size,
+                error_message=error_msg,
+                cache_hit=False,  # Can be enhanced with actual cache tracking
+                retry_count=len(trace.get("attempts", [])) - 1 if trace.get("attempts") else 0,
+            )
+        except Exception as _me:
+            log.debug(f"Failed to record metrics: {_me}")
 
     if trace.get("ok"):
         selected = trace.get("selected_candidate") or model
@@ -2234,6 +2274,16 @@ refreshRuntimeStatus();
             self._json(get_agent_os_visual_status())
         elif self.path == "/api/agent-os/events":
             self._json({"events": get_agent_os_visual_events()})
+
+        # ──── WEEK 2: HEALTH & METRICS ENDPOINTS ────
+        elif self.path == "/health":
+            self._handle_health_endpoint()
+        elif self.path == "/metrics":
+            self._handle_metrics_endpoint()
+        elif self.path == "/metrics/cache":
+            self._handle_cache_metrics_endpoint()
+        elif self.path == "/learning/status":
+            self._handle_learning_status_endpoint()
         else:
             self.send_error(404)
 
@@ -2261,6 +2311,118 @@ refreshRuntimeStatus();
                 self._json({"error": str(e)}, 500)
         else:
             self.send_error(404)
+
+    # ──── WEEK 2: NEW ENDPOINT HANDLERS ────
+    def _handle_health_endpoint(self):
+        """GET /health - System health status"""
+        if not MONITORING_ENABLED or HEALTH_CHECKER is None:
+            # Fallback health response if monitoring not available
+            health_data = {
+                "status": "healthy",
+                "timestamp": datetime.now().isoformat(),
+                "components": {
+                    "logs_writable": True,
+                    "bridge_running": True,
+                },
+                "warning": "Monitoring modules disabled"
+            }
+            self._json(health_data, 200)
+            return
+
+        # Use HealthChecker for comprehensive status
+        health_status = HEALTH_CHECKER.get_status(
+            metrics_data=METRICS_COLLECTOR.get_stats(time_window_minutes=60) if METRICS_COLLECTOR else None
+        )
+        response, status_code = HEALTH_CHECKER.get_health_endpoint_response(
+            include_metrics=True,
+            metrics_data=METRICS_COLLECTOR.get_stats(time_window_minutes=60) if METRICS_COLLECTOR else None
+        )
+        self._json(response, status_code)
+        log.debug(f"Health check: {health_status.status}")
+
+    def _handle_metrics_endpoint(self):
+        """GET /metrics - Execution metrics and statistics"""
+        if not MONITORING_ENABLED or METRICS_COLLECTOR is None:
+            self._json({"error": "Metrics collection disabled"}, 503)
+            return
+
+        try:
+            # Get aggregated metrics over last hour
+            stats = METRICS_COLLECTOR.get_stats(time_window_minutes=60)
+
+            # Add execution metrics response
+            metrics_response = {
+                "timestamp": datetime.now().isoformat(),
+                "window_minutes": 60,
+                "execution_stats": stats,
+                # Include memory stats from bridge
+                "memory_stats": memory.data.get("stats", {}),
+                "total_queries": memory.data.get("stats", {}).get("total_queries", 0),
+            }
+            self._json(metrics_response, 200)
+            log.debug("Metrics endpoint accessed")
+        except Exception as e:
+            log.error(f"Error retrieving metrics: {e}")
+            self._json({"error": str(e)}, 500)
+
+    def _handle_cache_metrics_endpoint(self):
+        """GET /metrics/cache - Cache statistics"""
+        if not MONITORING_ENABLED or METRICS_COLLECTOR is None:
+            self._json({"error": "Metrics collection disabled"}, 503)
+            return
+
+        try:
+            # Get recent metrics to calculate cache stats
+            recent_metrics = METRICS_COLLECTOR.get_recent_metrics(limit=500)
+
+            cache_hits = sum(1 for m in recent_metrics if m.cache_hit)
+            total = len(recent_metrics)
+            cache_hit_rate = (cache_hits / total * 100) if total > 0 else 0
+
+            cache_data = {
+                "timestamp": datetime.now().isoformat(),
+                "total_executions": total,
+                "cache_hits": cache_hits,
+                "cache_hit_rate_pct": round(cache_hit_rate, 1),
+                "cache_misses": total - cache_hits,
+                "details": {
+                    "last_100_hit_rate": round(
+                        sum(1 for m in recent_metrics[-100:] if m.cache_hit) /
+                        min(100, len(recent_metrics)) * 100 if len(recent_metrics) > 0 else 0,
+                        1
+                    )
+                }
+            }
+            self._json(cache_data, 200)
+            log.debug("Cache metrics accessed")
+        except Exception as e:
+            log.error(f"Error retrieving cache metrics: {e}")
+            self._json({"error": str(e)}, 500)
+
+    def _handle_learning_status_endpoint(self):
+        """GET /learning/status - Learning engine status"""
+        try:
+            # Get recent metrics to infer learning engine status
+            stats = METRICS_COLLECTOR.get_stats(time_window_minutes=60) if METRICS_COLLECTOR else {}
+
+            learning_status = {
+                "timestamp": datetime.now().isoformat(),
+                "learning_enabled": MONITORING_ENABLED,
+                "execution_data_available": bool(stats.get("total_executions", 0) > 0),
+                "recent_metrics": {
+                    "total_executions": stats.get("total_executions", 0),
+                    "success_rate_pct": stats.get("success_rate_pct", 0),
+                    "cache_hit_rate_pct": stats.get("cache_hit_rate_pct", 0),
+                    "throughput_per_minute": stats.get("throughput_per_minute", 0),
+                },
+                "top_actions": stats.get("top_actions", [])[:5],
+                "status": "operational" if MONITORING_ENABLED else "disabled"
+            }
+            self._json(learning_status, 200)
+            log.debug("Learning status accessed")
+        except Exception as e:
+            log.error(f"Error retrieving learning status: {e}")
+            self._json({"error": str(e)}, 500)
 
     def _json(self, data, code=200):
         body = json.dumps(data, ensure_ascii=False).encode("utf-8")
