@@ -7,6 +7,14 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Callable
 
+try:
+    from server.voice.circuit_breaker import CircuitBreakerOpenError
+except ImportError:
+    try:
+        from voice.circuit_breaker import CircuitBreakerOpenError
+    except ImportError:
+        CircuitBreakerOpenError = RuntimeError
+
 
 class RecoveryDecision(str, Enum):
     RETRY = "RETRY"
@@ -34,9 +42,18 @@ class RecoveryStats:
 
 
 class ErrorHandlerAgent:
-    """Handles execution failures with deterministic RETRY/REPLAN/SKIP logic."""
+    """Handles execution failures with deterministic RETRY/REPLAN/SKIP logic and circuit breaker awareness."""
 
-    _TRANSIENT_KEYWORDS = ("timeout", "tempor", "network", "rate limit", "connection reset")
+    _TRANSIENT_KEYWORDS = (
+        "timeout",
+        "tempor",
+        "network",
+        "rate limit",
+        "connection reset",
+        "circuit breaker",
+        "temporarily unavailable",
+        "service unavailable",
+    )
     _REPLAN_KEYWORDS = ("invalid", "unknown action", "unsupported", "not found", "missing")
 
     def __init__(

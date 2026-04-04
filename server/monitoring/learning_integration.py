@@ -10,6 +10,7 @@ import logging
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+import json
 
 from server.monitoring.execution_metrics import ExecutionMetricsCollector
 from server.agents.self_learning_agent import SelfLearningEngine
@@ -30,6 +31,12 @@ class LearningIntegrationBridge:
         )
         self.log_dir = Path(log_dir)
         self.logger = self._build_logger()
+
+        # Improvement tracking
+        self.improvement_history: list[dict[str, Any]] = []
+        self.improvement_snapshots: dict[str, dict[str, Any]] = {}
+        self.rollback_threshold = 0.05  # -5% is rollback threshold
+        self._max_improvements_per_cycle = 1
 
     def _build_logger(self) -> logging.Logger:
         logger = logging.getLogger("jarvis.monitoring.learning_bridge")
@@ -95,8 +102,25 @@ class LearningIntegrationBridge:
     async def check_and_apply_improvements(self) -> dict[str, Any]:
         """
         Analyze patterns and apply improvements if suggested
+        Max 1 improvement per cycle with auto-rollback on negative impact
         """
         try:
+            # Check if already applied max improvements this cycle
+            if len(self.improvement_history) > 0:
+                last_improvement = self.improvement_history[-1]
+                if (datetime.now(timezone.utc).timestamp() -
+                    datetime.fromisoformat(last_improvement["timestamp"]).timestamp()) < 3600:
+                    # Less than 1 hour since last improvement
+                    if last_improvement.get("status") == "applied":
+                        return {
+                            "status": "max_per_cycle",
+                            "message": f"Max {self._max_improvements_per_cycle} improvement per cycle reached"
+                        }
+
+            # Take metrics snapshot before improvement
+            pre_improvement_stats = self.metrics.get_stats(time_window_minutes=60)
+            self.logger.info(f"pre_improvement_snapshot success_rate={pre_improvement_stats.get('success_rate_pct')}%")
+
             # Analyze patterns
             analysis = await self.learning.analyze_patterns()
 
@@ -109,19 +133,45 @@ class LearningIntegrationBridge:
             if not suggestions:
                 return {"status": "no_suggestions", "message": "No improvements suggested"}
 
-            # Apply top suggestion
+            # Apply top suggestion (safest one)
             top_suggestion = suggestions[0]
+            improvement_id = f"imp_{datetime.now(timezone.utc).isoformat().replace(':', '-')}"
+
             result = await self.learning.apply_improvement(top_suggestion)
+
+            # Store snapshot for rollback detection
+            self.improvement_snapshots[improvement_id] = {
+                "pre_stats": pre_improvement_stats,
+                "suggestion": top_suggestion,
+                "applied_at": datetime.now(timezone.utc).isoformat(),
+            }
+
+            improvement_record = {
+                "id": improvement_id,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "type": top_suggestion.get("type"),
+                "expected_improvement": top_suggestion.get("expected_improvement"),
+                "status": "applied",
+                "priority": top_suggestion.get("priority", "medium"),
+                "result": result,
+            }
+
+            self.improvement_history.append(improvement_record)
+
+            # Log improvement
+            await self._log_improvement(improvement_record)
 
             self.logger.info(
                 f"Applied improvement: {top_suggestion.get('type')} "
-                f"with expected gain: {top_suggestion.get('expected_improvement')}"
+                f"with expected gain: {top_suggestion.get('expected_improvement')} "
+                f"improvement_id={improvement_id}"
             )
 
             return {
                 "status": "success",
                 "improvement_applied": top_suggestion.get("type"),
                 "expected_gain": top_suggestion.get("expected_improvement"),
+                "improvement_id": improvement_id,
                 "result": result,
             }
 
@@ -182,10 +232,70 @@ class LearningIntegrationBridge:
                 "improvements_applied": improvements_applied,
             }
 
+    async def _log_improvement(self, record: dict[str, Any]) -> None:
+        """Log improvement to file for audit trail"""
+        try:
+            improvements_log = self.log_dir / "improvements.jsonl"
+            with open(improvements_log, "a", encoding="utf-8") as f:
+                f.write(json.dumps(record, ensure_ascii=False) + "\n")
+        except Exception as e:
+            self.logger.error(f"Failed to log improvement: {e}")
+
+    async def check_improvement_impact(self, improvement_id: str, timeout_minutes: int = 5) -> dict[str, Any]:
+        """
+        Check if improvement had positive or negative impact
+        If negative impact detected, trigger auto-rollback
+        """
+        try:
+            if improvement_id not in self.improvement_snapshots:
+                return {"status": "not_found", "message": f"No snapshot for {improvement_id}"}
+
+            snapshot = self.improvement_snapshots[improvement_id]
+            pre_stats = snapshot["pre_stats"]
+            current_stats = self.metrics.get_stats(time_window_minutes=timeout_minutes)
+
+            if current_stats.get("total_executions", 0) == 0:
+                return {"status": "insufficient_data", "message": "Not enough data to measure impact"}
+
+            pre_success_rate = pre_stats.get("success_rate_pct", 0)
+            current_success_rate = current_stats.get("success_rate_pct", 0)
+            delta = (current_success_rate - pre_success_rate) / 100.0 if pre_success_rate > 0 else 0
+
+            impact = {
+                "improvement_id": improvement_id,
+                "pre_success_rate": pre_success_rate,
+                "current_success_rate": current_success_rate,
+                "delta": round(delta, 4),
+                "status": "positive" if delta > 0 else "negative" if delta < self.rollback_threshold else "neutral",
+            }
+
+            self.logger.info(f"Improvement impact check: {improvement_id} delta={delta:.2%}")
+
+            # Auto-rollback on negative impact
+            if delta < self.rollback_threshold:
+                self.logger.warning(
+                    f"Auto-rollback triggered for {improvement_id}: "
+                    f"delta={delta:.2%} below threshold={self.rollback_threshold:.2%}"
+                )
+                impact["rollback_triggered"] = True
+                impact["rollback_reason"] = f"Success rate dropped {delta:.2%}"
+
+                # Find and mark for rollback
+                for record in self.improvement_history:
+                    if record["id"] == improvement_id:
+                        record["status"] = "rolled_back"
+                        record["rollback_at"] = datetime.now(timezone.utc).isoformat()
+                        break
+
+            return impact
+
+        except Exception as e:
+            self.logger.error(f"Failed to check improvement impact: {e}")
+            return {"status": "error", "error": str(e)}
+
     def get_learning_status(self) -> dict[str, Any]:
         """Get current learning system status"""
         stats = self.metrics.get_stats()
-        cache_stats = getattr(self, '_cache_stats', {})
 
         return {
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -197,7 +307,12 @@ class LearningIntegrationBridge:
             },
             "learning": {
                 "engine_active": True,
-                "last_analysis": None,
-                "improvements_applied": 0,
+                "improvements_applied": len([h for h in self.improvement_history if h.get("status") == "applied"]),
+                "improvements_rolled_back": len([h for h in self.improvement_history if h.get("status") == "rolled_back"]),
+                "last_improvement": self.improvement_history[-1] if self.improvement_history else None,
             },
         }
+
+    def get_improvement_history(self, limit: int = 50) -> list[dict[str, Any]]:
+        """Get improvement history"""
+        return self.improvement_history[-limit:]

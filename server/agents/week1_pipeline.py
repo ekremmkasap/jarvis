@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
@@ -9,6 +10,8 @@ from server.agents.error_handler_agent import ErrorHandlerAgent, RecoveryResult
 from server.agents.executor_agent import ExecutorAgent
 from server.agents.task_planner_agent import PlanResult, TaskPlannerAgent
 from server.agents.tool_registry import ToolRegistry
+from server.monitoring.execution_metrics import ExecutionMetricsCollector
+from server.monitoring.learning_integration import LearningIntegrationBridge
 
 
 LOG_DIR = Path(__file__).resolve().parents[1] / "logs"
@@ -74,12 +77,21 @@ class Week1Pipeline:
         error_handler: ErrorHandlerAgent | None = None,
         tool_registry: ToolRegistry | None = None,
         logger: logging.Logger | None = None,
+        metrics_collector: ExecutionMetricsCollector | None = None,
+        learning_bridge: LearningIntegrationBridge | None = None,
     ) -> None:
         self.tool_registry = tool_registry or build_week1_tool_registry()
         self.planner = planner or TaskPlannerAgent()
         self.executor = executor or ExecutorAgent(self.tool_registry)
         self.error_handler = error_handler or ErrorHandlerAgent(max_retries=1, max_replan_attempts=2)
         self.logger = logger or _build_logger()
+        self.metrics_collector = metrics_collector or ExecutionMetricsCollector(log_dir=LOG_DIR)
+        self.learning_bridge = learning_bridge or LearningIntegrationBridge(
+            metrics_collector=self.metrics_collector,
+            log_dir=LOG_DIR,
+        )
+        self._improvements_applied = 0
+        self._improvement_delta_tracking: dict[str, dict[str, Any]] = {}
 
     def run(
         self,
@@ -89,6 +101,19 @@ class Week1Pipeline:
         replan_step: Callable[[dict[str, Any], Exception | str, int], dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         run_id = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
+        self.logger.info("pipeline_started run_id=%s goal=%s", run_id, goal[:100])
+
+        # Hook: Feed metrics to learning engine
+        try:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                loop.run_until_complete(self.learning_bridge.feed_metrics_to_learning())
+            finally:
+                loop.close()
+        except Exception as e:
+            self.logger.warning("learning_metrics_feed_failed error=%s", str(e))
+
         plan_result: PlanResult = self.planner.plan(goal, requested_actions=requested_actions)
         if not plan_result.ok:
             self.logger.error("pipeline_plan_failed run_id=%s error=%s", run_id, plan_result.error)
@@ -101,6 +126,7 @@ class Week1Pipeline:
                 "results": [],
                 "recoveries": [],
                 "summary": str(plan_result.error or "Planning failed."),
+                "improvement_delta": None,
             }
 
         results: list[dict[str, Any]] = []
@@ -151,7 +177,49 @@ class Week1Pipeline:
         ok = all(item.get("ok") for item in results)
         status = "completed" if ok else "completed_with_recovery"
         summary = self._build_summary(goal, results, recoveries)
-        self.logger.info("pipeline_finished run_id=%s status=%s recovered=%s", run_id, status, len(recoveries))
+
+        # Record metrics
+        success_count = sum(1 for r in results if r.get("ok"))
+        error_msg = None if ok else "completed_with_recovery"
+        duration = len(step_payloads) * 0.1  # Estimate
+        self.metrics_collector.record_execution(
+            run_id=run_id,
+            action="pipeline",
+            status="success" if ok else "partial",
+            duration_seconds=duration,
+            error_message=error_msg,
+            retry_count=len(recoveries),
+        )
+
+        # Hook: Check and apply improvements (max 1 per cycle)
+        improvement_delta = None
+        try:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                improvement_result = loop.run_until_complete(self.learning_bridge.check_and_apply_improvements())
+                if improvement_result.get("status") == "success":
+                    self._improvements_applied += 1
+                    improvement_delta = {
+                        "applied_type": improvement_result.get("improvement_applied"),
+                        "expected_gain": improvement_result.get("expected_gain"),
+                        "sequence": self._improvements_applied,
+                    }
+                    self.logger.info(
+                        "improvement_applied run_id=%s type=%s expected_gain=%s",
+                        run_id,
+                        improvement_delta["applied_type"],
+                        improvement_delta["expected_gain"],
+                    )
+                    self._improvement_delta_tracking[run_id] = improvement_delta
+            finally:
+                loop.close()
+        except Exception as e:
+            self.logger.warning("learning_improvement_failed error=%s", str(e))
+
+        self.logger.info("pipeline_finished run_id=%s status=%s recovered=%s improvements=%s",
+                        run_id, status, len(recoveries), self._improvements_applied)
+
         return {
             "ok": ok,
             "status": status,
@@ -161,10 +229,26 @@ class Week1Pipeline:
             "results": results,
             "recoveries": [self._serialize_recovery(item) for item in recoveries],
             "summary": summary,
+            "improvement_delta": improvement_delta,
         }
 
     def _execute_checked(self, step: dict[str, Any], run_id: str) -> dict[str, Any]:
-        return self.executor.execute_step(step, run_id=run_id)
+        start_time = datetime.now(timezone.utc)
+        result = self.executor.execute_step(step, run_id=run_id)
+        duration = (datetime.now(timezone.utc) - start_time).total_seconds()
+
+        # Log execution for learning
+        status = "success" if result.get("ok") else "failure"
+        error_msg = result.get("error", {}).get("message") if not result.get("ok") else None
+        self.metrics_collector.record_execution(
+            run_id=run_id,
+            action=step.get("action", "unknown"),
+            status=status,
+            duration_seconds=duration,
+            error_message=error_msg,
+        )
+
+        return result
 
     def _execute_or_raise(self, step: dict[str, Any], run_id: str) -> dict[str, Any]:
         output = self._execute_checked(step, run_id)
@@ -214,4 +298,12 @@ class Week1Pipeline:
             "retry_attempts": recovery.retry_attempts,
             "replan_attempts": recovery.replan_attempts,
             "recovery_path": list(recovery.recovery_path),
+        }
+
+    def get_learning_metrics(self) -> dict[str, Any]:
+        """Get current learning metrics and improvement tracking"""
+        return {
+            "improvements_applied": self._improvements_applied,
+            "improvement_deltas": self._improvement_delta_tracking,
+            "learning_engine_status": self.learning_bridge.get_learning_status(),
         }
