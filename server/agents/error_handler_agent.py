@@ -1,299 +1,200 @@
-#!/usr/bin/env python3
-"""
-Error Handler Agent - Handle failures with RETRY/REPLAN/SKIP decisions
-Implements error recovery with max 2 replan attempts
-"""
+from __future__ import annotations
 
-import asyncio
-import json
 import logging
-from datetime import datetime
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable
 
-logger = logging.getLogger(__name__)
+
+class RecoveryDecision(str, Enum):
+    RETRY = "RETRY"
+    REPLAN = "REPLAN"
+    SKIP = "SKIP"
+
+
+@dataclass
+class RecoveryResult:
+    ok: bool
+    decision: RecoveryDecision
+    step: dict[str, Any]
+    output: Any = None
+    error: str | None = None
+    retry_attempts: int = 0
+    replan_attempts: int = 0
+    recovery_path: list[str] = field(default_factory=list)
+
+
+@dataclass
+class RecoveryStats:
+    total_failures: int = 0
+    recovered: int = 0
+    skipped: int = 0
 
 
 class ErrorHandlerAgent:
-    """Handle execution errors with intelligent recovery strategies."""
+    """Handles execution failures with deterministic RETRY/REPLAN/SKIP logic."""
 
-    def __init__(self, log_dir: str = "server/logs"):
-        self.log_dir = Path(log_dir)
-        self.log_dir.mkdir(parents=True, exist_ok=True)
-        self.error_log = self.log_dir / "error_recovery.jsonl"
-        self.max_replan_attempts = 2
-        self.retry_backoff_base = 1  # seconds
-        self.retry_backoff_multiplier = 2
-        self.max_retries = 3
+    _TRANSIENT_KEYWORDS = ("timeout", "tempor", "network", "rate limit", "connection reset")
+    _REPLAN_KEYWORDS = ("invalid", "unknown action", "unsupported", "not found", "missing")
 
-    def analyze_error(self, error: str, step_definition: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Classify error type and suggest recovery strategy.
-
-        Returns:
-            Dict with 'error_type', 'strategy', 'retry_count', 'priority'
-        """
-        error_lower = error.lower()
-        action = step_definition.get("action", "").lower()
-
-        # Classify error type
-        if "timeout" in error_lower:
-            error_type = "timeout"
-            strategy = "retry"  # Retry with longer timeout
-            priority = "high"
-        elif "not found" in error_lower or "404" in error_lower:
-            error_type = "not_found"
-            strategy = "skip"  # Skip this step
-            priority = "medium"
-        elif "permission" in error_lower or "denied" in error_lower:
-            error_type = "permission_denied"
-            strategy = "replan"  # Need to replan approach
-            priority = "high"
-        elif "rate_limit" in error_lower or "429" in error_lower:
-            error_type = "rate_limit"
-            strategy = "retry"  # Retry with backoff
-            priority = "high"
-        elif "connection" in error_lower or "network" in error_lower:
-            error_type = "connection_error"
-            strategy = "retry"  # Retry connection
-            priority = "high"
-        else:
-            error_type = "unknown"
-            strategy = "replan"  # Default to replan
-            priority = "medium"
-
-        return {
-            "error_type": error_type,
-            "action": action,
-            "strategy": strategy,  # "retry", "replan", or "skip"
-            "priority": priority,
-            "timestamp": datetime.now().isoformat(),
-        }
-
-    def decide_recovery(
+    def __init__(
         self,
-        error_analysis: Dict[str, Any],
-        retry_count: int,
-        replan_count: int,
-    ) -> Dict[str, Any]:
-        """
-        Decide which recovery action to take based on error and attempt counts.
+        *,
+        max_retries: int = 1,
+        max_replan_attempts: int = 2,
+        log_dir: Path | None = None,
+        now_fn: Callable[[], datetime] | None = None,
+    ) -> None:
+        self.max_retries = max(0, int(max_retries))
+        self.max_replan_attempts = max(0, int(max_replan_attempts))
+        self.now_fn = now_fn or (lambda: datetime.now(timezone.utc))
+        self.stats = RecoveryStats()
+        self.logger = self._build_logger(log_dir=log_dir)
 
-        Returns:
-            Dict with 'action', 'reasoning', 'next_params'
-        """
-        strategy = error_analysis.get("strategy", "replan")
+    def decide_action(
+        self,
+        error: Exception | str,
+        *,
+        retry_attempts: int,
+        replan_attempts: int,
+    ) -> RecoveryDecision:
+        text = str(error).lower()
+        if retry_attempts < self.max_retries and any(token in text for token in self._TRANSIENT_KEYWORDS):
+            return RecoveryDecision.RETRY
+        if replan_attempts < self.max_replan_attempts and any(token in text for token in self._REPLAN_KEYWORDS):
+            return RecoveryDecision.REPLAN
+        if retry_attempts < self.max_retries:
+            return RecoveryDecision.RETRY
+        if replan_attempts < self.max_replan_attempts:
+            return RecoveryDecision.REPLAN
+        return RecoveryDecision.SKIP
 
-        # Decide based on counts and strategy
-        if strategy == "retry" and retry_count < self.max_retries:
-            backoff_delay = self.retry_backoff_base * (
-                self.retry_backoff_multiplier ** retry_count
+    def execute_with_recovery(
+        self,
+        *,
+        step: dict[str, Any],
+        error: Exception | str,
+        execute_step: Callable[[dict[str, Any]], Any],
+        replan_step: Callable[[dict[str, Any], Exception | str, int], dict[str, Any]] | None = None,
+    ) -> RecoveryResult:
+        self.stats.total_failures += 1
+        retry_attempts = 0
+        replan_attempts = 0
+        recovery_path: list[str] = []
+        active_step = dict(step)
+        active_error: Exception | str = error
+
+        self._log_event("failure_received", active_step, str(active_error))
+
+        while True:
+            decision = self.decide_action(
+                active_error,
+                retry_attempts=retry_attempts,
+                replan_attempts=replan_attempts,
             )
-            return {
-                "action": "retry",
-                "reasoning": f"Retrying with {backoff_delay}s backoff",
-                "next_params": {
-                    "delay_seconds": backoff_delay,
-                    "retry_count": retry_count + 1,
-                },
-            }
-        elif strategy == "replan" and replan_count < self.max_replan_attempts:
-            return {
-                "action": "replan",
-                "reasoning": f"Replanning step (attempt {replan_count + 1}/{self.max_replan_attempts})",
-                "next_params": {
-                    "replan_count": replan_count + 1,
-                    "original_error": error_analysis.get("error_type"),
-                },
-            }
-        else:
-            # Skip this step if retries/replans are exhausted
-            return {
-                "action": "skip",
-                "reasoning": f"Max attempts reached (retries:{retry_count}, replans:{replan_count}). Skipping.",
-                "next_params": {"skipped": True},
-            }
+            recovery_path.append(decision.value)
+            self._log_event("decision", active_step, str(active_error), decision.value)
 
-    async def handle_step_error(
-        self,
-        step_definition: Dict[str, Any],
-        error: str,
-        execution_history: List[Dict[str, Any]],
-        retry_count: int = 0,
-        replan_count: int = 0,
-    ) -> Dict[str, Any]:
-        """
-        Handle an error from step execution.
+            if decision is RecoveryDecision.RETRY:
+                retry_attempts += 1
+                try:
+                    output = execute_step(active_step)
+                    self.stats.recovered += 1
+                    self._log_event("recovered", active_step, "retry success", decision.value)
+                    return RecoveryResult(
+                        ok=True,
+                        decision=decision,
+                        step=active_step,
+                        output=output,
+                        retry_attempts=retry_attempts,
+                        replan_attempts=replan_attempts,
+                        recovery_path=recovery_path,
+                    )
+                except Exception as exc:
+                    active_error = exc
+                    self._log_event("retry_failed", active_step, str(exc), decision.value)
+                    continue
 
-        Returns:
-            Dict with 'recovery_action', 'analysis', 'decision', 'next_step'
-        """
-        analysis = self.analyze_error(error, step_definition)
-        decision = self.decide_recovery(analysis, retry_count, replan_count)
+            if decision is RecoveryDecision.REPLAN:
+                if replan_step is None:
+                    self.stats.skipped += 1
+                    self._log_event("skip_no_replanner", active_step, str(active_error), decision.value)
+                    return RecoveryResult(
+                        ok=False,
+                        decision=RecoveryDecision.SKIP,
+                        step=active_step,
+                        error="replan_step is required for REPLAN decision",
+                        retry_attempts=retry_attempts,
+                        replan_attempts=replan_attempts,
+                        recovery_path=recovery_path,
+                    )
+                replan_attempts += 1
+                active_step = replan_step(active_step, active_error, replan_attempts)
+                self._log_event("replanned", active_step, str(active_error), decision.value)
+                try:
+                    output = execute_step(active_step)
+                    self.stats.recovered += 1
+                    self._log_event("recovered", active_step, "replan success", decision.value)
+                    return RecoveryResult(
+                        ok=True,
+                        decision=decision,
+                        step=active_step,
+                        output=output,
+                        retry_attempts=retry_attempts,
+                        replan_attempts=replan_attempts,
+                        recovery_path=recovery_path,
+                    )
+                except Exception as exc:
+                    active_error = exc
+                    self._log_event("replan_failed", active_step, str(exc), decision.value)
+                    continue
 
-        recovery_record = {
-            "timestamp": datetime.now().isoformat(),
-            "step": step_definition,
-            "error": error,
-            "analysis": analysis,
-            "decision": decision,
-            "retry_count": retry_count,
-            "replan_count": replan_count,
-        }
-
-        # Log the recovery decision
-        self._log_recovery(recovery_record)
-
-        if decision["action"] == "retry":
-            logger.info(f"Recovery: RETRY with {decision['next_params']['delay_seconds']}s backoff")
-            await asyncio.sleep(decision["next_params"]["delay_seconds"])
-            return {
-                "recovery_action": "retry",
-                "analysis": analysis,
-                "decision": decision,
-                "next_step": {
-                    **step_definition,
-                    "retry_count": decision["next_params"]["retry_count"],
-                },
-            }
-
-        elif decision["action"] == "replan":
-            logger.info(
-                f"Recovery: REPLAN (attempt {decision['next_params']['replan_count']})"
+            self.stats.skipped += 1
+            self._log_event("skipped", active_step, str(active_error), decision.value)
+            return RecoveryResult(
+                ok=False,
+                decision=RecoveryDecision.SKIP,
+                step=active_step,
+                error=str(active_error),
+                retry_attempts=retry_attempts,
+                replan_attempts=replan_attempts,
+                recovery_path=recovery_path,
             )
-            return {
-                "recovery_action": "replan",
-                "analysis": analysis,
-                "decision": decision,
-                "suggested_changes": self._suggest_replanning(
-                    step_definition, error, execution_history
-                ),
-            }
 
-        else:  # skip
-            logger.info("Recovery: SKIP - max attempts exhausted")
-            return {
-                "recovery_action": "skip",
-                "analysis": analysis,
-                "decision": decision,
-                "reason": "Max retry/replan attempts exceeded",
-            }
+    def _build_logger(self, *, log_dir: Path | None) -> logging.Logger:
+        resolved_dir = log_dir or (Path(__file__).resolve().parents[1] / "logs")
+        resolved_dir.mkdir(parents=True, exist_ok=True)
+        log_path = resolved_dir / "error_handler_agent.log"
+        logger = logging.getLogger(f"jarvis.error_handler.{id(self)}")
+        logger.setLevel(logging.INFO)
+        logger.propagate = False
+        formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
+        file_handler = logging.FileHandler(log_path, encoding="utf-8")
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
+        return logger
 
-    def _suggest_replanning(
+    def close(self) -> None:
+        handlers = list(self.logger.handlers)
+        for handler in handlers:
+            handler.flush()
+            handler.close()
+            self.logger.removeHandler(handler)
+
+    def _log_event(
         self,
-        step_definition: Dict[str, Any],
+        event: str,
+        step: dict[str, Any],
         error: str,
-        history: List[Dict[str, Any]],
-    ) -> List[str]:
-        """Suggest alternative approaches based on error and history"""
-        action = step_definition.get("action", "")
-        suggestions = []
-
-        error_lower = error.lower()
-
-        if "timeout" in error_lower:
-            suggestions.append(f"Break '{action}' into smaller sub-steps")
-            suggestions.append("Consider parallel execution where possible")
-        elif "permission" in error_lower:
-            suggestions.append("Add authentication/authorization step before this action")
-            suggestions.append("Verify permissions are correctly configured")
-        elif "not found" in error_lower:
-            suggestions.append("Verify resource exists or is accessible")
-            suggestions.append("Add validation step before this action")
-        elif "rate_limit" in error_lower:
-            suggestions.append("Add delay between requests")
-            suggestions.append("Consider batching requests")
-        else:
-            suggestions.append(f"Review '{action}' parameters and dependencies")
-            suggestions.append("Check if prerequisites are met before this step")
-
-        return suggestions
-
-    def create_fallback_plan(
-        self, failed_step: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
-        """
-        Create a fallback plan when normal execution fails completely.
-
-        Returns a simplified alternative approach.
-        """
-        action = failed_step.get("action", "unknown")
-
-        # Generic fallback: just log and skip
-        fallback = [
-            {
-                "action": "log_failure",
-                "target": action,
-                "params": {"reason": "original_approach_failed"},
-            },
-            {
-                "action": "skip",
-                "target": action,
-                "params": {"fallback": True},
-            },
-        ]
-
-        return fallback
-
-    def _log_recovery(self, record: Dict[str, Any]) -> None:
-        """Append recovery record to JSONL log"""
-        try:
-            with open(self.error_log, "a", encoding="utf-8") as f:
-                f.write(json.dumps(record, ensure_ascii=False) + "\n")
-        except Exception as e:
-            logger.error(f"Failed to log recovery: {e}")
-
-    def get_error_patterns(self, limit: int = 100) -> Dict[str, Any]:
-        """Analyze error patterns from recovery logs"""
-        if not self.error_log.exists():
-            return {}
-
-        error_types = {}
-        recovery_actions = {}
-
-        try:
-            with open(self.error_log, "r", encoding="utf-8") as f:
-                for line in f:
-                    try:
-                        record = json.loads(line)
-                        error_type = record.get("analysis", {}).get("error_type", "unknown")
-                        action = record.get("decision", {}).get("action", "unknown")
-
-                        error_types[error_type] = error_types.get(error_type, 0) + 1
-                        recovery_actions[action] = recovery_actions.get(action, 0) + 1
-                    except json.JSONDecodeError:
-                        pass
-        except Exception as e:
-            logger.error(f"Failed to read error patterns: {e}")
-
-        return {
-            "total_errors": sum(error_types.values()),
-            "error_types": error_types,
-            "recovery_actions": recovery_actions,
-        }
-
-
-async def example_error_handling():
-    """Example usage of ErrorHandlerAgent"""
-    handler = ErrorHandlerAgent()
-
-    # Simulate an error
-    step_def = {
-        "action": "run_tests",
-        "target": "tests/",
-        "params": {},
-    }
-
-    error_msg = "Connection timeout after 30s"
-
-    result = await handler.handle_step_error(
-        step_definition=step_def,
-        error=error_msg,
-        execution_history=[],
-    )
-
-    print(json.dumps(result, indent=2, ensure_ascii=False))
-
-
-if __name__ == "__main__":
-    asyncio.run(example_error_handling())
+        decision: str | None = None,
+    ) -> None:
+        self.logger.info(
+            "ts=%s event=%s decision=%s step=%s error=%s",
+            self.now_fn().isoformat(),
+            event,
+            decision or "-",
+            step.get("name", "unknown"),
+            error,
+        )
