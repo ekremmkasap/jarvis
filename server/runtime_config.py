@@ -56,8 +56,10 @@ def load_runtime_config(root_dir: Path, base_dir: Path) -> RuntimeConfig:
 
     data_dir = base_dir / "data"
     data_dir.mkdir(parents=True, exist_ok=True)
+    logs_dir = base_dir / "logs"
+    logs_dir.mkdir(parents=True, exist_ok=True)
 
-    log_file = os.environ.get("JARVIS_LOG_FILE", str(data_dir / "jarvis.log"))
+    log_file = os.environ.get("JARVIS_LOG_FILE", str(logs_dir / "jarvis.log"))
     memory_file = os.environ.get("JARVIS_MEMORY_FILE", str(data_dir / "memory.json"))
     Path(log_file).parent.mkdir(parents=True, exist_ok=True)
     Path(memory_file).parent.mkdir(parents=True, exist_ok=True)
