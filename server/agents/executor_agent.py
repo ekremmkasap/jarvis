@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from server.agents.tool_registry import ToolRegistry
+from server.agents.vision_analyzer import VisionAnalyzer
 
 
 LOG_DIR = Path(__file__).resolve().parents[1] / "logs"
@@ -40,11 +41,13 @@ class ExecutorAgent:
     # Max parallel steps to execute concurrently
     MAX_PARALLEL_STEPS = 3
 
-    def __init__(self, tool_registry: ToolRegistry, logger: logging.Logger | None = None) -> None:
+    def __init__(self, tool_registry: ToolRegistry, logger: logging.Logger | None = None, vision_analyzer: VisionAnalyzer | None = None) -> None:
         if not isinstance(tool_registry, ToolRegistry):
             raise TypeError("tool_registry must be ToolRegistry")
         self.tool_registry = tool_registry
         self.logger = logger or _build_logger()
+        self.vision_analyzer = vision_analyzer
+        self._last_visual_state: dict[str, Any] | None = None
 
     def execute_step(self, step: dict[str, Any], run_id: str = "") -> dict[str, Any]:
         started_at = datetime.now(timezone.utc)
@@ -60,6 +63,13 @@ class ExecutorAgent:
                 payload = {}
             if not isinstance(payload, dict):
                 raise TypeError("step.params must be an object")
+
+            # Vision validation hook: analyze screenshot if requested
+            if action.startswith("vision_") and self.vision_analyzer:
+                vision_result = self._validate_ui_with_vision(action, payload)
+                if vision_result and not vision_result.get("ok"):
+                    # Log vision validation failure but continue execution
+                    self.logger.warning("vision_validation_failed action=%s", action)
 
             if not self.tool_registry.has(action):
                 raise KeyError(f"tool_not_registered:{action}")
@@ -99,6 +109,32 @@ class ExecutorAgent:
                 str(exc),
             )
             return output
+
+    def _validate_ui_with_vision(self, action: str, payload: dict[str, Any]) -> dict[str, Any] | None:
+        """Validate UI state using vision analyzer before executing step."""
+        if not self.vision_analyzer:
+            return None
+
+        try:
+            image_path = payload.get("screenshot_path")
+            if not image_path:
+                return None
+
+            # Analyze current state
+            state_result = self.vision_analyzer.track_visual_state(
+                image_path=image_path,
+                previous_state=self._last_visual_state,
+            )
+
+            if state_result.get("ok"):
+                # Cache current state
+                self._last_visual_state = state_result.get("state_tracking", {})
+                self.logger.info("vision_validation_passed action=%s", action)
+
+            return state_result
+        except Exception as exc:
+            self.logger.warning("vision_validation_error action=%s error=%s", action, str(exc))
+            return None
 
     def _get_step_timeout(self, step: dict[str, Any]) -> float:
         """Get timeout for a step based on its action type."""
