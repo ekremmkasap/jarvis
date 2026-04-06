@@ -25,12 +25,15 @@ BASE_DIR = Path(__file__).parent          # app/
 DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(exist_ok=True)
 ROOT_DIR = BASE_DIR.parent
+WATCHDOG_HEARTBEAT_FILE = DATA_DIR / "bridge_heartbeat.json"
+WATCHDOG_LOCK_FILE = DATA_DIR / "bridge.lock"
+WATCHDOG_HEARTBEAT_INTERVAL = 5
 
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 # ─────────────────────────── ENV / API KEYS ───────────────────────
-from runtime_config import load_runtime_config, validate_runtime_config
+from runtime_config import apply_runtime_cli_overrides, load_runtime_config, validate_runtime_config
 from model_router import build_model_router
 from runtime_state import RuntimeState
 from telegram.telegram_intelligence import TelegramIntelligence
@@ -52,7 +55,10 @@ if SKILLS_PATH not in sys.path:
     sys.path.insert(0, SKILLS_PATH)
 
 # ─────────────────────────── CONFIG ───────────────────────────────
-RUNTIME_CONFIG = load_runtime_config(ROOT_DIR, BASE_DIR)
+RUNTIME_CONFIG = apply_runtime_cli_overrides(
+    load_runtime_config(ROOT_DIR, BASE_DIR),
+    sys.argv[1:],
+)
 CONFIG = RUNTIME_CONFIG.as_dict()
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", OPENAI_API_KEY)
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", ANTHROPIC_API_KEY)
@@ -75,6 +81,56 @@ logging.basicConfig(
     ]
 )
 log = logging.getLogger("jarvis")
+
+
+def _watchdog_timestamp() -> str:
+    return datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _write_watchdog_state() -> None:
+    payload = {
+        "pid": os.getpid(),
+        "updated_at": _watchdog_timestamp(),
+        "web_port": int(CONFIG["web_port"]),
+        "runtime_label": str(CONFIG["runtime_label"]),
+    }
+    try:
+        WATCHDOG_HEARTBEAT_FILE.write_text(
+            json.dumps(payload, ensure_ascii=False),
+            encoding="utf-8",
+        )
+    except Exception as exc:
+        log.warning(f"Watchdog heartbeat yazilamadi: {exc}")
+
+
+def _cleanup_watchdog_state() -> None:
+    for target in (WATCHDOG_HEARTBEAT_FILE, WATCHDOG_LOCK_FILE):
+        try:
+            if target.exists():
+                target.unlink()
+        except Exception as exc:
+            log.warning(f"Watchdog state temizlenemedi ({target.name}): {exc}")
+
+
+def _watchdog_heartbeat_loop(stop_event: threading.Event) -> None:
+    while not stop_event.wait(WATCHDOG_HEARTBEAT_INTERVAL):
+        _write_watchdog_state()
+
+
+def _start_watchdog_state() -> threading.Event:
+    stop_event = threading.Event()
+    try:
+        WATCHDOG_LOCK_FILE.write_text(str(os.getpid()), encoding="utf-8")
+    except Exception as exc:
+        log.warning(f"Watchdog lock yazilamadi: {exc}")
+    _write_watchdog_state()
+    threading.Thread(
+        target=_watchdog_heartbeat_loop,
+        args=(stop_event,),
+        daemon=True,
+        name="bridge-heartbeat",
+    ).start()
+    return stop_event
 
 
 # ─── KNOWLEDGE BASE ───────────────────────────────────────────────
@@ -133,6 +189,7 @@ MODEL_ROUTES = {
     "code": {
         "model": "qwen3-coder:480b-cloud",
         "fallback": "deepseek-v3.1:671b-cloud",
+        "second_fallback": "groq/llama-3.3-70b-versatile",
         "keywords": ["kod", "yaz", "python", "javascript", "bug", "hata", "script",
                      "code", "write", "function", "class", "debug", "fix", "program"],
         "system": "Sen uzman bir yazilim gelistiricisin. Temiz, yorumlanmis ve calisan kod yaz."
@@ -174,14 +231,16 @@ MODEL_ROUTES = {
         "system": "Sen uzman bir dijital pazarlama ve reklam danismanisin. Turkiye pazarini iyi bilirsin. Kisa, net, aksiyona donusulebilir tavsiyeler ver."
     },
     "general": {
-        "model": "minimax-m2.7:cloud",
-        "fallback": "qwen3:8b",
+        "model": "groq/llama-3.1-8b-instant",
+        "fallback": "gemini/gemini-2.5-flash-lite-preview-06-17",
+        "second_fallback": "qwen3:8b",
         "keywords": [],
         "system": "Sen yardimci bir AI asistanisin. Kisa ve net yanit ver."
     },
     "chat": {
-        "model": "minimax-m2.7:cloud",
-        "fallback": "qwen3:8b",
+        "model": "groq/llama-3.1-8b-instant",
+        "fallback": "gemini/gemini-2.5-flash-lite-preview-06-17",
+        "second_fallback": "minimax-m2.7:cloud",
         "keywords": [],
         "system": JARVIS_SOUL
     },
@@ -542,8 +601,32 @@ def call_ollama(
     """
     import time as _time_module
     start_time = _time_module.time()
+    extra_fallback_models: list[str] = []
+    explicit_provider_model = False
 
-    if model and not model.endswith(":cloud"):
+    route = MODEL_ROUTES.get(route_name or "", {}) if route_name else {}
+    route_second_fallback = route.get("second_fallback")
+    if isinstance(route_second_fallback, str):
+        route_second_fallback = route_second_fallback.strip()
+        if route_second_fallback:
+            extra_fallback_models.append(route_second_fallback)
+    elif isinstance(route_second_fallback, list):
+        extra_fallback_models.extend(
+            item.strip()
+            for item in route_second_fallback
+            if isinstance(item, str) and item.strip()
+        )
+
+    if isinstance(model, str):
+        normalized_model = model.strip()
+        if "::" in normalized_model:
+            provider_prefix = normalized_model.split("::", 1)[0].strip()
+            explicit_provider_model = bool(provider_prefix)
+        elif "/" in normalized_model:
+            provider_prefix = normalized_model.split("/", 1)[0].strip().lower()
+            explicit_provider_model = provider_prefix in {"ollama", "openai", "openrouter", "groq", "gemini"}
+
+    if model and not model.endswith(":cloud") and not explicit_provider_model:
         available = get_available_models()
         if available and not any(model.split(":")[0] in item for item in available):
             model = available[0]
@@ -552,6 +635,7 @@ def call_ollama(
         route_name=route_name,
         primary_model=model,
         fallback_model=fallback_model,
+        extra_fallback_models=extra_fallback_models,
         messages=messages,
         system=system,
         max_tokens=max_tokens,
@@ -560,6 +644,7 @@ def call_ollama(
 
     trace["requested_model"] = model
     trace["requested_fallback_model"] = fallback_model
+    trace["requested_extra_fallback_models"] = extra_fallback_models
     STATE.last_route_trace = trace
 
     # ──── WEEK 2: Record execution metrics ────
@@ -1308,6 +1393,39 @@ Son Model: `{last_sel}` | Fallback: `{fallback}`"""
             return result
         except Exception as e:
             return f"Web Ajansi hatasi: {e}"
+
+    elif command == "/mail":
+        try:
+            import sys as _sys; _sys.path.insert(0, str(Path(__file__).parent / "skills"))
+            from gmail_skill import handle_gmail
+            result = handle_gmail(args)
+            memory.add_message(chat_id, "user", f"/mail {args[:50]}")
+            memory.add_message(chat_id, "assistant", result[:200])
+            return result
+        except Exception as e:
+            return f"Gmail hatasi: {e}"
+
+    elif command == "/takvim":
+        try:
+            import sys as _sys; _sys.path.insert(0, str(Path(__file__).parent / "skills"))
+            from gcalendar_skill import handle_gcalendar
+            result = handle_gcalendar(args)
+            memory.add_message(chat_id, "user", f"/takvim {args[:50]}")
+            memory.add_message(chat_id, "assistant", result[:200])
+            return result
+        except Exception as e:
+            return f"Takvim hatasi: {e}"
+
+    elif command == "/notion":
+        try:
+            import sys as _sys; _sys.path.insert(0, str(Path(__file__).parent / "skills"))
+            from notion_skill import handle_notion
+            result = handle_notion(args, str(chat_id))
+            memory.add_message(chat_id, "user", f"/notion {args[:50]}")
+            memory.add_message(chat_id, "assistant", result[:200])
+            return result
+        except Exception as e:
+            return f"Notion hatasi: {e}"
 
     elif command == "/holding":
         return "*Holding Departmanlari*\n\n*/reklam_ajans [brief]* - Konsept + Gorsel Prompt + 3 Kopya\n*/satis [urun]* - Pazar + USP + Email + Kapanis\n*/websitesi [brief]* - HTML/Tailwind landing page"
@@ -2574,24 +2692,32 @@ def main():
         log.error(f"Port {CONFIG['web_port']} zaten kullanimda. Ikinci bridge ornegi baslatilmayacak.")
         return
 
-    threading.Thread(target=start_web, daemon=True).start()
-    time.sleep(1)
-    url = f"http://127.0.0.1:{CONFIG['web_port']}"
-    log.info(f"Web dashboard: {url}")
-    print(url, flush=True)
-    if CONFIG["enable_telegram"]:
-        bot = TelegramBot(CONFIG["telegram_token"], CONFIG["authorized_chat_id"])
-        try:
-            bot.run()
-        except KeyboardInterrupt:
-            bot.running = False
-    else:
-        log.info("Telegram adapter disabled. Running in dashboard/HTTP mode only.")
-        try:
-            while True:
-                time.sleep(3600)
-        except KeyboardInterrupt:
-            return
+    heartbeat_stop = _start_watchdog_state()
+
+    try:
+        threading.Thread(target=start_web, daemon=True).start()
+        time.sleep(1)
+        url = f"http://127.0.0.1:{CONFIG['web_port']}"
+        log.info(f"Web dashboard: {url}")
+        print(url, flush=True)
+        if "[web-only]" in str(CONFIG["runtime_label"]).lower():
+            log.info("Bridge runtime forced into --web-only mode; Telegram will stay disabled.")
+        if CONFIG["enable_telegram"]:
+            bot = TelegramBot(CONFIG["telegram_token"], CONFIG["authorized_chat_id"])
+            try:
+                bot.run()
+            except KeyboardInterrupt:
+                bot.running = False
+        else:
+            log.info("Telegram adapter disabled. Running in dashboard/HTTP mode only.")
+            try:
+                while True:
+                    time.sleep(3600)
+            except KeyboardInterrupt:
+                return
+    finally:
+        heartbeat_stop.set()
+        _cleanup_watchdog_state()
 
 if __name__ == "__main__":
     main()
