@@ -2396,6 +2396,41 @@ refreshRuntimeStatus();
                 )
             except Exception as e:
                 self._json({"error": str(e)}, 500)
+        elif self.path == "/command":
+            try:
+                length = int(self.headers.get("Content-Length", 0))
+                body = json.loads(self.rfile.read(length) or b"{}")
+                command = str(body.get("command", "")).strip()
+                args = body.get("args")
+                chat_id_raw = body.get("chatId")
+
+                if not command:
+                    self._json({"ok": False, "error": "command is required"}, 400)
+                    return
+
+                if not command.startswith("/"):
+                    command = f"/{command}"
+
+                chat_id = 9999
+                if chat_id_raw not in (None, ""):
+                    try:
+                        chat_id = int(chat_id_raw)
+                    except (TypeError, ValueError):
+                        chat_id = 9999
+
+                args_text = ""
+                if isinstance(args, dict) and args:
+                    if isinstance(args.get("text"), str):
+                        args_text = args["text"]
+                    elif isinstance(args.get("args"), str):
+                        args_text = args["args"]
+                    else:
+                        args_text = json.dumps(args, ensure_ascii=False)
+
+                result = handle_command(chat_id, f"{command} {args_text}".strip())
+                self._json({"ok": True, "result": result})
+            except Exception as e:
+                self._json({"ok": False, "error": str(e)}, 500)
         else:
             self.send_error(404)
 
