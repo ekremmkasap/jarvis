@@ -307,6 +307,29 @@ class CodexManagementTests(unittest.TestCase):
         self.assertTrue(clear_result["ok"])
         self.assertFalse(codex_orchestrator.is_in_cooldown("forge"))
 
+    def test_codex_telegram_commands(self) -> None:
+        with (
+            patch.object(self.bridge, "_handle_codex_slots_command", return_value="slots") as slots_handler,
+            patch.object(self.bridge, "_handle_codex_queue_command", return_value="queue") as queue_handler,
+            patch.object(self.bridge, "_handle_codex_health_command", return_value="health") as health_handler,
+            patch.object(self.bridge, "_handle_codex_start_command", return_value="started") as start_handler,
+            patch.object(self.bridge, "_handle_codex_stop_command", return_value="stopped") as stop_handler,
+            patch.object(self.bridge, "_handle_codex_clear_cooldowns_command", return_value="cleared") as clear_handler,
+        ):
+            self.assertEqual(self.bridge.handle_command(101, "/codex-durum"), "slots")
+            self.assertEqual(self.bridge.handle_command(102, "/codex-kuyruk"), "queue")
+            self.assertEqual(self.bridge.handle_command(103, "/codex-saglik"), "health")
+            self.assertEqual(self.bridge.handle_command(104, "/codex-baslat backend bridge endpointlerini tamamla"), "started")
+            self.assertEqual(self.bridge.handle_command(105, "/codex-durdur"), "stopped")
+            self.assertEqual(self.bridge.handle_command(106, "/codex-cooldown-temizle"), "cleared")
+
+        slots_handler.assert_called_once_with(101)
+        queue_handler.assert_called_once_with(102)
+        health_handler.assert_called_once_with(103)
+        start_handler.assert_called_once_with(104, "backend bridge endpointlerini tamamla")
+        stop_handler.assert_called_once_with(105)
+        clear_handler.assert_called_once_with(106)
+
     def test_codex_result_command_returns_missing_message(self) -> None:
         result_text = self.bridge._handle_codex_result_command(100, "job_missing")
 

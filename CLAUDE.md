@@ -60,11 +60,15 @@ Python 3.11 (skill + bridge), TypeScript / Next.js 14 (web-ui): Follow standard 
   - Slice 7 complete: `server/codex_workspace.py` now creates and reuses canonical per-slot git worktrees under `worktrees/`
   - Added top-level helpers `ensure_worktree`, `get_worktree_path`, `cleanup_worktree`, `list_worktrees` and wired `worktrees/` into `.gitignore`
   - Added `tests/test_codex_workspace.py`
+  - Slice 8 complete: Telegram `/codex-*` operational commands wired in `server/bridge.py`
+  - Added `/codex-durum`, `/codex-kuyruk`, `/codex-saglik`, `/codex-baslat`, `/codex-durdur`, `/codex-cooldown-temizle`
+  - Added `_handle_codex_slots_command`, `_handle_codex_stop_command`, and cooldown-clear routing backed by the operator control plane
+  - Expanded `tests/test_codex_management.py` with `test_codex_telegram_commands`
+  - Validation passed with `python -m pytest tests/test_codex_management.py -v --tb=short` (`12 passed`)
 - Remaining:
-  - Slice 8 Telegram `/codex-*` operational commands
   - Slice 9 handoff and final validation
 - Next Step:
-  - Extend Telegram command routing with queue, health, slot summary, and dispatch controls backed by the new operator API
+  - Write `OPS/209_MULTI_CODEX_HANDOFF.md`, update final status, and run the full Tab-2 validation suite
 
 ### Dijital Ajan Dunyasi V2 — 3 Katmanli Mimari (2026-04-13)
 

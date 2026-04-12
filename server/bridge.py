@@ -4061,6 +4061,8 @@ def _control_codex_plane(*, action: str, slot_id: str | None, job_id: str | None
         if cancelled is None:
             return {"ok": False, "message": "Job bulunamadi."}
         return {"ok": True, "message": f"{job_id} iptal edildi."}
+    if action == "stop_all":
+        return {"ok": True, "message": str(codex_orchestrator_module.stop_all() or "").strip() or "Aktif Codex isi yok."}
     if action == "clear_cooldowns":
         codex_orchestrator_module.clear_cooldown()
         return {"ok": True, "message": "Tum cooldown kayitlari temizlendi."}
@@ -4127,6 +4129,13 @@ def _parse_codex_dispatch_args(args: str) -> tuple[str | None, str]:
     return None, raw
 
 
+def _truncate_telegram(text: str, limit: int = 400) -> str:
+    value = str(text or "").strip()
+    if len(value) <= limit:
+        return value
+    return value[: max(limit - 3, 0)].rstrip() + "..."
+
+
 def _handle_codex_command(chat_id: int, args: str, *, swarm: bool = False) -> str:
     task = _strip_wrapping_quotes(args)
     requested_slots = None
@@ -4185,6 +4194,76 @@ def _handle_codex_status_command(chat_id: int) -> str:
             lines.append(f"  {job.get('id')} [{job.get('status')}] {job.get('summary')}")
 
     return "\n".join(lines).strip()
+
+
+def _handle_codex_queue_command(chat_id: int) -> str:
+    payload = _build_codex_queue_payload()
+    jobs = payload.get("jobs", []) if isinstance(payload, dict) else []
+    lines = [f"Kuyrukta {len(jobs)} is var:"]
+    for index, job in enumerate(jobs[:5], start=1):
+        if not isinstance(job, dict):
+            continue
+        lines.append(f"{index}. [{job.get('priority')}] [{job.get('role')}] {str(job.get('task_description') or '')[:48]}")
+    return _truncate_telegram("\n".join(lines))
+
+
+def _handle_codex_start_command(chat_id: int, args: str) -> str:
+    raw = _strip_wrapping_quotes(args)
+    parts = raw.split(maxsplit=1)
+    if len(parts) < 2:
+        return "Kullanim: /codex-baslat <role> <aciklama>"
+    role = parts[0].strip().lower()
+    description = _strip_wrapping_quotes(parts[1])
+    payload = _dispatch_codex_job(task_description=description, role=role, priority=5)
+    text = f"Is kuyruga eklendi: {payload.get('job_id')} — slot: {payload.get('slot_id') or '-'}"
+    return _truncate_telegram(text)
+
+
+def _handle_codex_health_command(chat_id: int) -> str:
+    payload = _build_codex_health_payload()
+    slots = payload.get("slots", []) if isinstance(payload, dict) else []
+    stuck_jobs = payload.get("stuck_jobs", []) if isinstance(payload, dict) else []
+    lines = [f"Health: {len(slots)} slot | stuck jobs: {len(stuck_jobs)}"]
+    for slot in slots[:5]:
+        if not isinstance(slot, dict):
+            continue
+        lines.append(f"- {slot.get('slot_id')}: {slot.get('health_score')} ({slot.get('status')})")
+    return _truncate_telegram("\n".join(lines))
+
+
+def _handle_codex_slots_command(chat_id: int) -> str:
+    return _handle_codex_accounts_command(chat_id)
+
+
+def _handle_codex_accounts_command(chat_id: int) -> str:
+    payload = _build_codex_slots_payload()
+    slots = payload.get("slots", []) if isinstance(payload, dict) else []
+    lines = []
+    for slot in slots[:5]:
+        if not isinstance(slot, dict):
+            continue
+        lines.append(f"- {slot.get('label')}: {slot.get('role')} | {slot.get('status')} | {slot.get('quota_estimate')}")
+    return _truncate_telegram("\n".join(lines) or "Slot verisi yok.")
+
+
+def _handle_codex_stop_command(chat_id: int) -> str:
+    try:
+        from codex_orchestrator import stop_all
+    except Exception:
+        from server.codex_orchestrator import stop_all  # type: ignore
+
+    result = str(stop_all() or "").strip()
+    if result.endswith(" job iptal edildi."):
+        count = result.split(" ", 1)[0]
+        result = f"{count} is iptal edildi."
+    return _truncate_telegram(result or "Aktif Codex isi yok.")
+
+
+def _handle_codex_clear_cooldowns_command(chat_id: int) -> str:
+    result = _control_codex_plane(action="clear_cooldowns", slot_id=None, job_id=None)
+    if result.get("ok"):
+        return "Cooldownlar temizlendi."
+    return _truncate_telegram(str(result.get("message") or "Cooldownlar temizlenemedi."))
 
 
 def _handle_codex_result_command(chat_id: int, args: str) -> str:
@@ -4503,7 +4582,12 @@ _SPRINT45_HELP_LINES = """
   `/deepseek [soru]` -> DeepSeek route
   `/codex [slot|auto] [gorev]` -> Codex job baslat
   `/codex-swarm [gorev]` -> Coklu Codex slot dispatch
-  `/codex-durum` -> Codex queue + quota ozeti
+  `/codex-durum` -> Codex slot ozeti
+  `/codex-kuyruk` -> Codex bekleyen isler
+  `/codex-saglik` -> Codex slot health ozeti
+  `/codex-baslat [role] [gorev]` -> Operator dispatch
+  `/codex-durdur` -> Tum aktif Codex islerini iptal et
+  `/codex-cooldown-temizle` -> Tum Codex cooldownlarini temizle
   `/codex-sonuc [job_id]` -> Tek job cikti ozeti
   `/wiki [konu]` -> Wiki sayfasi getir
   `/wiki ekle [baslik] | [icerik]` -> Wiki sayfasi olustur
@@ -4520,11 +4604,22 @@ def _handle_command_with_sprint_extensions(chat_id: int, cmd: str) -> str:
 
     if command in ("/start", "/help"):
         return _ORIGINAL_HANDLE_COMMAND(chat_id, cmd) + _SPRINT45_HELP_LINES
+    elif command == "/codex-durum":
+        return _handle_codex_slots_command(chat_id)
+    elif command == "/codex-kuyruk":
+        return _handle_codex_queue_command(chat_id)
+    elif command == "/codex-saglik":
+        return _handle_codex_health_command(chat_id)
+    elif command == "/codex-baslat":
+        return _handle_codex_start_command(chat_id, args)
+    elif command == "/codex-durdur":
+        return _handle_codex_stop_command(chat_id)
+    elif command == "/codex-cooldown-temizle":
+        return _handle_codex_clear_cooldowns_command(chat_id)
     elif command.startswith("/cloud-") or command in {
         "/yardim",
         "/codex",
         "/codex-swarm",
-        "/codex-durum",
         "/codex-status",
         "/codex-sonuc",
         "/wiki",
