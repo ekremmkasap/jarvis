@@ -28,10 +28,10 @@ Python 3.11 (skill + bridge), TypeScript / Next.js 14 (web-ui): Follow standard 
 
 <!-- MANUAL ADDITIONS START -->
 ### AGENTS.md 9-Agent Canonical (Tab-3 Codex Sprint)
-- Durum: BATCH 1 VALIDATED
-- Tamamlanan: refreshed `OPS/300_AGENTS_AUDIT.md`, `OPS/301_AGENTS_IMPLEMENTATION_PLAN.md`, `OPS/302_AGENTS_ROLLOUT_PLAN.md`; canonical base package and Batch 1 foundation confirmed in repo: `planner`, `repo_analyst`, `developer`, `tests/test_canonical_batch1.py`; validation passed with `pytest tests/test_canonical_batch1.py` (`7 passed`)
-- Kalan: `reviewer`, `debug`, `release`, `docs`, `voice_narrator`, `mission_control`, bridge `/agent` endpoint, Telegram keyword routing, `hey_jarvis.py` voice hook, final smoke + handoff
-- Sonraki Adim: Batch 2 ajanlari (`reviewer`, `debug`) ve `tests/test_canonical_batch2.py`
+- Durum: BATCH 2 TAMAMLANDI
+- Tamamlanan: refreshed `OPS/300_AGENTS_AUDIT.md`, `OPS/301_AGENTS_IMPLEMENTATION_PLAN.md`, `OPS/302_AGENTS_ROLLOUT_PLAN.md`; canonical base package; `planner`, `repo_analyst`, `developer`, `reviewer`, `debug`; `tests/test_canonical_batch1.py`, `tests/test_canonical_batch2.py`; validation passed with `pytest tests/test_canonical_batch1.py tests/test_canonical_batch2.py` (`12 passed`)
+- Kalan: `release`, `docs`, `voice_narrator`, `mission_control`, bridge `/agent` endpoint, Telegram keyword routing, `hey_jarvis.py` voice hook, final smoke + handoff
+- Sonraki Adim: Batch 3 ajanlari (`release`, `docs`, `voice_narrator`) ve `tests/test_canonical_batch3.py`
 
 ### Multi-Codex Control Plane (Tab-2 Codex Sprint)
 - Status: In Progress
@@ -56,10 +56,13 @@ Python 3.11 (skill + bridge), TypeScript / Next.js 14 (web-ui): Follow standard 
   - Slice A1 complete: `server/skills/aws_common.py` and `server/skills/aws_ec2_skill.py`
   - Added `tests/test_aws_ec2_skill.py`
   - Validation passed with `pytest tests/test_aws_ec2_skill.py` (`4 passed`)
+  - Slice A2 complete: `server/skills/aws_s3_skill.py`
+  - Added `tests/test_aws_s3_skill.py`
+  - Validation passed with `pytest tests/test_aws_s3_skill.py` (`5 passed`)
 - Remaining:
-  - Slice A2-A6 (`aws_s3_skill`, `aws_cost_skill`, bridge `/cloud-*`, `/api/cloud/*`, `/cloud` UI, Part A integration)
+  - Slice A3-A6 (`aws_cost_skill`, bridge `/cloud-*`, `/api/cloud/*`, `/cloud` UI, Part A integration)
   - Slice B1-B5 (`server/skill_registry.py`, cloud registry entries, `/yardim`, incremental command migration, Part B integration)
   - Final handoff doc: `OPS/408_CLOUDMANAGER_HANDOFF.md`
 - Next Step:
-  - Slice A2: implement `server/skills/aws_s3_skill.py` and `tests/test_aws_s3_skill.py`
+  - Slice A3: implement `server/skills/aws_cost_skill.py` and `tests/test_aws_cost_skill.py`
 <!-- MANUAL ADDITIONS END -->
