@@ -116,7 +116,7 @@ Durum: PLANLANDII — implementasyon bekliyor
 Oncelik: Yuksek — Faz 1 Anti veya Codex Tab-2 ile yapilabilir
 
 ### CloudManagerSystem + Skill Registry (Tab-3 Codex)
-- Durum: IN PROGRESS
+- Durum: PART A TAMAMLANDI
 - Completed:
   - Slice A1 complete: `server/skills/aws_common.py` and `server/skills/aws_ec2_skill.py`
   - Added `tests/test_aws_ec2_skill.py`
@@ -134,10 +134,12 @@ Oncelik: Yuksek — Faz 1 Anti veya Codex Tab-2 ile yapilabilir
   - Added `apps/web-ui/src/app/cloud/page.tsx`
   - Added `tests/test_cloud_http_surface.py`
   - Validation passed with `pytest tests/test_cloud_http_surface.py` (`2 passed`), `python -m py_compile server/bridge.py`, `cmd /c npx tsc --noEmit`
+  - Slice A6 complete: Part A integration validation
+  - Validation passed with `pytest tests/test_aws_ec2_skill.py tests/test_aws_s3_skill.py tests/test_aws_cost_skill.py` (`14 passed`)
+  - Smoke passed with standalone imports from `server/skills`
 - Remaining:
-  - Slice A6 (Part A integration test and smoke validation)
   - Slice B1-B5 (`server/skill_registry.py`, cloud registry entries, `/yardim`, incremental command migration, Part B integration)
   - Final handoff doc: `OPS/408_CLOUDMANAGER_HANDOFF.md`
 - Next Step:
-  - Slice A6: run Part A integration tests and import smoke, then mark Part A complete in `CLAUDE.md`
+  - Slice B1: implement `server/skill_registry.py` and `tests/test_skill_registry.py`
 <!-- MANUAL ADDITIONS END -->
