@@ -154,9 +154,13 @@ Oncelik: Yuksek — Faz 1 Anti veya Codex Tab-2 ile yapilabilir
   - Slice B3 complete: `/yardim` registered via `SkillRegistry`
   - Added `server/help_command_handlers.py` and `server/skills/registry_entries/help_entries.py`
   - Validation passed with `pytest tests/test_skill_registry.py tests/test_cloud_bridge_commands.py` (`8 passed`)
+  - Slice B4 complete: migrated `/codex`, `/codex-swarm`, `/codex-durum`, `/codex-sonuc`, `/wiki`
+  - Added `server/skills/registry_entries/ops_entries.py`
+  - Added `tests/test_registry_migrated_commands.py`
+  - Validation passed with `pytest tests/test_skill_registry.py tests/test_registry_migrated_commands.py` (`11 passed`)
 - Remaining:
-  - Slice B4-B5 (incremental command migration, Part B integration)
+  - Slice B5 (Part B integration)
   - Final handoff doc: `OPS/408_CLOUDMANAGER_HANDOFF.md`
 - Next Step:
-  - Slice B4: migrate 5 more high-traffic commands to `SkillRegistry`
+  - Slice B5: run SkillRegistry integration test and smoke validation
 <!-- MANUAL ADDITIONS END -->
