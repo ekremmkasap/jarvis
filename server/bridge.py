@@ -5,12 +5,15 @@ Multi-Model AI Router | Telegram + Web Dashboard | eBay + Trendyol Skills
 """
 
 import os
+import asyncio
 import json
+import inspect
 import time
 import logging
 import threading
 import queue
 import socket
+import unicodedata
 from concurrent.futures import ThreadPoolExecutor
 import subprocess
 import sys
@@ -91,20 +94,225 @@ log = logging.getLogger("jarvis")
 
 def _get_canonical_runtime():
     try:
-        from agents.canonical import runtime as canonical_runtime
+        from server.agents.canonical import runtime as canonical_runtime
 
         return canonical_runtime
     except Exception as exc:  # noqa: BLE001
-        log.warning(f"Canonical runtime unavailable: {exc}")
+        try:
+            from agents.canonical import runtime as canonical_runtime
+
+            return canonical_runtime
+        except Exception:
+            log.warning(f"Canonical runtime unavailable: {exc}")
+            return None
+
+
+AGENT_KEYWORDS = {
+    "planner": ["plan yap", "hedef belirle", "gorev olustur", "görev oluştur", "planla"],
+    "repo_analyst": ["repo analiz", "saglik raporu", "sağlık raporu", "git durumu", "kod sagligi", "kod sağlığı"],
+    "developer": ["kod yaz", "implement et", "feature ekle", "gelistir", "geliştir"],
+    "reviewer": ["review et", "incele", "pr kontrol", "kodu gozden gecir", "kodu gözden geçir"],
+    "debug": ["hata var", "debug et", "neden calismiyor", "neden çalışmıyor", "hata bul"],
+    "release": ["release yap", "changelog", "versiyon guncelle", "versiyon güncelle", "yayinla", "yayınla"],
+    "docs": ["dokumantasyon yaz", "dökümantasyon yaz", "readme guncelle", "readme güncelle", "dokumante et", "dokümante et"],
+    "mission_control": ["sistem durumu", "agent saglik", "agent sağlık", "ne calisiyor", "ne çalışıyor"],
+}
+
+
+def _normalize_agent_text(text: str) -> str:
+    normalized = unicodedata.normalize("NFKD", str(text or ""))
+    ascii_text = normalized.encode("ascii", "ignore").decode("ascii")
+    return " ".join(ascii_text.lower().split())
+
+
+def _detect_agent_from_text(text: str) -> str | None:
+    lowered = _normalize_agent_text(text)
+    if not lowered:
         return None
+    for agent_name, keywords in AGENT_KEYWORDS.items():
+        if any(_normalize_agent_text(keyword) in lowered for keyword in keywords):
+            return agent_name
+    return None
+
+
+def _load_canonical_agent_classes():
+    import sys as _sys
+
+    server_path = str(BASE_DIR)
+    if server_path not in _sys.path:
+        _sys.path.insert(0, server_path)
+
+    try:
+        from server.agents.canonical import (
+            PlannerAgent,
+            RepoAnalystAgent,
+            DeveloperAgent,
+            ReviewerAgent,
+            DebugAgent,
+            ReleaseAgent,
+            DocsAgent,
+            VoiceNarratorAgent,
+            MissionControlAgent,
+        )
+    except Exception:
+        from agents.canonical import (
+            PlannerAgent,
+            RepoAnalystAgent,
+            DeveloperAgent,
+            ReviewerAgent,
+            DebugAgent,
+            ReleaseAgent,
+            DocsAgent,
+            VoiceNarratorAgent,
+            MissionControlAgent,
+        )
+
+    return {
+        "planner": PlannerAgent,
+        "repo_analyst": RepoAnalystAgent,
+        "developer": DeveloperAgent,
+        "reviewer": ReviewerAgent,
+        "debug": DebugAgent,
+        "release": ReleaseAgent,
+        "docs": DocsAgent,
+        "voice_narrator": VoiceNarratorAgent,
+        "mission_control": MissionControlAgent,
+    }
+
+
+def _execute_canonical_agent(agent_name: str, task: str, context: dict | None = None) -> dict:
+    normalized_agent = str(agent_name or "").strip().lower()
+    context_data = context if isinstance(context, dict) else {}
+    agent_classes = _load_canonical_agent_classes()
+    agent_class = agent_classes.get(normalized_agent)
+    if agent_class is None:
+        raise KeyError(normalized_agent)
+
+    agent = agent_class()
+    if str(context_data.get("mode") or "").strip().lower() == "health":
+        return {
+            "agent_id": normalized_agent,
+            "status": "ok",
+            "message": "health_check_ready",
+            "output": {"message": "health_check_ready"},
+        }
+
+    run_method = getattr(agent, "run", None)
+    if run_method is None:
+        raise AttributeError(f"{agent_class.__name__} has no run method")
+    if inspect.iscoroutinefunction(run_method):
+        return asyncio.run(run_method(task, context_data))
+
+    result = run_method(task, context_data)
+    if inspect.isawaitable(result):
+        return asyncio.run(result)
+    if not isinstance(result, dict):
+        raise TypeError("Canonical agent result must be a dictionary")
+    return result
+
+
+def _format_canonical_agent_result(agent_name: str, result: dict) -> str:
+    runtime = _get_canonical_runtime()
+    if runtime is not None:
+        try:
+            formatted = runtime.format_canonical_result(agent_name, result)
+            if formatted:
+                return str(formatted)
+        except Exception as exc:  # noqa: BLE001
+            log.warning(f"Canonical result formatting failed for {agent_name}: {exc}")
+    try:
+        return json.dumps(result, ensure_ascii=False)[:2000]
+    except Exception:
+        return str(result)[:2000]
+
+
+def _run_canonical_agent(agent_name: str, task: str, context: dict | None = None) -> dict:
+    normalized_agent = str(agent_name or "").strip().lower()
+    task_text = str(task or "").strip()
+    context_data = context if isinstance(context, dict) else {}
+    health_mode = str(context_data.get("mode") or "").strip().lower() == "health"
+
+    if not normalized_agent:
+        return {"ok": False, "error": "agent field required"}
+    if normalized_agent not in _load_canonical_agent_classes():
+        available = sorted(_load_canonical_agent_classes().keys())
+        return {"ok": False, "agent": normalized_agent, "error": f"Unknown agent: {normalized_agent}. Available: {available}"}
+    if not task_text and not health_mode:
+        return {"ok": False, "agent": normalized_agent, "error": "task field required"}
+    if context is not None and not isinstance(context, dict):
+        return {"ok": False, "agent": normalized_agent, "error": "context must be an object"}
+
+    try:
+        raw_result = _execute_canonical_agent(normalized_agent, task_text or "health_check", context_data)
+    except KeyError:
+        available = sorted(_load_canonical_agent_classes().keys())
+        return {"ok": False, "agent": normalized_agent, "error": f"Unknown agent: {normalized_agent}. Available: {available}"}
+    except Exception as exc:  # noqa: BLE001
+        return {"ok": False, "agent": normalized_agent, "error": str(exc)}
+
+    if str(raw_result.get("status") or "").strip().lower() != "ok":
+        return {
+            "ok": False,
+            "agent": normalized_agent,
+            "error": str(raw_result.get("error") or "agent execution failed"),
+            "raw": raw_result,
+        }
+
+    return {
+        "ok": True,
+        "agent": normalized_agent,
+        "result": _format_canonical_agent_result(normalized_agent, raw_result),
+        "raw": raw_result,
+    }
+
+
+def _build_agents_health_payload() -> dict:
+    agent_names = [
+        "planner",
+        "repo_analyst",
+        "developer",
+        "reviewer",
+        "debug",
+        "release",
+        "docs",
+        "voice_narrator",
+        "mission_control",
+    ]
+    results = []
+    for agent_name in agent_names:
+        agent_result = _run_canonical_agent(agent_name, "health_check", {"mode": "health"})
+        results.append(
+            {
+                "agent": agent_name,
+                "status": "ok" if agent_result.get("ok") else "error",
+                "error": None if agent_result.get("ok") else agent_result.get("error"),
+            }
+        )
+    return {
+        "agents": results,
+        "total": len(results),
+        "healthy": sum(1 for item in results if item["status"] == "ok"),
+    }
 
 
 def _dispatch_canonical_message(chat_id: int, text: str):
     runtime = _get_canonical_runtime()
+    detected_agent = _detect_agent_from_text(text)
+    if detected_agent:
+        wrapped = _run_canonical_agent(detected_agent, text, {"chat_id": chat_id, "source": "telegram"})
+        if wrapped.get("ok"):
+            raw_result = wrapped.get("raw") if isinstance(wrapped.get("raw"), dict) else {}
+            formatted = (
+                runtime.format_canonical_result(detected_agent, raw_result)
+                if runtime is not None and raw_result
+                else str(wrapped.get("result") or "")
+            )
+            return detected_agent, raw_result, formatted
+
     if runtime is None:
         return None
     try:
-        dispatched = runtime.dispatch_keyword_routed_agent(text, {"chat_id": chat_id})
+        dispatched = runtime.dispatch_keyword_routed_agent(text, {"chat_id": chat_id, "source": "telegram"})
     except Exception as exc:  # noqa: BLE001
         log.warning(f"Canonical keyword dispatch failed: {exc}")
         return None
@@ -3177,6 +3385,8 @@ refreshRuntimeStatus();
             self._handle_codex_queue_endpoint()
         elif path == "/api/codex/health":
             self._handle_codex_health_endpoint()
+        elif path == "/api/agents/health":
+            self._handle_agents_health_endpoint()
         elif path == "/api/codex/audit":
             self._handle_codex_audit_endpoint()
         elif path == "/api/codex/result":
@@ -3212,17 +3422,7 @@ refreshRuntimeStatus();
             except Exception as e:
                 self._json({"error": str(e)}, 500)
         elif path == "/agent":
-            try:
-                length = int(self.headers.get("Content-Length", 0))
-                body = json.loads(self.rfile.read(length) or b"{}")
-                runtime = _get_canonical_runtime()
-                if runtime is None:
-                    self._json({"ok": False, "error": "canonical runtime unavailable"}, 500)
-                    return
-                payload, status_code = runtime.handle_agent_request(body)
-                self._json(payload, status_code)
-            except Exception as e:
-                self._json({"ok": False, "error": str(e)}, 500)
+            self._handle_agent_endpoint()
         elif path == "/command":
             try:
                 length = int(self.headers.get("Content-Length", 0))
@@ -3600,12 +3800,64 @@ refreshRuntimeStatus();
             log.error(f"codex/health error: {e}")
             self._json({"error": "internal error"}, 500)
 
+    def _handle_agents_health_endpoint(self):
+        try:
+            self._json(_build_agents_health_payload())
+        except Exception as e:
+            log.error(f"agents/health error: {e}")
+            self._json({"error": str(e)}, 500)
+
     def _handle_codex_audit_endpoint(self):
         try:
             self._json(_build_codex_audit_payload(limit=50))
         except Exception as e:
             log.error(f"codex/audit error: {e}")
             self._json({"error": "internal error"}, 500)
+
+    def _handle_agent_endpoint(self):
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length) or b"{}")
+            if not isinstance(body, dict):
+                self._json({"ok": False, "error": "JSON object body is required."}, 400)
+                return
+
+            agent_name = str(body.get("agent") or "").strip().lower()
+            task = str(body.get("task") or "").strip()
+            context = body.get("context") or {}
+            wrapped = bool(body.get("wrapped_response"))
+
+            if wrapped:
+                result = _run_canonical_agent(agent_name, task, context)
+                status_code = 200
+                if not result.get("ok"):
+                    error_text = str(result.get("error") or "").lower()
+                    if "unknown agent" in error_text:
+                        status_code = 404
+                    elif "required" in error_text or "context must be an object" in error_text:
+                        status_code = 400
+                    else:
+                        status_code = 500
+                self._json(result, status_code)
+                return
+
+            runtime = _get_canonical_runtime()
+            if runtime is not None:
+                payload, status_code = runtime.handle_agent_request(body)
+                self._json(payload, status_code)
+                return
+
+            result = _run_canonical_agent(agent_name, task, context)
+            status_code = 200 if result.get("ok") else 500
+            error_text = str(result.get("error") or "").lower()
+            if "unknown agent" in error_text:
+                status_code = 404
+            elif "required" in error_text or "context must be an object" in error_text:
+                status_code = 400
+            self._json(result, status_code)
+        except Exception as e:
+            log.error(f"/agent error: {e}")
+            self._json({"ok": False, "error": "internal error"}, 500)
 
     def _handle_codex_result_endpoint(self, query: dict[str, list[str]]):
         """GET /api/codex/result?job_id=... - tek job sonucu"""
