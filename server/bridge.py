@@ -3169,6 +3169,16 @@ refreshRuntimeStatus();
             self._handle_swarm_status_endpoint()
         elif path == "/api/accounts":
             self._handle_codex_accounts_endpoint()
+        elif path == "/api/codex/slots":
+            self._handle_codex_slots_endpoint()
+        elif path == "/api/codex/jobs":
+            self._handle_codex_jobs_endpoint(query)
+        elif path == "/api/codex/queue":
+            self._handle_codex_queue_endpoint()
+        elif path == "/api/codex/health":
+            self._handle_codex_health_endpoint()
+        elif path == "/api/codex/audit":
+            self._handle_codex_audit_endpoint()
         elif path == "/api/codex/result":
             self._handle_codex_result_endpoint(query)
         elif path == "/api/codex/status":
@@ -3254,6 +3264,10 @@ refreshRuntimeStatus();
             self._handle_cloud_ec2_action_endpoint()
         elif path == "/api/accounts/update":
             self._handle_codex_accounts_update_endpoint()
+        elif path == "/api/codex/dispatch":
+            self._handle_codex_dispatch_endpoint()
+        elif path == "/api/codex/control":
+            self._handle_codex_control_endpoint()
         else:
             self.send_error(404)
 
@@ -3556,6 +3570,43 @@ refreshRuntimeStatus();
             log.error(f"codex/status error: {e}")
             self._json({"error": "internal error"}, 500)
 
+    def _handle_codex_slots_endpoint(self):
+        try:
+            self._json(_build_codex_slots_payload())
+        except Exception as e:
+            log.error(f"codex/slots error: {e}")
+            self._json({"error": "internal error"}, 500)
+
+    def _handle_codex_jobs_endpoint(self, query: dict[str, list[str]]):
+        try:
+            status = (query.get("status") or [None])[0]
+            slot_id = (query.get("slot_id") or [None])[0]
+            self._json(_build_codex_jobs_payload(status=status, slot_id=slot_id, limit=100))
+        except Exception as e:
+            log.error(f"codex/jobs error: {e}")
+            self._json({"error": "internal error"}, 500)
+
+    def _handle_codex_queue_endpoint(self):
+        try:
+            self._json(_build_codex_queue_payload())
+        except Exception as e:
+            log.error(f"codex/queue error: {e}")
+            self._json({"error": "internal error"}, 500)
+
+    def _handle_codex_health_endpoint(self):
+        try:
+            self._json(_build_codex_health_payload())
+        except Exception as e:
+            log.error(f"codex/health error: {e}")
+            self._json({"error": "internal error"}, 500)
+
+    def _handle_codex_audit_endpoint(self):
+        try:
+            self._json(_build_codex_audit_payload(limit=50))
+        except Exception as e:
+            log.error(f"codex/audit error: {e}")
+            self._json({"error": "internal error"}, 500)
+
     def _handle_codex_result_endpoint(self, query: dict[str, list[str]]):
         """GET /api/codex/result?job_id=... - tek job sonucu"""
         try:
@@ -3568,6 +3619,35 @@ refreshRuntimeStatus();
         except Exception as e:
             log.error(f"codex/result error: {e}")
             self._json({"error": "internal error"}, 500)
+
+    def _handle_codex_dispatch_endpoint(self):
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length) or b"{}")
+            task_description = str(body.get("task_description") or "").strip()
+            role = str(body.get("role") or "").strip() or None
+            priority = int(body.get("priority") or 5)
+            if not task_description:
+                self._json({"ok": False, "error": "task_description required"}, 400)
+                return
+            result = _dispatch_codex_job(task_description=task_description, role=role, priority=priority)
+            self._json(result, 200 if result.get("ok") else 400)
+        except Exception as e:
+            log.error(f"codex/dispatch error: {e}")
+            self._json({"ok": False, "error": "internal error"}, 500)
+
+    def _handle_codex_control_endpoint(self):
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length) or b"{}")
+            action = str(body.get("action") or "").strip().lower()
+            slot_id = str(body.get("slot_id") or "").strip() or None
+            job_id = str(body.get("job_id") or "").strip() or None
+            result = _control_codex_plane(action=action, slot_id=slot_id, job_id=job_id)
+            self._json(result, 200 if result.get("ok") else 400)
+        except Exception as e:
+            log.error(f"codex/control error: {e}")
+            self._json({"ok": False, "error": "internal error"}, 500)
 
     def _handle_cloud_ec2_endpoint(self):
         try:
@@ -4133,33 +4213,13 @@ def _handle_wiki_command(chat_id: int, args: str) -> str:
         return f"Hata: {exc}"
 
 
-def _truncate_cloud_text(text: str, limit: int = 400) -> str:
-    value = str(text or "").strip()
-    if len(value) <= limit:
-        return value
-    return value[: max(limit - 3, 0)].rstrip() + "..."
-
-
-def _cloud_state_label(state: str) -> str:
-    mapping = {
-        "running": "calisiyor",
-        "pending": "basliyor",
-        "stopped": "durdu",
-        "stopping": "duruyor",
-        "shutting-down": "kapaniyor",
-        "terminated": "silindi",
-    }
-    return mapping.get(str(state or "").strip().lower(), str(state or "bilinmiyor"))
-
-
 def _load_cloud_modules():
     from server.skills.aws_cost_skill import get_budget_alerts, get_monthly_cost
-    from server.skills.aws_ec2_skill import get_instance_status, list_instances, start_instance, stop_instance
+    from server.skills.aws_ec2_skill import list_instances, start_instance, stop_instance
     from server.skills.aws_s3_skill import list_buckets
 
     return {
         "get_budget_alerts": get_budget_alerts,
-        "get_instance_status": get_instance_status,
         "get_monthly_cost": get_monthly_cost,
         "list_buckets": list_buckets,
         "list_instances": list_instances,
@@ -4168,83 +4228,18 @@ def _load_cloud_modules():
     }
 
 
-def _cloud_status_summary() -> str:
-    modules = _load_cloud_modules()
-    instances = modules["list_instances"]()
-    buckets = modules["list_buckets"]()
-    costs = modules["get_monthly_cost"]()
-
-    instance_items = instances if isinstance(instances, list) else []
-    bucket_items = buckets if isinstance(buckets, list) else []
-    active_instances = sum(1 for item in instance_items if str(item.get("state")) == "running")
-    total_usd = float(costs.get("total_usd") or 0.0) if isinstance(costs, dict) else 0.0
-    return _truncate_cloud_text(f"EC2: {active_instances} aktif / S3: {len(bucket_items)} bucket / Maliyet: ${total_usd:.2f}")
-
-
-def _cloud_list_ec2() -> str:
-    modules = _load_cloud_modules()
-    instances = modules["list_instances"]()
-    if isinstance(instances, dict) and instances.get("ok") is False:
-        return _truncate_cloud_text(f"EC2 hatasi: {instances.get('error', 'bilinmeyen hata')}")
-    if not instances:
-        return "EC2 Sunucular:\n- Kayit bulunamadi"
-
-    lines = ["EC2 Sunucular:"]
-    for item in instances[:10]:
-        lines.append(
-            f"- {item.get('id')} ({_cloud_state_label(str(item.get('state') or ''))}) "
-            f"{item.get('type')} {item.get('region')}"
-        )
-    return _truncate_cloud_text("\n".join(lines))
-
-
-def _cloud_start_ec2(instance_id: str) -> str:
-    modules = _load_cloud_modules()
-    result = modules["start_instance"](instance_id)
-    if result.get("ok"):
-        return _truncate_cloud_text(f"Sunucu baslatildi: {instance_id}")
-    return _truncate_cloud_text(f"EC2 hatasi: {result.get('error', 'bilinmeyen hata')}")
-
-
-def _cloud_stop_ec2(instance_id: str) -> str:
-    modules = _load_cloud_modules()
-    result = modules["stop_instance"](instance_id)
-    if result.get("ok"):
-        return _truncate_cloud_text(f"Sunucu durduruldu: {instance_id}")
-    return _truncate_cloud_text(f"EC2 hatasi: {result.get('error', 'bilinmeyen hata')}")
-
-
-def _cloud_list_s3() -> str:
-    modules = _load_cloud_modules()
-    buckets = modules["list_buckets"]()
-    if isinstance(buckets, dict) and buckets.get("ok") is False:
-        return _truncate_cloud_text(f"S3 hatasi: {buckets.get('error', 'bilinmeyen hata')}")
-    if not buckets:
-        return "S3 Bucket'lar:\n- Kayit bulunamadi"
-
-    lines = ["S3 Bucket'lar:"]
-    for item in buckets[:10]:
-        lines.append(f"- {item.get('name')} ({item.get('region')})")
-    return _truncate_cloud_text("\n".join(lines))
-
-
-def _cloud_cost_summary() -> str:
-    modules = _load_cloud_modules()
-    payload = modules["get_monthly_cost"]()
-    if not isinstance(payload, dict):
-        return "Maliyet verisi alinamadi."
-
-    total_usd = float(payload.get("total_usd") or 0.0)
-    by_service = payload.get("by_service", {}) if isinstance(payload.get("by_service"), dict) else {}
-    ec2_cost = float(by_service.get("Amazon EC2", 0.0))
-    s3_cost = float(by_service.get("Amazon S3", 0.0))
-    return _truncate_cloud_text(f"Bu ay: ${total_usd:.2f}\nEC2: ${ec2_cost:.2f} / S3: ${s3_cost:.2f}")
-
-
 def _cloud_status_code(payload) -> int:
     if isinstance(payload, dict) and payload.get("ok") is False:
         return 500
     return 200
+
+
+from server.skill_registry import SkillRegistry
+from server.skills.registry_entries.cloud_entries import register_cloud_skills
+
+# Legacy note: the original handle_command chain contained 81 elif branches before registry extraction.
+CLOUD_COMMAND_REGISTRY = SkillRegistry()
+register_cloud_skills(CLOUD_COMMAND_REGISTRY)
 
 
 _SPRINT45_HELP_LINES = """
@@ -4287,24 +4282,8 @@ def _handle_command_with_sprint_extensions(chat_id: int, cmd: str) -> str:
 
     if command in ("/start", "/help"):
         return _ORIGINAL_HANDLE_COMMAND(chat_id, cmd) + _SPRINT45_HELP_LINES
-    elif command == "/cloud-durum":
-        return _cloud_status_summary()
-    elif command == "/cloud-ec2-liste":
-        return _cloud_list_ec2()
-    elif command == "/cloud-ec2-baslat":
-        instance_id = args.strip()
-        if not instance_id:
-            return "Kullanim: /cloud-ec2-baslat <instance_id>"
-        return _cloud_start_ec2(instance_id)
-    elif command == "/cloud-ec2-durdur":
-        instance_id = args.strip()
-        if not instance_id:
-            return "Kullanim: /cloud-ec2-durdur <instance_id>"
-        return _cloud_stop_ec2(instance_id)
-    elif command == "/cloud-s3-liste":
-        return _cloud_list_s3()
-    elif command == "/cloud-maliyet":
-        return _cloud_cost_summary()
+    elif command.startswith("/cloud-"):
+        return CLOUD_COMMAND_REGISTRY.dispatch(command, args, {"chat_id": chat_id, "command": command})
     elif command == "/crew":
         return _handle_crewai_command(chat_id, args)
     elif command == "/crewai":

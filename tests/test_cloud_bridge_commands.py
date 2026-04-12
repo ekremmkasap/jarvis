@@ -1,27 +1,39 @@
 from __future__ import annotations
 
 from pathlib import Path
+import sys
 
 
-BRIDGE_PATH = Path(__file__).parent.parent / "server" / "bridge.py"
+ROOT_PATH = Path(__file__).parent.parent
+SERVER_PATH = ROOT_PATH / "server"
+BRIDGE_PATH = SERVER_PATH / "bridge.py"
+
+if str(SERVER_PATH) not in sys.path:
+    sys.path.append(str(SERVER_PATH))
 
 
-def test_cloud_command_routes_exist_in_bridge() -> None:
+from skill_registry import SkillRegistry
+from skills.registry_entries.cloud_entries import register_cloud_skills
+
+
+def test_cloud_commands_dispatch_through_registry_in_bridge() -> None:
     content = BRIDGE_PATH.read_text(encoding="utf-8", errors="replace")
 
-    assert 'elif command == "/cloud-durum":' in content
-    assert 'elif command == "/cloud-ec2-liste":' in content
-    assert 'elif command == "/cloud-ec2-baslat":' in content
-    assert 'elif command == "/cloud-ec2-durdur":' in content
-    assert 'elif command == "/cloud-s3-liste":' in content
-    assert 'elif command == "/cloud-maliyet":' in content
+    assert 'elif command.startswith("/cloud-"):' in content
+    assert "CLOUD_COMMAND_REGISTRY.dispatch(command, args" in content
 
 
-def test_cloud_command_helpers_are_present() -> None:
-    content = BRIDGE_PATH.read_text(encoding="utf-8", errors="replace")
+def test_cloud_registry_entries_register_expected_commands() -> None:
+    registry = SkillRegistry()
+    register_cloud_skills(registry)
 
-    assert "def _truncate_cloud_text" in content
-    assert "def _cloud_status_summary" in content
-    assert "def _cloud_list_ec2" in content
-    assert "def _cloud_list_s3" in content
-    assert "def _cloud_cost_summary" in content
+    commands = [entry.command for entry in registry.list_commands(category="cloud")]
+
+    assert commands == [
+        "/cloud-durum",
+        "/cloud-ec2-liste",
+        "/cloud-ec2-baslat",
+        "/cloud-ec2-durdur",
+        "/cloud-s3-liste",
+        "/cloud-maliyet",
+    ]
