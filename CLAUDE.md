@@ -28,10 +28,10 @@ Python 3.11 (skill + bridge), TypeScript / Next.js 14 (web-ui): Follow standard 
 
 <!-- MANUAL ADDITIONS START -->
 ### AGENTS.md 9-Agent Canonical (Tab-3 Codex Sprint)
-- Durum: PLANLAMA TAMAMLANDI
-- Tamamlanan: `OPS/300_AGENTS_AUDIT.md`, `OPS/301_AGENTS_IMPLEMENTATION_PLAN.md`, `OPS/302_AGENTS_ROLLOUT_PLAN.md`
-- Kalan: canonical base package, 9 agent implementation, bridge `/agent` endpoint, Telegram keyword routing, `hey_jarvis.py` voice hook, pytest + smoke validation, handoff
-- Sonraki Adim: `server/agents/canonical/` base package + Batch 1 ajanlari ve `tests/test_canonical_batch1.py`
+- Durum: BATCH 1 TAMAMLANDI
+- Tamamlanan: `OPS/300_AGENTS_AUDIT.md`, `OPS/301_AGENTS_IMPLEMENTATION_PLAN.md`, `OPS/302_AGENTS_ROLLOUT_PLAN.md`, canonical base package, `planner`, `repo_analyst`, `developer`, `tests/test_canonical_batch1.py`
+- Kalan: `reviewer`, `debug`, `release`, `docs`, `voice_narrator`, `mission_control`, bridge `/agent` endpoint, Telegram keyword routing, `hey_jarvis.py` voice hook, final smoke + handoff
+- Sonraki Adim: Batch 2 ajanlari (`reviewer`, `debug`) ve `tests/test_canonical_batch2.py`
 
 ### Multi-Codex Control Plane (Tab-2 Codex Sprint)
 - Status: In Progress
