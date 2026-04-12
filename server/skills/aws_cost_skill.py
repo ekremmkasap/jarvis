@@ -115,6 +115,61 @@ def save_alert_threshold(service: str, usd_limit: float) -> dict[str, Any]:
         return {"ok": False, "error": error}
 
 
+def check_cost_alerts() -> list[dict[str, Any]]:
+    if not COST_ALERTS_PATH.exists():
+        return []
+
+    try:
+        payload = json.loads(COST_ALERTS_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+
+    thresholds = payload.get("thresholds", []) if isinstance(payload, dict) else payload
+    if not isinstance(thresholds, list):
+        return []
+
+    cost_data = get_monthly_cost()
+    by_service = cost_data.get("by_service", {}) if isinstance(cost_data, dict) else {}
+
+    results = []
+    for alert in thresholds:
+        if not isinstance(alert, dict):
+            continue
+        service = str(alert.get("service") or "").strip()
+        limit_usd = float(alert.get("usd_limit") or 0.0)
+        current_usd = float(by_service.get(service, 0.0))
+        pct_used = round((current_usd / limit_usd) * 100, 1) if limit_usd > 0 else 0.0
+        results.append(
+            {
+                "service": service,
+                "limit_usd": limit_usd,
+                "current_usd": current_usd,
+                "pct_used": pct_used,
+                "alert": pct_used >= 80,
+            }
+        )
+
+    log_cloud_operation("cost", "check_cost_alerts", {"count": len(results)})
+    return results
+
+
+def get_cost_summary_text() -> str:
+    data = get_monthly_cost()
+    total = float(data.get("total_usd") or 0.0) if isinstance(data, dict) else 0.0
+    by_service = data.get("by_service", {}) if isinstance(data, dict) and isinstance(data.get("by_service"), dict) else {}
+    top_services = sorted(by_service.items(), key=lambda item: item[1], reverse=True)[:3]
+
+    lines = [f"Bu ay: ${total:.2f}"]
+    for service, amount in top_services:
+        lines.append(f"  {service}: ${float(amount):.2f}")
+
+    triggered = [item for item in check_cost_alerts() if item.get("alert")]
+    if triggered:
+        lines.append(f"⚠ {len(triggered)} uyari esigi asildi!")
+
+    return "\n".join(lines)[:300]
+
+
 def _parse_monthly_cost_response(response: dict[str, Any], *, start_date: date, end_date: date) -> dict[str, Any]:
     results = response.get("ResultsByTime", [])
     first = results[0] if results else {}

@@ -173,5 +173,7 @@ Oncelik: Cok Yuksek — Codex Tab-2 ile paralel yapilabilir
 - Tests: `python -m pytest tests/test_aws_ec2_skill.py -v --tb=short` (`7 passed`)
 - Slice B: `server/skills/aws_s3_skill.py` icine `generate_presigned_url()` ve `get_object_metadata()` eklendi
 - Tests: `python -m pytest tests/test_aws_s3_skill.py -v --tb=short` (`8 passed`)
-- Sonraki Adim: cost alerting + summary text
+- Slice C: `server/skills/aws_cost_skill.py` icine `check_cost_alerts()` ve `get_cost_summary_text()` eklendi
+- Tests: `python -m pytest tests/test_aws_cost_skill.py -v --tb=short` (`8 passed`)
+- Sonraki Adim: SkillRegistry icine 5 yeni cloud komutu
 <!-- MANUAL ADDITIONS END -->

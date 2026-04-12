@@ -109,3 +109,79 @@ def test_get_budget_alerts_uses_saved_thresholds() -> None:
             "pct_used": 45.0,
         }
     ]
+
+
+def test_check_cost_alerts_returns_list() -> None:
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        alerts_path = Path(tmp_dir) / "cost_alerts.json"
+        alerts_path.write_text(
+            json.dumps([{"service": "Amazon EC2", "usd_limit": 100.0}], ensure_ascii=True),
+            encoding="utf-8",
+        )
+
+        with patch.object(aws_cost_skill, "COST_ALERTS_PATH", alerts_path):
+            with patch.object(
+                aws_cost_skill,
+                "get_monthly_cost",
+                return_value={"total_usd": 20.0, "by_service": {"Amazon EC2": 45.0}, "currency": "USD", "period": "x"},
+            ):
+                result = aws_cost_skill.check_cost_alerts()
+
+    assert result == [
+        {
+            "service": "Amazon EC2",
+            "limit_usd": 100.0,
+            "current_usd": 45.0,
+            "pct_used": 45.0,
+            "alert": False,
+        }
+    ]
+
+
+def test_check_cost_alerts_alert_flag_set_when_above_80pct() -> None:
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        alerts_path = Path(tmp_dir) / "cost_alerts.json"
+        alerts_path.write_text(
+            json.dumps({"thresholds": [{"service": "Amazon S3", "usd_limit": 50.0}]}, ensure_ascii=True),
+            encoding="utf-8",
+        )
+
+        with patch.object(aws_cost_skill, "COST_ALERTS_PATH", alerts_path):
+            with patch.object(
+                aws_cost_skill,
+                "get_monthly_cost",
+                return_value={"total_usd": 44.0, "by_service": {"Amazon S3": 45.0}, "currency": "USD", "period": "x"},
+            ):
+                result = aws_cost_skill.check_cost_alerts()
+
+    assert result[0]["alert"] is True
+    assert result[0]["pct_used"] == 90.0
+
+
+def test_get_cost_summary_text_under_300_chars() -> None:
+    with patch.object(
+        aws_cost_skill,
+        "get_monthly_cost",
+        return_value={
+            "total_usd": 123.45,
+            "by_service": {
+                "Amazon Elastic Compute Cloud": 70.0,
+                "Amazon Simple Storage Service": 30.0,
+                "AWS Lambda": 12.5,
+                "Amazon CloudFront": 10.95,
+            },
+            "currency": "USD",
+            "period": "x",
+        },
+    ):
+        with patch.object(
+            aws_cost_skill,
+            "check_cost_alerts",
+            return_value=[{"service": "Amazon Elastic Compute Cloud", "alert": True}],
+        ):
+            summary = aws_cost_skill.get_cost_summary_text()
+
+    assert len(summary) <= 300
+    assert "Bu ay: $123.45" in summary
+    assert "Amazon Elastic Compute Cloud" in summary
+    assert "uyari esigi asildi" in summary
