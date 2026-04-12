@@ -126,45 +126,11 @@ Durum: PLANLANDII — implementasyon bekliyor
 Oncelik: Yuksek — Faz 1 Anti veya Codex Tab-2 ile yapilabilir
 
 ### CloudManagerSystem + Skill Registry (Tab-3 Codex)
-- Durum: PART A TAMAMLANDI
-- Completed:
-  - Slice A1 complete: `server/skills/aws_common.py` and `server/skills/aws_ec2_skill.py`
-  - Added `tests/test_aws_ec2_skill.py`
-  - Validation passed with `pytest tests/test_aws_ec2_skill.py` (`4 passed`)
-  - Slice A2 complete: `server/skills/aws_s3_skill.py`
-  - Added `tests/test_aws_s3_skill.py`
-  - Validation passed with `pytest tests/test_aws_s3_skill.py` (`5 passed`)
-  - Slice A3 complete: `server/skills/aws_cost_skill.py`
-  - Added `tests/test_aws_cost_skill.py`
-  - Validation passed with `pytest tests/test_aws_cost_skill.py` (`5 passed`)
-  - Slice A4 complete: `/cloud-*` Telegram commands in `server/bridge.py`
-  - Added `tests/test_cloud_bridge_commands.py`
-  - Validation passed with `pytest tests/test_cloud_bridge_commands.py` (`2 passed`) and `python -m py_compile server/bridge.py`
-  - Slice A5 complete: `/api/cloud/*` endpoints in `server/bridge.py`
-  - Added `apps/web-ui/src/app/cloud/page.tsx`
-  - Added `tests/test_cloud_http_surface.py`
-  - Validation passed with `pytest tests/test_cloud_http_surface.py` (`2 passed`), `python -m py_compile server/bridge.py`, `cmd /c npx tsc --noEmit`
-  - Slice A6 complete: Part A integration validation
-  - Validation passed with `pytest tests/test_aws_ec2_skill.py tests/test_aws_s3_skill.py tests/test_aws_cost_skill.py` (`14 passed`)
-  - Smoke passed with standalone imports from `server/skills`
-  - Slice B1 complete: `server/skill_registry.py`
-  - Added `tests/test_skill_registry.py`
-  - Validation passed with `pytest tests/test_skill_registry.py` (`5 passed`)
-  - Slice B2 complete: `/cloud-*` commands migrated to `SkillRegistry`
-  - Added `server/cloud_command_handlers.py` and `server/skills/registry_entries/cloud_entries.py`
-  - Validation passed with `pytest tests/test_skill_registry.py tests/test_cloud_bridge_commands.py` (`7 passed`)
-  - Slice B3 complete: `/yardim` registered via `SkillRegistry`
-  - Added `server/help_command_handlers.py` and `server/skills/registry_entries/help_entries.py`
-  - Validation passed with `pytest tests/test_skill_registry.py tests/test_cloud_bridge_commands.py` (`8 passed`)
-  - Slice B4 complete: migrated `/codex`, `/codex-swarm`, `/codex-durum`, `/codex-sonuc`, `/wiki`
-  - Added `server/skills/registry_entries/ops_entries.py`
-  - Added `tests/test_registry_migrated_commands.py`
-  - Validation passed with `pytest tests/test_skill_registry.py tests/test_registry_migrated_commands.py` (`11 passed`)
-  - Slice B5 complete: SkillRegistry integration validation
-  - Validation passed with `pytest tests/test_skill_registry.py` (`5 passed`)
-  - Smoke passed with standalone imports from `server`
-- Remaining:
-  - Final handoff doc: `OPS/408_CLOUDMANAGER_HANDOFF.md`
-- Next Step:
-  - Finalize handoff doc, combined test run, and completion summary
+- Durum: TAMAMLANDI
+- EC2/S3/Cost: `server/skills/aws_ec2_skill.py`, `server/skills/aws_s3_skill.py`, `server/skills/aws_cost_skill.py`
+- Cloud UI: `/cloud` route at `apps/web-ui/src/app/cloud/page.tsx`
+- Telegram: `/cloud-durum`, `/cloud-ec2-liste`, `/cloud-maliyet`, `/yardim`
+- Registry: `server/skill_registry.py` - 12 commands migrated
+- Tests: `pytest` combined suite `19 passed`
+- Handoff: `OPS/408_CLOUDMANAGER_HANDOFF.md`
 <!-- MANUAL ADDITIONS END -->

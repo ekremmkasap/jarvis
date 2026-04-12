@@ -20,8 +20,8 @@ from skills.registry_entries.help_entries import register_help_skill
 def test_cloud_commands_dispatch_through_registry_in_bridge() -> None:
     content = BRIDGE_PATH.read_text(encoding="utf-8", errors="replace")
 
-    assert 'elif command.startswith("/cloud-") or command == "/yardim":' in content
-    assert 'or command == "/yardim"' in content
+    assert 'elif command.startswith("/cloud-") or command in {' in content
+    assert '"/yardim"' in content
     assert "COMMAND_REGISTRY.dispatch(command, args" in content
 
 
