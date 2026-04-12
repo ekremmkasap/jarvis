@@ -41,12 +41,13 @@ Python 3.11 (skill + bridge), TypeScript / Next.js 14 (web-ui): Follow standard 
   - Added slot APIs: `get_slot`, `list_slots`, `get_active_slot`, `set_slot_status`, `get_quota_estimate`, `is_slot_available`
   - Added recursive redaction for auth/token-like keys before operator reads
   - Expanded `tests/test_account_manager.py`
+  - Slice 2 complete: `server/codex_task_router.py` now exposes role-affinity routing, fallback chains, `CodexTaskRouter`, and `SlotExhaustedError`
+  - Added `tests/test_codex_task_router.py`
 - Remaining:
-  - Slice 2 role-affinity routing
   - Slice 3 persistent canonical job queue
   - Slice 4 quota-aware dispatch + cooldown + failover
   - Slice 5-8 bridge/API/UI/worktree/Telegram integration
   - Slice 9 handoff and final validation
 - Next Step:
-  - Implement role-affinity routing in `server/codex_task_router.py` and add `tests/test_codex_task_router.py`
+  - Replace legacy job payload storage with canonical JSONL queue semantics in `server/codex_job_manager.py`
 <!-- MANUAL ADDITIONS END -->
