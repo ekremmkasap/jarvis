@@ -200,6 +200,7 @@ class CodexJobManager:
         started_at = raw.get("started_at")
         completed_at = raw.get("completed_at") or raw.get("finished_at")
         failure_reason = raw.get("failure_reason")
+        dispatch_after = raw.get("dispatch_after")
         selection = raw.get("selection") if isinstance(raw.get("selection"), dict) else {}
         output_summary = str(raw.get("output_summary") or raw.get("result_summary") or "").strip() or None
 
@@ -217,6 +218,7 @@ class CodexJobManager:
             "retries": retries,
             "max_retries": max_retries,
             "failure_reason": str(failure_reason).strip() if failure_reason else None,
+            "dispatch_after": str(dispatch_after).strip() if dispatch_after else None,
             "started_at": started_at,
             "completed_at": completed_at,
             "finished_at": completed_at,

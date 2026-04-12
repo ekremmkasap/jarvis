@@ -261,6 +261,13 @@ class CodexQuotaTracker:
             return True
         return int(quota.get("remaining_pct") or 0) <= 0
 
+    def has_quota(self, slot: str, estimated_tokens: int = 1) -> bool:
+        _ = estimated_tokens
+        quota = self.get_slot_quota(slot)
+        if self.is_exhausted(slot):
+            return False
+        return int(quota.get("remaining_pct") or 0) > 0
+
 
 _quota_tracker: CodexQuotaTracker | None = None
 
@@ -282,3 +289,7 @@ def is_exhausted(slot: str) -> bool:
 
 def cooldown_until(slot: str) -> datetime | None:
     return get_quota_tracker().cooldown_until(slot)
+
+
+def has_quota(slot: str, estimated_tokens: int = 1) -> bool:
+    return get_quota_tracker().has_quota(slot, estimated_tokens=estimated_tokens)

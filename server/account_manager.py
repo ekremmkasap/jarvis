@@ -404,6 +404,17 @@ class AccountManager:
         if callable(cooldown_until):
             cooldown = cooldown_until(slot_name)
             payload["cooldown_until"] = cooldown.isoformat() if cooldown else None
+        try:
+            from codex_orchestrator import get_slot_cooldown_until as get_control_cooldown_until
+        except Exception:
+            try:
+                from server.codex_orchestrator import get_slot_cooldown_until as get_control_cooldown_until  # type: ignore
+            except Exception:
+                get_control_cooldown_until = None  # type: ignore[assignment]
+        if callable(get_control_cooldown_until):
+            cooldown = get_control_cooldown_until(slot_name)
+            if cooldown is not None:
+                payload["cooldown_until"] = cooldown.isoformat()
         return self._redact_sensitive(payload)
 
     def get_slot(self, slot_id: str) -> dict[str, Any] | None:
@@ -463,7 +474,18 @@ class AccountManager:
         if tracker.is_exhausted(slot_name):
             return False
         cooldown = tracker.cooldown_until(slot_name)
-        return cooldown is None
+        if cooldown is not None:
+            return False
+        try:
+            from codex_orchestrator import get_slot_cooldown_until as get_control_cooldown_until
+        except Exception:
+            try:
+                from server.codex_orchestrator import get_slot_cooldown_until as get_control_cooldown_until  # type: ignore
+            except Exception:
+                get_control_cooldown_until = None  # type: ignore[assignment]
+        if callable(get_control_cooldown_until):
+            return get_control_cooldown_until(slot_name) is None
+        return True
 
     def add_account(self, provider: str, api_key: str, email: str, failover_priority: int = 0) -> str:
         account_id = f"{provider}_{len(self.accounts) + 1}"
