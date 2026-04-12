@@ -51,11 +51,16 @@ Python 3.11 (skill + bridge), TypeScript / Next.js 14 (web-ui): Follow standard 
   - Added `state/codex_cooldowns.json` semantics plus audit records in `server/logs/codex_dispatch_audit.jsonl`
   - Expanded quota/account hooks so availability checks now include dispatcher cooldown state
   - Added `tests/test_codex_orchestrator.py`
+  - Slice 5 complete: `server/bridge.py` now exposes additive `/api/codex/slots`, `/jobs`, `/queue`, `/dispatch`, `/control`, `/health`, and `/audit` endpoints
+  - Operator payload builders now redact slot/job/audit responses through `account_manager`
+  - Expanded `tests/test_codex_management.py` to cover the new bridge control-plane payloads and control actions
 - Remaining:
-  - Slice 5-8 bridge/API/UI/worktree/Telegram integration
+  - Slice 6 live `/codex-accounts` operator UI refresh
+  - Slice 7 per-slot worktree isolation
+  - Slice 8 Telegram `/codex-*` operational commands
   - Slice 9 handoff and final validation
 - Next Step:
-  - Extend `server/bridge.py` with additive `/api/codex/*` operator endpoints on top of the new dispatcher and audit surfaces
+  - Replace the mixed legacy `/codex-accounts` page with a dedicated live control-plane UI using the new operator endpoints
 
 ### Dijital Ajan Dunyasi — SIMS Vizyon Plani (2026-04-13)
 
