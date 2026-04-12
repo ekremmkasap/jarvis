@@ -219,7 +219,7 @@ class CodexManagementTests(unittest.TestCase):
 
     def test_route_keywords_match_expected_slots(self) -> None:
         self.assertEqual(codex_task_router.route_keywords("bridge.py guncelle"), ["forge"])
-        self.assertEqual(codex_task_router.route_keywords("voice stack duzelt"), ["nexus"])
+        self.assertEqual(codex_task_router.route_keywords("voice stack duzelt"), ["spark"])
         self.assertEqual(codex_task_router.route_keywords("guvenlik audit yap"), ["shield"])
 
     def test_quota_exhausted_slot_falls_back_to_atlas(self) -> None:

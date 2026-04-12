@@ -31,24 +31,25 @@ ROLE_KEYWORDS: list[tuple[list[str], str]] = [
     (["backend", "bridge", "server", "api", "skill", "router", "telegram"], "backend"),
     (["security", "audit", "secret", "redact", "policy", "guvenlik", "güvenlik"], "security"),
     (["voice", "ses", "tts", "stt", "hologram", "desktop"], "voice"),
-    (["video", "visual", "render"], "video"),
+    (["video", "visual", "render", "ui", "frontend", "web", "dashboard"], "video"),
+    (["overflow", "reserve", "backup"], "overflow"),
     (["core", "manager", "plan", "koordine", "koordin", "yonet", "mimari", "strateji"], "manager"),
 ]
 
 SLOT_RULES: list[tuple[list[str], str]] = [
     (["plan", "koordine", "koordin", "yonet", "mimari", "strateji"], "atlas"),
     (["bridge", "bridge.py", "server", "api", "skill", "router", "telegram", "backend"], "forge"),
-    (["voice", "ses", "tts", "stt", "hologram", "desktop"], "nexus"),
-    (["security", "guvenlik", "audit", "secret", "redact", "policy", "zafiyet"], "shield"),
-    (["ui", "frontend", "web", "dashboard", "landing", "tasarim"], "spark"),
+    (["overflow", "reserve", "backup", "archived"], "nexus"),
+    (["security", "guvenlik", "güvenlik", "audit", "secret", "redact", "policy", "zafiyet"], "shield"),
+    (["voice", "ses", "tts", "stt", "hologram", "desktop", "video", "visual", "render", "ui", "frontend", "web", "dashboard", "landing", "tasarim"], "spark"),
 ]
 
 SLOT_CONTEXT: dict[str, str] = {
     "atlas": "Mimari koordinasyon, planlama ve task breakdown tarafina odaklan.",
     "forge": "Backend, bridge, server, API ve skill implementasyonuna odaklan.",
-    "nexus": "Voice stack, TTS/STT, desktop runtime ve hologram akisina odaklan.",
+    "nexus": "Overflow, reserve capacity ve failover tasklerini ele al.",
     "shield": "Guvenlik, secret redaction, policy ve audit risklerine odaklan.",
-    "spark": "Web UI, frontend, dashboard ve kullanici deneyimine odaklan.",
+    "spark": "Voice, video, visual surfaces ve operator-facing frontend akislarina odaklan.",
 }
 
 
@@ -68,8 +69,10 @@ def _normalize_role(role: str | None) -> str:
         return "backend"
     if normalized in {"sec", "audit"}:
         return "security"
-    if normalized in {"ui", "frontend", "web"}:
-        return "voice"
+    if normalized in {"ui", "frontend", "web", "visual"}:
+        return "video"
+    if normalized in {"reserve", "backup"}:
+        return "overflow"
     return "any"
 
 
