@@ -22,6 +22,10 @@ def test_cloud_commands_dispatch_through_registry_in_bridge() -> None:
 
     assert 'elif command.startswith("/cloud-") or command in {' in content
     assert '"/yardim"' in content
+    assert '"/ec2-izle"' in content
+    assert '"/ec2-yeniden-baslat"' in content
+    assert '"/s3-url"' in content
+    assert '"/maliyet-uyari"' in content
     assert "COMMAND_REGISTRY.dispatch(command, args" in content
 
 
@@ -38,6 +42,11 @@ def test_cloud_registry_entries_register_expected_commands() -> None:
         "/cloud-ec2-durdur",
         "/cloud-s3-liste",
         "/cloud-maliyet",
+        "/ec2-izle",
+        "/ec2-yeniden-baslat",
+        "/s3-url",
+        "/maliyet-uyari",
+        "/cloud-ozet",
     ]
 
 

@@ -28,13 +28,15 @@ Python 3.11 (skill + bridge), TypeScript / Next.js 14 (web-ui): Follow standard 
 
 <!-- MANUAL ADDITIONS START -->
 ### AGENTS.md 9-Agent Canonical (Tab-3 Codex Sprint)
-- Durum: IN PROGRESS (production hardening)
-- Tamamlanan: refreshed `OPS/300_AGENTS_AUDIT.md`, `OPS/301_AGENTS_IMPLEMENTATION_PLAN.md`, `OPS/302_AGENTS_ROLLOUT_PLAN.md`; canonical base package; `planner`, `repo_analyst`, `developer`, `reviewer`, `debug`, `release`, `docs`, `voice_narrator`, `mission_control`; initial bridge `POST /agent` handler + canonical keyword routing; initial `OPS/308_HANDOFF.md`
-- Slice A: `hey_jarvis.py` VoiceNarratorAgent hook dogrulandi; `pytest tests/test_hey_jarvis_live_mode.py -v --tb=short` gecti (`2 passed`)
-- Slice B-D: `server/bridge.py` icine `_run_canonical_agent`, `_detect_agent_from_text`, wrapped `/agent` fallback, `GET /api/agents/health` ve Telegram canonical keyword hardening eklendi; `pytest tests/test_canonical_batch4.py tests/test_canonical_telegram.py -v --tb=short` gecti (`9 passed`); planner smoke `POST /agent` wrapper dogrulandi
-- Slice E-F: `server/agents/canonical/base.py` icine `remember/recall/memory_summary` eklendi; run bazli `last_task` + `last_run` persistence aktif; `state/agent_memory/` canonical hale geldi; `OPS/308_HANDOFF.md` gercek davranisa gore yenilendi; `pytest tests/test_canonical_batch1.py tests/test_canonical_batch2.py tests/test_canonical_batch3.py tests/test_canonical_batch4.py tests/test_agent_memory.py -v --tb=short` gecti (`25 passed`)
-- Kalan: full suite + final smoke + final production-ready kaydi
-- Sonraki Adim: canonical suite'in tamamini ve final bridge smoke testini calistirip sprinti production-ready olarak kapat
+- Durum: TAMAMLANDI (Production Ready)
+- 9 agent: `server/agents/canonical/`
+- Bridge: backward-safe `POST /agent`, wrapped `_run_canonical_agent`, `GET /api/agents/health`
+- Telegram: canonical keyword routing + regression tests (`tests/test_canonical_telegram.py`)
+- Memory: `state/agent_memory/` altinda per-agent persistent `remember/recall`
+- Voice hook: `hey_jarvis.py` -> `VoiceNarratorAgent`
+- Handoff: `OPS/308_HANDOFF.md`
+- Tests: `python -m pytest tests/test_canonical_batch1.py tests/test_canonical_batch2.py tests/test_canonical_batch3.py tests/test_canonical_batch4.py tests/test_hey_jarvis_live_mode.py tests/test_canonical_telegram.py tests/test_agent_memory.py -v --tb=short` gecti (`32 passed`)
+- Final smoke: `9 agent import`, `Health 9/9`, `Memory OK`, `POST /agent smoke OK`
 
 ### Multi-Codex Control Plane (Tab-2 Codex Sprint)
 - Status: TAMAMLANDI
@@ -175,5 +177,7 @@ Oncelik: Cok Yuksek — Codex Tab-2 ile paralel yapilabilir
 - Tests: `python -m pytest tests/test_aws_s3_skill.py -v --tb=short` (`8 passed`)
 - Slice C: `server/skills/aws_cost_skill.py` icine `check_cost_alerts()` ve `get_cost_summary_text()` eklendi
 - Tests: `python -m pytest tests/test_aws_cost_skill.py -v --tb=short` (`8 passed`)
-- Sonraki Adim: SkillRegistry icine 5 yeni cloud komutu
+- Slice D: `server/skills/registry_entries/cloud_entries.py` ve `server/bridge.py` icine 5 yeni cloud komutu eklendi (`/ec2-izle`, `/ec2-yeniden-baslat`, `/s3-url`, `/maliyet-uyari`, `/cloud-ozet`)
+- Tests: `python -m pytest tests/test_skill_registry.py tests/test_cloud_bridge_commands.py -v --tb=short` (`11 passed`)
+- Sonraki Adim: `/cloud` UI icine EC2 metrics paneli ve cost trend
 <!-- MANUAL ADDITIONS END -->

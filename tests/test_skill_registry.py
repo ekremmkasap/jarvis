@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from unittest.mock import patch
 import sys
 
 
@@ -10,6 +11,7 @@ if str(SERVER_PATH) not in sys.path:
 
 
 from skill_registry import SkillEntry, SkillRegistry
+from skills.registry_entries.cloud_entries import register_cloud_skills
 
 
 def test_register_and_dispatch_work() -> None:
@@ -82,3 +84,31 @@ def test_list_commands_filters_by_category() -> None:
     commands = registry.list_commands(category="system")
 
     assert [entry.command for entry in commands] == ["/yardim"]
+
+
+def test_ec2_izle_registered() -> None:
+    registry = SkillRegistry()
+    register_cloud_skills(registry)
+
+    commands = [entry.command for entry in registry.list_commands(category="cloud")]
+
+    assert "/ec2-izle" in commands
+
+
+def test_s3_url_handler_missing_args_returns_error() -> None:
+    registry = SkillRegistry()
+    register_cloud_skills(registry)
+
+    result = registry.dispatch("/s3-url", "alpha-bucket")
+
+    assert "Kullanim: /s3-url <bucket> <key>" in result
+
+
+def test_cloud_ozet_returns_string() -> None:
+    registry = SkillRegistry()
+
+    with patch("skills.registry_entries.cloud_entries.get_cost_summary_text", return_value="Bu ay: $12.50"):
+        register_cloud_skills(registry)
+        result = registry.dispatch("/cloud-ozet")
+
+    assert result == "Bu ay: $12.50"

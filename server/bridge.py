@@ -4870,6 +4870,10 @@ def _handle_command_with_sprint_extensions(chat_id: int, cmd: str) -> str:
         return _handle_codex_clear_cooldowns_command(chat_id)
     elif command.startswith("/cloud-") or command in {
         "/yardim",
+        "/ec2-izle",
+        "/ec2-yeniden-baslat",
+        "/s3-url",
+        "/maliyet-uyari",
         "/codex",
         "/codex-swarm",
         "/codex-status",
