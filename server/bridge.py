@@ -89,6 +89,32 @@ logging.basicConfig(
 log = logging.getLogger("jarvis")
 
 
+def _get_canonical_runtime():
+    try:
+        from agents.canonical import runtime as canonical_runtime
+
+        return canonical_runtime
+    except Exception as exc:  # noqa: BLE001
+        log.warning(f"Canonical runtime unavailable: {exc}")
+        return None
+
+
+def _dispatch_canonical_message(chat_id: int, text: str):
+    runtime = _get_canonical_runtime()
+    if runtime is None:
+        return None
+    try:
+        dispatched = runtime.dispatch_keyword_routed_agent(text, {"chat_id": chat_id})
+    except Exception as exc:  # noqa: BLE001
+        log.warning(f"Canonical keyword dispatch failed: {exc}")
+        return None
+    if not dispatched:
+        return None
+    agent_id, result = dispatched
+    formatted = runtime.format_canonical_result(agent_id, result)
+    return agent_id, result, formatted
+
+
 def _watchdog_timestamp() -> str:
     return datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -2633,6 +2659,13 @@ def process_message(chat_id: int, text: str) -> str:
         except Exception as e:
             log.warning(f"dogal dil team modu hatasi: {e}")
 
+    canonical_dispatch = _dispatch_canonical_message(chat_id, text)
+    if canonical_dispatch:
+        agent_id, result, formatted = canonical_dispatch
+        memory.add_message(chat_id, "user", text)
+        memory.add_message(chat_id, "assistant", formatted, f"canonical/{agent_id}")
+        return formatted
+
     # Normal routing
     route_name, route = detect_route(text)
     hist = memory.get_history(chat_id)
@@ -3114,6 +3147,14 @@ refreshRuntimeStatus();
             self._json(get_desktop_assistant_payload())
         elif path == "/api/office/presence":
             self._json(get_office_presence_payload())
+        elif path == "/api/cloud/ec2":
+            self._handle_cloud_ec2_endpoint()
+        elif path == "/api/cloud/s3":
+            self._handle_cloud_s3_endpoint()
+        elif path == "/api/cloud/cost":
+            self._handle_cloud_cost_endpoint()
+        elif path == "/api/cloud/alerts":
+            self._handle_cloud_alerts_endpoint()
 
         # ──── WEEK 2: HEALTH & METRICS ENDPOINTS ────
         elif path == "/health":
@@ -3160,6 +3201,18 @@ refreshRuntimeStatus();
                 )
             except Exception as e:
                 self._json({"error": str(e)}, 500)
+        elif path == "/agent":
+            try:
+                length = int(self.headers.get("Content-Length", 0))
+                body = json.loads(self.rfile.read(length) or b"{}")
+                runtime = _get_canonical_runtime()
+                if runtime is None:
+                    self._json({"ok": False, "error": "canonical runtime unavailable"}, 500)
+                    return
+                payload, status_code = runtime.handle_agent_request(body)
+                self._json(payload, status_code)
+            except Exception as e:
+                self._json({"ok": False, "error": str(e)}, 500)
         elif path == "/command":
             try:
                 length = int(self.headers.get("Content-Length", 0))
@@ -3197,6 +3250,8 @@ refreshRuntimeStatus();
                 self._json({"ok": True, "result": result})
             except Exception as e:
                 self._json({"ok": False, "error": str(e)}, 500)
+        elif path == "/api/cloud/ec2/action":
+            self._handle_cloud_ec2_action_endpoint()
         elif path == "/api/accounts/update":
             self._handle_codex_accounts_update_endpoint()
         else:
@@ -3513,6 +3568,59 @@ refreshRuntimeStatus();
         except Exception as e:
             log.error(f"codex/result error: {e}")
             self._json({"error": "internal error"}, 500)
+
+    def _handle_cloud_ec2_endpoint(self):
+        try:
+            payload = _load_cloud_modules()["list_instances"]()
+            self._json(payload, _cloud_status_code(payload))
+        except Exception as e:
+            log.error(f"cloud/ec2 error: {e}")
+            self._json({"ok": False, "error": "internal error"}, 500)
+
+    def _handle_cloud_s3_endpoint(self):
+        try:
+            payload = _load_cloud_modules()["list_buckets"]()
+            self._json(payload, _cloud_status_code(payload))
+        except Exception as e:
+            log.error(f"cloud/s3 error: {e}")
+            self._json({"ok": False, "error": "internal error"}, 500)
+
+    def _handle_cloud_cost_endpoint(self):
+        try:
+            payload = _load_cloud_modules()["get_monthly_cost"]()
+            self._json(payload, _cloud_status_code(payload))
+        except Exception as e:
+            log.error(f"cloud/cost error: {e}")
+            self._json({"ok": False, "error": "internal error"}, 500)
+
+    def _handle_cloud_alerts_endpoint(self):
+        try:
+            payload = _load_cloud_modules()["get_budget_alerts"]()
+            self._json(payload, _cloud_status_code(payload))
+        except Exception as e:
+            log.error(f"cloud/alerts error: {e}")
+            self._json({"ok": False, "error": "internal error"}, 500)
+
+    def _handle_cloud_ec2_action_endpoint(self):
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length) or b"{}")
+            instance_id = str(body.get("instance_id", "") or "").strip()
+            action = str(body.get("action", "") or "").strip().lower()
+
+            if not instance_id:
+                self._json({"ok": False, "error": "instance_id required"}, 400)
+                return
+            if action not in {"start", "stop"}:
+                self._json({"ok": False, "error": "action must be start or stop"}, 400)
+                return
+
+            modules = _load_cloud_modules()
+            payload = modules["start_instance"](instance_id) if action == "start" else modules["stop_instance"](instance_id)
+            self._json(payload, _cloud_status_code(payload))
+        except Exception as e:
+            log.error(f"cloud/ec2/action error: {e}")
+            self._json({"ok": False, "error": "internal error"}, 500)
 
     def _json(self, data, code=200):
         body = json.dumps(data, ensure_ascii=False).encode("utf-8")
@@ -4131,6 +4239,12 @@ def _cloud_cost_summary() -> str:
     ec2_cost = float(by_service.get("Amazon EC2", 0.0))
     s3_cost = float(by_service.get("Amazon S3", 0.0))
     return _truncate_cloud_text(f"Bu ay: ${total_usd:.2f}\nEC2: ${ec2_cost:.2f} / S3: ${s3_cost:.2f}")
+
+
+def _cloud_status_code(payload) -> int:
+    if isinstance(payload, dict) and payload.get("ok") is False:
+        return 500
+    return 200
 
 
 _SPRINT45_HELP_LINES = """
