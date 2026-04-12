@@ -47,12 +47,15 @@ Python 3.11 (skill + bridge), TypeScript / Next.js 14 (web-ui): Follow standard 
   - Slice 3 complete: `server/codex_job_manager.py` validated as the canonical JSONL queue owner
   - Flat bridge/orchestrator payloads now normalize into canonical `task={description,type,payload}` records
   - Expanded `tests/test_codex_job_manager.py` to cover flat payload normalization and filtered job listing
+  - Slice 4 complete: `server/codex_orchestrator.py` now owns queue-first dispatch, persisted cooldowns, slot failover, and dispatch audit logging
+  - Added `state/codex_cooldowns.json` semantics plus audit records in `server/logs/codex_dispatch_audit.jsonl`
+  - Expanded quota/account hooks so availability checks now include dispatcher cooldown state
+  - Added `tests/test_codex_orchestrator.py`
 - Remaining:
-  - Slice 4 quota-aware dispatch + cooldown + failover
   - Slice 5-8 bridge/API/UI/worktree/Telegram integration
   - Slice 9 handoff and final validation
 - Next Step:
-  - Rework `server/codex_orchestrator.py` into a queue-first dispatcher with cooldown persistence, failover, and dispatch audit logging
+  - Extend `server/bridge.py` with additive `/api/codex/*` operator endpoints on top of the new dispatcher and audit surfaces
 
 ### Dijital Ajan Dunyasi — SIMS Vizyon Plani (2026-04-13)
 
