@@ -28,10 +28,11 @@ Python 3.11 (skill + bridge), TypeScript / Next.js 14 (web-ui): Follow standard 
 
 <!-- MANUAL ADDITIONS START -->
 ### AGENTS.md 9-Agent Canonical (Tab-3 Codex Sprint)
-- Durum: TAMAMLANDI
-- Tamamlanan: refreshed `OPS/300_AGENTS_AUDIT.md`, `OPS/301_AGENTS_IMPLEMENTATION_PLAN.md`, `OPS/302_AGENTS_ROLLOUT_PLAN.md`; canonical base package; `planner`, `repo_analyst`, `developer`, `reviewer`, `debug`, `release`, `docs`, `voice_narrator`, `mission_control`; bridge `POST /agent` handler + canonical keyword routing; `hey_jarvis.py` narrator hook; `OPS/308_HANDOFF.md`; validation passed with `pytest tests/test_canonical_batch1.py tests/test_canonical_batch2.py tests/test_canonical_batch3.py tests/test_canonical_batch4.py tests/test_hey_jarvis_live_mode.py` (`22 passed`)
-- Kalan: Kod tarafinda yok; operasyonel olarak `127.0.0.1:8081` uzerindeki mevcut bridge process'i restart edilmeden canli `POST /agent` endpoint'i gorunmeyecek
-- Sonraki Adim: Calisan bridge process'ini restart edip canli `POST /agent` smoke testini tekrar et
+- Durum: IN PROGRESS (production hardening)
+- Tamamlanan: refreshed `OPS/300_AGENTS_AUDIT.md`, `OPS/301_AGENTS_IMPLEMENTATION_PLAN.md`, `OPS/302_AGENTS_ROLLOUT_PLAN.md`; canonical base package; `planner`, `repo_analyst`, `developer`, `reviewer`, `debug`, `release`, `docs`, `voice_narrator`, `mission_control`; initial bridge `POST /agent` handler + canonical keyword routing; initial `OPS/308_HANDOFF.md`
+- Slice A: `hey_jarvis.py` VoiceNarratorAgent hook dogrulandi; `pytest tests/test_hey_jarvis_live_mode.py -v --tb=short` gecti (`2 passed`)
+- Kalan: bridge canonical endpoint hardening + smoke wrapper; Telegram canonical keyword regression tests; `GET /api/agents/health`; per-agent persistent memory; handoff refresh; tam paket dogrulama
+- Sonraki Adim: `server/bridge.py` canonical agent surfacesini backward-safe sekilde harden edip smoke testleri calistir
 
 ### Multi-Codex Control Plane (Tab-2 Codex Sprint)
 - Status: TAMAMLANDI
