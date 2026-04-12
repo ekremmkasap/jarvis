@@ -127,4 +127,23 @@ Tetikleyici komutlar:
 
 Durum: PLANLANDII — implementasyon bekliyor
 Oncelik: Yuksek — Faz 1 Anti veya Codex Tab-2 ile yapilabilir
+
+### CloudManagerSystem + Skill Registry (Tab-3 Codex)
+- Durum: IN PROGRESS
+- Completed:
+  - Slice A1 complete: `server/skills/aws_common.py` and `server/skills/aws_ec2_skill.py`
+  - Added `tests/test_aws_ec2_skill.py`
+  - Validation passed with `pytest tests/test_aws_ec2_skill.py` (`4 passed`)
+  - Slice A2 complete: `server/skills/aws_s3_skill.py`
+  - Added `tests/test_aws_s3_skill.py`
+  - Validation passed with `pytest tests/test_aws_s3_skill.py` (`5 passed`)
+  - Slice A3 complete: `server/skills/aws_cost_skill.py`
+  - Added `tests/test_aws_cost_skill.py`
+  - Validation passed with `pytest tests/test_aws_cost_skill.py` (`5 passed`)
+- Remaining:
+  - Slice A4-A6 (bridge `/cloud-*`, `/api/cloud/*`, `/cloud` UI, Part A integration)
+  - Slice B1-B5 (`server/skill_registry.py`, cloud registry entries, `/yardim`, incremental command migration, Part B integration)
+  - Final handoff doc: `OPS/408_CLOUDMANAGER_HANDOFF.md`
+- Next Step:
+  - Slice A4: add `/cloud-*` Telegram commands and `/api/cloud/*` endpoints to `server/bridge.py`
 <!-- MANUAL ADDITIONS END -->
