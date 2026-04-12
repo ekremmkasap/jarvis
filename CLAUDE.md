@@ -57,73 +57,97 @@ Python 3.11 (skill + bridge), TypeScript / Next.js 14 (web-ui): Follow standard 
   - Slice 6 complete: `apps/web-ui/src/app/codex-accounts/page.tsx` replaced with a dedicated live operator surface
   - UI now polls slot/queue/health/audit surfaces and exposes dispatch, retry, drain, pause, disable, and clear-cooldown controls
   - Frontend validation passed with `apps/web-ui/node_modules/.bin/tsc.cmd --noEmit`
+  - Slice 7 complete: `server/codex_workspace.py` now creates and reuses canonical per-slot git worktrees under `worktrees/`
+  - Added top-level helpers `ensure_worktree`, `get_worktree_path`, `cleanup_worktree`, `list_worktrees` and wired `worktrees/` into `.gitignore`
+  - Added `tests/test_codex_workspace.py`
 - Remaining:
-  - Slice 7 per-slot worktree isolation
   - Slice 8 Telegram `/codex-*` operational commands
   - Slice 9 handoff and final validation
 - Next Step:
-  - Replace placeholder worktree helpers with real per-slot git worktree management and wire orchestrator execution into those paths
+  - Extend Telegram command routing with queue, health, slot summary, and dispatch controls backed by the new operator API
 
-### Dijital Ajan Dunyasi — SIMS Vizyon Plani (2026-04-13)
+### Dijital Ajan Dunyasi V2 — 3 Katmanli Mimari (2026-04-13)
 
-Vizyon: Jarvis altinda calisiran 7 ajanin (Seda/Mert/Buse/Eren/Luna/Sabrican/Sabri) her biri
-kendi kimligi, sesi, yetenekleri ve animasyonuyla tam bir dijital dunya olusturur.
-Ekrem "Buse ile konus" dediginde Jarvis Buseyi cagirir, animasyonlu gecis olur,
-Buse "Merhaba Ekrem, ben Buse, nasil yardimci olabilirim?" der.
+Vizyon: Ekrem "Buse ile konus" dediginde Jarvis Buseyi aktif eder, animasyonlu hologram
+gecisi olur, Buse kendi sesiyle karsilar. Tek bridge / tek TTS / tek hologram — 7 lazy persona.
+Persona = state + profil. Execution = Codex slotu. Bunlar ayri katmanlar.
 
-Temel Bilesenleri:
+---
 
-1. AGENT SWITCHING (bridge.py)
-   - "X ile konus" komutu -> bridge.py agent switcher tetiklenir
-   - Aktif ajan state: state/active_agent.json
-   - Gecis TTS: "Baglanıyor: Buse..." -> selamlama
+KATMAN 1 — PERSONA PLANE (kimlik + durum)
+  state/active_agent.json       — aktif persona
+  config/agents.yaml            — 7 persona profili (isim, rol, renk, ses, skills)
+  state/agent_world.json        — son aktivasyon + gorev gecmisi
+  server/agents/clones/[ajan]/memory/ — per-agent hafiza
 
-2. AGENT GREETING
-   - Her ajan ilk aktivasyonda kendi greeting metnini soyler
-   - "Merhaba [kullanici], ben [isim]. [rol]. Nasil yardimci olabilirim?"
+  Personalar (lazy, surekli process degil):
+    Seda   = kod/debug/PR     renk=#00ff88  ses=AhmetNeural
+    Mert   = arastirma/rakip  renk=#ffdd00  ses=AhmetNeural
+    Buse   = pazarlama/landing renk=#ff69b4 ses=EmelNeural
+    Eren   = veri/dashboard   renk=#ff8c00  ses=AhmetNeural
+    Luna   = guvenlik/audit   renk=#9b59b6  ses=EmelNeural
+    Sabrican = deploy/ops     renk=#95a5a6  ses=AhmetNeural
+    Sabri  = wildcard/yaratici renk=#e74c3c ses=AhmetNeural
 
-3. ANIMATED TRANSITIONS (hologram)
-   - Ajan gecislerinde fade/glow animasyonu — renderer.js + styles.css
-   - Her ajanin rengi: Seda=#00ff88 Mert=#ffdd00 Buse=#ff69b4 Eren=#ff8c00
-     Luna=#9b59b6 Sabrican=#95a5a6 Sabri=#e74c3c
-   - state/swarm_speaking_state.json polling mevcuttur
+---
 
-4. PER-AGENT SKILLS
-   - Seda: kod, debug, PR, git
-   - Mert: web arastirma, rakip analizi
-   - Buse: pazarlama, landing page, musteri iletisimi
-   - Eren: veri analizi, dashboard, KPI
-   - Luna: guvenlik tarama, risk, audit
-   - Sabrican: deploy, server ops
-   - Sabri: wildcard, yaratici fikirler
+KATMAN 2 — RUNTIME PLANE (tek calisan sistem)
+  server/bridge.py              — tek komut router (backward-safe)
+  hey_jarvis.py                 — tek TTS/STT (persona sesini yukler)
+  apps/desktop-hologram/        — tek hologram (renk/animasyon persona'ya gore degisir)
 
-5. PER-AGENT VOICES (edge_tts)
-   - Her ajan farkli ses ve hiz -> personality_voice_config.json
-   - Mevcut: EmelNeural / AhmetNeural tr-TR
+  Persona switching akisi:
+    "Buse ile konus" -> bridge.py -> state/active_agent.json = "buse"
+    -> hey_jarvis.py EmelNeural yukler -> "Baglaniyor: Buse..."
+    -> hologram rengi #ff69b4 -> Buse greeting soyler
 
-6. CODEX ACCOUNT BINDING
-   - Seda -> forge, Mert -> nexus, Buse -> spark
-   - Eren -> shield, Luna -> shield, Sabrican -> nexus, Sabri -> atlas
+---
 
-7. AGENT WORLD STATE
-   - state/agent_world.json: tum ajanlar son aktivasyon + gorev gecmisi
-   - server/agents/clones/[ajan]/memory/ — her ajanin hafizasi
+KATMAN 3 — EXECUTION PLANE (Codex slot binding)
+  config/persona_execution_map.json — persona -> Codex slotu
+    Seda->forge, Mert->nexus, Buse->spark
+    Eren->shield, Luna->shield, Sabrican->nexus, Sabri->atlas
+  server/codex_orchestrator.py  — slot scheduler (Tab-2 Codex urunu)
 
-Uygulama Sirasi:
-  Faz 1: Agent switching + greeting TTS (bridge.py + hey_jarvis.py)
-  Faz 2: Hologram animated transitions (renderer.js + styles.css)
-  Faz 3: Per-agent skill routing (skill_registry.py + agent context)
-  Faz 4: Codex account binding per agent
-  Faz 5: Agent world state + cross-agent memory
+---
 
-Tetikleyici komutlar:
-  "Buse ile konus" / "Buseyi cagir" / "Buseye gec"
-  "Mert arastirsin" / "Sedaya sor"
-  "Herkesi topla" -> swarm modu
-  "Kim aktif?" -> aktif ajan durumu
+FAZ SIRASI (BLOKERLARA GORE):
 
-Durum: PLANLANDII — implementasyon bekliyor
-Oncelik: Yuksek — Faz 1 Anti veya Codex Tab-2 ile yapilabilir
+  Faz 0 — Bridge Recovery (BLOKER — hicbir sey Faz 0 olmadan calismiyor)
+    bridge.py cevrimici olmali, /health 200 donmeli
+    hey_jarvis.py bridge ile konusabilmeli
+
+  Faz 1 — Persona Switching + Greeting
+    "X ile konus" -> active_agent.json guncelleme
+    Greeing TTS per persona
+    Tetikleyiciler: "Buse ile konus" / "Buseyi cagir" / "Sedaya sor"
+
+  Faz 2 — Hologram Animated Transitions
+    renderer.js persona rengine gore glow/fade
+    state/swarm_speaking_state.json polling mevcut
+
+  Faz 3 — Per-Persona Skill Routing
+    skill_registry.py + persona context inject
+    "Kim aktif?" -> aktif ajan ve yetenekleri
+
+  Faz 4 — Codex Account Binding
+    persona_execution_map.json aktif
+    codex_orchestrator.py slot secimi
+
+  Faz 5 — Cross-Agent Memory + World State
+    agent_world.json: son aktivasyon + gorev gecmisi
+    Ajanlar arasi mesaj/hafiza paylasimi
+
+---
+
+TASARIM KURALLARI:
+  - Ikinci ana hologram yok — tek hologram persona rengine boyaniyor
+  - Persona state != account state (ayri katmanlar)
+  - Personalar lazy: "Buse" aktif edilene kadar process yok
+  - Faz 0 bitmeden Faz 1'e gecilmez
+
+Durum: PLANLANDII — Faz 0 (bridge recovery) bloker
+Oncelik: Cok Yuksek — Codex Tab-2 ile paralel yapilabilir
 
 ### CloudManagerSystem + Skill Registry (Tab-3 Codex)
 - Durum: TAMAMLANDI
