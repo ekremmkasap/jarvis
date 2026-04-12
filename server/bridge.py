@@ -4464,11 +4464,20 @@ def _cloud_status_code(payload) -> int:
 from server.skill_registry import SkillRegistry
 from server.skills.registry_entries.cloud_entries import register_cloud_skills
 from server.skills.registry_entries.help_entries import register_help_skill
+from server.skills.registry_entries.ops_entries import register_ops_skills
 
 # Legacy note: the original handle_command chain contained 81 elif branches before registry extraction.
 COMMAND_REGISTRY = SkillRegistry()
 register_cloud_skills(COMMAND_REGISTRY)
 register_help_skill(COMMAND_REGISTRY)
+register_ops_skills(
+    COMMAND_REGISTRY,
+    codex_handler=lambda args, ctx: _handle_codex_command(int((ctx or {}).get("chat_id", 0) or 0), args),
+    codex_swarm_handler=lambda args, ctx: _handle_codex_command(int((ctx or {}).get("chat_id", 0) or 0), args, swarm=True),
+    codex_status_handler=lambda args, ctx: _handle_codex_status_command(int((ctx or {}).get("chat_id", 0) or 0)),
+    codex_result_handler=lambda args, ctx: _handle_codex_result_command(int((ctx or {}).get("chat_id", 0) or 0), args),
+    wiki_handler=lambda args, ctx: _handle_wiki_command(int((ctx or {}).get("chat_id", 0) or 0), args),
+)
 
 
 _SPRINT45_HELP_LINES = """
@@ -4511,7 +4520,15 @@ def _handle_command_with_sprint_extensions(chat_id: int, cmd: str) -> str:
 
     if command in ("/start", "/help"):
         return _ORIGINAL_HANDLE_COMMAND(chat_id, cmd) + _SPRINT45_HELP_LINES
-    elif command.startswith("/cloud-") or command == "/yardim":
+    elif command.startswith("/cloud-") or command in {
+        "/yardim",
+        "/codex",
+        "/codex-swarm",
+        "/codex-durum",
+        "/codex-status",
+        "/codex-sonuc",
+        "/wiki",
+    }:
         return COMMAND_REGISTRY.dispatch(command, args, {"chat_id": chat_id, "command": command, "registry": COMMAND_REGISTRY})
     elif command == "/crew":
         return _handle_crewai_command(chat_id, args)
@@ -4553,14 +4570,6 @@ def _handle_command_with_sprint_extensions(chat_id: int, cmd: str) -> str:
         return _handle_gemini_command(chat_id, args)
     elif command == "/deepseek":
         return _handle_deepseek_command(chat_id, args)
-    elif command == "/codex":
-        return _handle_codex_command(chat_id, args)
-    elif command == "/codex-swarm":
-        return _handle_codex_command(chat_id, args, swarm=True)
-    elif command in {"/codex-durum", "/codex-status"}:
-        return _handle_codex_status_command(chat_id)
-    elif command == "/codex-sonuc":
-        return _handle_codex_result_command(chat_id, args)
     elif command in {"/codex-workspace", "/worktree-durum"}:
         try:
             from codex_workspace import WorkspaceManager
@@ -4575,8 +4584,6 @@ def _handle_command_with_sprint_extensions(chat_id: int, cmd: str) -> str:
             if not exists:
                 lines.append(f"     Init: {wm.init_command(slot)}")
         return "\n".join(lines)
-    elif command == "/wiki":
-        return _handle_wiki_command(chat_id, args)
     elif command in {"/key-pool", "/key-durum", "/keys"}:
         try:
             from server.key_pool import pool_status
