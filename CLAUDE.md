@@ -137,9 +137,12 @@ Oncelik: Yuksek — Faz 1 Anti veya Codex Tab-2 ile yapilabilir
   - Slice A6 complete: Part A integration validation
   - Validation passed with `pytest tests/test_aws_ec2_skill.py tests/test_aws_s3_skill.py tests/test_aws_cost_skill.py` (`14 passed`)
   - Smoke passed with standalone imports from `server/skills`
+  - Slice B1 complete: `server/skill_registry.py`
+  - Added `tests/test_skill_registry.py`
+  - Validation passed with `pytest tests/test_skill_registry.py` (`5 passed`)
 - Remaining:
-  - Slice B1-B5 (`server/skill_registry.py`, cloud registry entries, `/yardim`, incremental command migration, Part B integration)
+  - Slice B2-B5 (cloud registry entries, `/yardim`, incremental command migration, Part B integration)
   - Final handoff doc: `OPS/408_CLOUDMANAGER_HANDOFF.md`
 - Next Step:
-  - Slice B1: implement `server/skill_registry.py` and `tests/test_skill_registry.py`
+  - Slice B2: migrate `/cloud-*` commands to `SkillRegistry`
 <!-- MANUAL ADDITIONS END -->
