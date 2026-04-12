@@ -8,7 +8,7 @@ Scope: AGENTS.md 9-agent canonical implementation audit for Tab-3 Codex sprint.
 ### PlannerAgent
 - ID: `planner`
 - Chain: `reasoning`
-- Responsibility: goal decomposition, dependencies, risk, agent assignment.
+- Responsibility: goal decomposition, dependency mapping, routing, risk assessment.
 - Input: `{ "goal": "string", "context": {} }`
 - Output: structured JSON plan.
 
@@ -22,7 +22,7 @@ Scope: AGENTS.md 9-agent canonical implementation audit for Tab-3 Codex sprint.
 - ID: `developer`
 - Chain: `code`
 - Responsibility: implement features/fixes/tests/refactors.
-- Safety: changes require review; should not push directly.
+- Safety: changes require review; should stay bounded to explicit targets.
 
 ### ReviewerAgent
 - ID: `reviewer`
@@ -60,49 +60,64 @@ Scope: AGENTS.md 9-agent canonical implementation audit for Tab-3 Codex sprint.
 - `AGENTS.md`: canonical source of truth for the 9 agents.
 - `server/agent_loop.py`: legacy ReAct loop against direct Ollama HTTP; not canonical-agent-ready.
 - `server/model_router.py`: reusable multi-provider router with chain/fallback handling. This is the required LLM entry point.
-- `server/bridge.py`: operator-facing HTTP + Telegram runtime, currently exposes `/api/chat`, `/command`, `/health`, `/metrics`, agent selection via Telegram `/agent`, and normal natural-language routing.
+- `server/bridge.py`: operator-facing HTTP + Telegram runtime, currently exposes `/api/chat`, `/command`, `/health`, `/metrics`, Telegram `/agent`, and natural-language routing.
 - `hey_jarvis.py`: hologram/voice runtime; primary speech API is synchronous `speak(text, track_response=False)`.
+- `config/agents.yaml`: already contains config entries for all 9 canonical agents.
 
 ### Existing `server/agents/`
 - Present: legacy/local agents such as `planner_agent.py`, `task_planner_agent.py`, `executor_agent.py`, clone lanes under `server/agents/clones/`, and multi-slot codex agents under `atlas/forge/nexus/shield/spark`.
-- Missing: `server/agents/canonical/` package does not exist.
+- Present: `server/agents/canonical/` already exists and contains:
+  - `base.py`
+  - `planner.py`
+  - `repo_analyst.py`
+  - `developer.py`
+  - `__init__.py`
 - Constraint: canonical agents must stay separate from clone swarm agents.
 
 ### Existing Tests
-- Bridge/runtime/model-router tests already exist, but there are no canonical-agent tests.
-- Relevant patterns:
-  - `tests/test_model_router.py` already tests fallback behavior.
-  - `tests/test_bridge_endpoints.py` focuses on endpoint helpers and response shapes.
-  - `tests/test_task_planner_agent.py` shows lightweight unittest style for agent logic.
+- Present: `tests/test_canonical_batch1.py`
+- Missing:
+  - `tests/test_canonical_batch2.py`
+  - `tests/test_canonical_batch3.py`
+  - `tests/test_canonical_batch4.py`
+- Existing bridge/model-router tests provide integration patterns for endpoint-safe additions.
 
 ## Gap Analysis Per Canonical Agent
 
 ### PlannerAgent
-- Gap: no canonical async agent wrapper, no canonical registry, no JSON envelope.
+- Status: implemented in `server/agents/canonical/planner.py`
+- Remaining:
+  - keep registry aligned when other agents land
+  - validate batch1 tests before moving on
 
 ### RepoAnalystAgent
-- Gap: no canonical repo audit agent, no report path convention in `outputs/reports/`.
+- Status: implemented in `server/agents/canonical/repo_analyst.py`
+- Remaining:
+  - no additional structural gaps beyond validation
 
 ### DeveloperAgent
-- Gap: no bounded write-safe implementation agent tied to explicit `target_file`.
+- Status: implemented in `server/agents/canonical/developer.py`
+- Remaining:
+  - ensure write guard stays strict
+  - preserve review-required status semantics
 
 ### ReviewerAgent
-- Gap: existing review-related code is separate; no canonical read-only diff review agent.
+- Gap: missing canonical implementation and tests.
 
 ### DebugAgent
-- Gap: no canonical root-cause analysis agent envelope.
+- Gap: missing canonical implementation and tests.
 
 ### ReleaseAgent
-- Gap: no canonical changelog/semver agent.
+- Gap: missing canonical implementation and tests.
 
 ### DocsAgent
-- Gap: no canonical docs generation agent.
+- Gap: missing canonical implementation and tests.
 
 ### VoiceNarratorAgent
-- Gap: no canonical narrator agent and no `hey_jarvis.py` bridge hook.
+- Gap: missing canonical implementation and `hey_jarvis.py` hook.
 
 ### MissionControlAgent
-- Gap: no canonical activity log and no monitor over canonical agent history.
+- Gap: missing canonical implementation and JSONL activity analysis.
 
 ## `bridge.py` Routing Audit
 
@@ -119,16 +134,12 @@ Scope: AGENTS.md 9-agent canonical implementation audit for Tab-3 Codex sprint.
 
 ### Natural-Language Telegram Flow
 - `TelegramBot._handle_update()` sends non-command text into `process_message(chat_id, text)`.
-- `process_message()` path today:
-  - shell shorthands
-  - optional intent handling
-  - active `/agent` selection
-  - team mode
-  - generic route detection -> `call_ollama()`
-- Canonical keyword routing can be inserted before generic route detection without breaking `/agent` command behavior.
+- `process_message()` eventually routes generic text via `detect_route(...)` and `call_ollama(...)`.
+- Canonical keyword routing can be inserted before generic route detection without breaking slash commands or the existing Telegram `/agent` behavior.
 
-## Constraints Confirmed
+## Confirmed Constraints
 - Do not touch `master_launcher.py`.
 - Do not modify clone swarm agents in `server/agents/clones/`.
 - Do not bypass `server/model_router.py` for LLM access.
 - Do not break existing `bridge.py` endpoints or Telegram `/agent` command.
+- Do not log API keys, tokens, cookies, or raw secret-bearing context.

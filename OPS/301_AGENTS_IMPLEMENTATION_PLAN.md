@@ -2,20 +2,20 @@
 
 Date: 2026-04-13
 
-## Package Layout
+## Implementation Baseline
 
-Create `server/agents/canonical/` with:
-- `__init__.py`
-- `base.py`
-- `planner.py`
-- `repo_analyst.py`
-- `developer.py`
-- `reviewer.py`
-- `debug_agent.py`
-- `release_agent.py`
-- `docs_agent.py`
-- `voice_narrator.py`
-- `mission_control.py`
+Existing canonical foundation already present:
+- `server/agents/canonical/base.py`
+- `server/agents/canonical/planner.py`
+- `server/agents/canonical/repo_analyst.py`
+- `server/agents/canonical/developer.py`
+- `tests/test_canonical_batch1.py`
+
+Execution plan is therefore:
+1. keep the base contract stable
+2. validate batch1
+3. implement batches 2-4 on top of the current canonical package
+4. integrate bridge routing and voice narration
 
 ## Base Class Design
 
@@ -27,21 +27,13 @@ Responsibilities:
 - centralize timestamping and JSONL logging
 - sanitize sensitive fields before logging
 
-Proposed fields:
-- `agent_id: str`
-- `name: str`
-- `role: str`
-- `model_chain: str`
-- `model_preference: str`
-
-Proposed base helpers:
+Current core helpers already exist:
 - `async run(task: str, context: dict | None = None) -> dict`
-- `_execute(task: str, context: dict) -> dict` implemented by subclasses
+- `_execute(task: str, context: dict) -> dict`
 - `_call_llm(prompt: str, system: str | None, max_tokens: int = 800) -> str`
-- `_router_chat(messages: list[dict], system: str | None, max_tokens: int, num_ctx: int) -> tuple[str, dict]`
 - `_log_result(result: dict) -> None`
 - `_sanitize_context(context: dict) -> dict`
-- `_result(status: str, **payload) -> dict`
+- `_result(status: str, timestamp: str, output: dict, **payload) -> dict`
 
 Logging target:
 - `server/logs/canonical_agents.jsonl`
@@ -49,57 +41,43 @@ Logging target:
 Sensitive-field scrub list:
 - keys containing `key`, `token`, `secret`, `password`, `authorization`, `cookie`
 
-LLM behavior:
-- all LLM attempts route through `server.model_router.ModelRouter.chat`
-- if routing fails, subclasses may use deterministic fallback builders, but only after router attempt
+Rule:
+- all LLM attempts must go through `server.model_router.ModelRouter.chat`
+- deterministic fallbacks are allowed only after router attempt or when LLM output is empty
 
 ## Per-Agent Plan
 
 ### `server/agents/canonical/planner.py`
-- Class: `PlannerAgent`
-- `model_chain = "reasoning"`
-- Output fields:
+- Status: exists
+- Keep current shape:
   - `goals`
   - `agents_needed`
   - `steps`
   - `estimated_complexity`
   - `priority`
   - `risk_score`
-- Strategy:
-  - ask for strict JSON
-  - fallback heuristic based on task keywords
+- Work: validate current behavior only
 
 ### `server/agents/canonical/repo_analyst.py`
-- Class: `RepoAnalystAgent`
-- `model_chain = "code"`
-- Read-only subprocess inputs:
-  - `git log --oneline -5`
-  - `git diff --stat --cached`
-  - `git diff --stat`
-  - optional `rg --files` sample counts
-- Output fields:
+- Status: exists
+- Keep current shape:
   - `recent_commits`
   - `changed_files`
   - `health_score`
   - `warnings`
   - `recommendations`
   - `report_path`
-- Also writes markdown report under `outputs/reports/`
+- Work: validate current behavior only
 
 ### `server/agents/canonical/developer.py`
-- Class: `DeveloperAgent`
-- `model_chain = "code"`
-- Safety:
-  - requires `context["target_file"]` or `context["target_files"]`
-  - only writes to explicitly declared targets
-  - reject paths outside repo root
-- Output fields:
+- Status: exists
+- Keep current shape:
   - `files_changed`
   - `description`
   - `status`
-- Write strategy:
-  - if `proposed_content` exists, write it directly
-  - otherwise read target, ask LLM for full replacement content, then overwrite target only
+- Work:
+  - preserve explicit target-only writes
+  - preserve repo-root guard
 
 ### `server/agents/canonical/reviewer.py`
 - Class: `ReviewerAgent`
@@ -112,7 +90,9 @@ LLM behavior:
   - `suggestions`
   - `severity_counts`
   - `overall_verdict`
-- LLM prompt asks for JSON review report; fallback scans diff for obvious risky patterns
+- Strategy:
+  - ask LLM for strict JSON review report
+  - fallback scans diff for obvious risky patterns
 
 ### `server/agents/canonical/debug_agent.py`
 - Class: `DebugAgent`
@@ -150,7 +130,8 @@ LLM behavior:
   - `doc_type`
   - `content`
   - `target_file_suggestion`
-- Fallback builds markdown from description/code/command context
+- Fallback:
+  - build markdown from `description`, `code`, or `command` context
 
 ### `server/agents/canonical/voice_narrator.py`
 - Class: `VoiceNarratorAgent`
@@ -163,8 +144,9 @@ LLM behavior:
   - Turkish only
   - 2-3 sentences
   - max 200 chars
-  - no markdown/code/URLs
-- Fallback: strip formatting and compress deterministically
+  - no markdown, code blocks, or URLs
+- Fallback:
+  - strip formatting and compress deterministically
 
 ### `server/agents/canonical/mission_control.py`
 - Class: `MissionControlAgent`
@@ -178,12 +160,25 @@ LLM behavior:
   - `overall_health`
   - `recommendations`
 - Detection rules:
-  - no activity >10 min => stuck warning
+  - no activity > 10 minutes => stuck warning
   - 3+ consecutive errors => critical
+
+## Registry Plan
+
+Update `server/agents/canonical/__init__.py` to export exactly 9 canonical agents:
+- `planner`
+- `repo_analyst`
+- `developer`
+- `reviewer`
+- `debug`
+- `release`
+- `docs`
+- `voice_narrator`
+- `mission_control`
 
 ## Bridge Routing Design
 
-HTTP:
+### HTTP
 - Add `POST /agent`
 - Body:
   - `agent: str`
@@ -191,8 +186,16 @@ HTTP:
   - `context: dict` optional
 - Response:
   - canonical agent result dict
+- Constraint:
+  - add a new endpoint only
+  - do not alter response contract of `/api/chat` or `/command`
 
-Telegram keyword map:
+### Telegram keyword routing
+- Add canonical keyword map for natural-language messages only
+- Keep slash-command `/agent` behavior unchanged
+- Insert routing before generic `detect_route(text)` fallback
+
+Keyword map:
 - `planner`: `["plan yap", "hedef", "gorev olustur", "ne yapayim"]`
 - `repo_analyst`: `["repo analiz", "saglik raporu", "git durum", "kod durumu"]`
 - `developer`: `["kod yaz", "implement", "feature ekle", "degistir"]`
@@ -203,13 +206,9 @@ Telegram keyword map:
 - `mission_control`: `["sistem durumu", "agent saglik", "ne calisiyor"]`
 - `voice_narrator`: `[]`
 
-Insertion point:
-- `process_message()` before generic `detect_route(text)`
-- do not alter explicit slash-command behavior
-
-Formatting for Telegram replies:
-- summarize canonical result for chat-safe text
-- keep `voice_narrator` internal by default
+Formatting:
+- summarize canonical result into compact operator-safe text
+- keep `voice_narrator` internal unless explicitly addressed
 
 ## Voice Hook Design
 
@@ -219,36 +218,34 @@ Target file:
 Existing speech function:
 - `speak(text: str, track_response: bool = False)`
 
-Plan:
-- import `VoiceNarratorAgent` with guard
-- add async wrapper:
-  - `async def speak_agent_result(raw_output: str): ...`
-- add sync helper:
-  - `def narrate_agent_result(raw_output: str, track_response: bool = False): ...`
-- on narrator failure:
-  - fallback to sanitized `raw_output[:200]`
+Planned additions:
+- guarded import of `VoiceNarratorAgent`
+- `async def speak_agent_result(raw_output: str): ...`
+- `def narrate_agent_result(raw_output: str, track_response: bool = False): ...`
 
-Minimal initial integration:
-- use hook from command/result flow without altering speech engine internals
+Behavior:
+- narrator returns spoken Turkish summary
+- if narrator fails, fallback to sanitized `raw_output[:200]`
+- keep existing TTS engine untouched
 
 ## Test Strategy
 
 ### Batch 1
-- `tests/test_canonical_batch1.py`
-- covers registry/base/planner/repo analyst/developer write guard
+- existing `tests/test_canonical_batch1.py`
+- run to validate current foundation before continuing
 
 ### Batch 2
-- `tests/test_canonical_batch2.py`
-- covers reviewer/debug response shape and diff/error parsing fallbacks
+- add `tests/test_canonical_batch2.py`
+- cover reviewer/debug response shapes and deterministic fallbacks
 
 ### Batch 3
-- `tests/test_canonical_batch3.py`
-- covers release semver heuristic, docs markdown generation, narrator length/format constraints
+- add `tests/test_canonical_batch3.py`
+- cover release semver heuristic, docs markdown generation, narrator format limits
 
 ### Batch 4
-- `tests/test_canonical_batch4.py`
-- covers mission control log parsing and stuck/error detection
+- add `tests/test_canonical_batch4.py`
+- cover mission control JSONL parsing and stuck/error detection
 
 ### Integration
-- extend `tests/test_bridge_endpoints.py` with `POST /agent` endpoint coverage if needed
-- add small `hey_jarvis` hook test only if import surface is safe; otherwise keep smoke/manual validation
+- extend `tests/test_bridge_endpoints.py` only if the import surface stays manageable
+- otherwise keep endpoint coverage inside batch4 or a focused new test module
