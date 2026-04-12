@@ -271,6 +271,76 @@ class AccountManagerTests(unittest.TestCase):
         self.assertTrue(manager.is_slot_available("atlas"))
         self.assertFalse(manager.is_slot_available("forge"))
 
+    def test_match_operator_metadata_can_infer_slots_from_role_hints_when_execution_slot_missing(self) -> None:
+        (self.config_dir / "account_registry.json").write_text(
+            json.dumps(
+                {
+                    "accounts": [
+                        {
+                            "id": "agent_01_core",
+                            "label": "Core / Manager",
+                            "provider": "openai-codex",
+                            "role": "Manager/Core",
+                            "status": "active",
+                            "execution_slot": "",
+                            "runtime_account_id": "",
+                            "remaining_estimate": "~80%",
+                            "daily_limit": 100,
+                            "weekly_limit": 500,
+                            "last_seen": "2026-04-01 10:00 UTC",
+                            "notes": "manager role",
+                        },
+                        {
+                            "id": "agent_02_backend",
+                            "label": "Backend Ops",
+                            "provider": "openai-codex",
+                            "role": "Backend Ops",
+                            "status": "active",
+                            "execution_slot": "",
+                            "runtime_account_id": "",
+                            "remaining_estimate": "~90%",
+                            "daily_limit": 100,
+                            "weekly_limit": 500,
+                            "last_seen": "2026-04-01 11:00 UTC",
+                            "notes": "n8n shell deployment",
+                        },
+                    ]
+                },
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+
+        manager = self._build_manager()
+        atlas = manager.get_slot("atlas")
+        forge = manager.get_slot("forge")
+
+        self.assertEqual(atlas["label"], "Core / Manager")
+        self.assertEqual(forge["label"], "Backend Ops")
+
+    def test_redact_sensitive_removes_nested_secret_like_keys(self) -> None:
+        manager = self._build_manager()
+
+        redacted = manager._redact_sensitive(
+            {
+                "safe": 1,
+                "nested": {
+                    "accessToken": "secret-value",
+                    "api_key_hint": "secret-key",
+                    "ok": "visible",
+                },
+                "items": [{"refresh_token": "hidden", "name": "visible"}],
+            }
+        )
+
+        serialized = json.dumps(redacted)
+        self.assertIn('"safe": 1', serialized)
+        self.assertIn('"ok": "visible"', serialized)
+        self.assertIn('"name": "visible"', serialized)
+        self.assertNotIn("accessToken", serialized)
+        self.assertNotIn("api_key_hint", serialized)
+        self.assertNotIn("refresh_token", serialized)
+
 
 if __name__ == "__main__":
     unittest.main()

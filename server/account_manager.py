@@ -79,6 +79,13 @@ class AccountManager:
         "_last_active_codex_backup",
         "_last_active_opencode_backup",
     }
+    SLOT_ROLE_HINTS = {
+        "atlas": ("atlas", "manager", "core", "planner", "plan", "architecture", "mimari"),
+        "forge": ("forge", "backend", "ops", "server", "api", "deployment", "n8n", "shell"),
+        "nexus": ("nexus", "overflow", "reserve", "backup", "archived", "swarm backup"),
+        "shield": ("shield", "security", "audit", "redaction", "policy", "guvenlik"),
+        "spark": ("spark", "voice", "video", "visual", "hologram", "tts", "stt"),
+    }
 
     def __init__(self, vault_path: str | Path = "server/data/.account_vault"):
         requested_vault_path = Path(vault_path)
@@ -159,6 +166,16 @@ class AccountManager:
         runtime_id_key = runtime_account_id.strip().lower()
         known_ids = {slot_key, f"codex_{slot_key}"}
 
+        def _haystack(item: dict[str, Any]) -> str:
+            return " ".join(
+                [
+                    str(item.get("id") or ""),
+                    str(item.get("label") or ""),
+                    str(item.get("role") or ""),
+                    str(item.get("notes") or ""),
+                ]
+            ).strip().lower()
+
         for item in public_registry:
             candidate_slot = str(
                 item.get("execution_slot")
@@ -177,6 +194,24 @@ class AccountManager:
             if runtime_id_key and candidate_runtime_id and candidate_runtime_id == runtime_id_key:
                 return item
             if candidate_id and candidate_id in known_ids:
+                return item
+
+        hints = self.SLOT_ROLE_HINTS.get(slot_key, ())
+        scored_matches: list[tuple[int, dict[str, Any]]] = []
+        for item in public_registry:
+            haystack = _haystack(item)
+            if not haystack:
+                continue
+            score = sum(1 for hint in hints if hint and hint in haystack)
+            if score:
+                scored_matches.append((score, item))
+        if scored_matches:
+            scored_matches.sort(key=lambda pair: pair[0], reverse=True)
+            return scored_matches[0][1]
+
+        for item in public_registry:
+            candidate_id = str(item.get("id") or "").strip().lower()
+            if candidate_id in {f"slot_{slot_key}", f"agent_{slot_key}", slot_key}:
                 return item
 
         return {}
@@ -309,11 +344,18 @@ class AccountManager:
             print(f"[ERROR] Failed to save accounts: {exc}")
 
     def _redact_sensitive(self, data: Any) -> Any:
+        def _is_sensitive_key(value: str) -> bool:
+            key_name = str(value or "").strip().lower()
+            if key_name in self._REDACT_KEYS:
+                return True
+            sensitive_markers = ("token", "secret", "password", "authorization", "bearer", "api_key")
+            return any(marker in key_name for marker in sensitive_markers)
+
         if isinstance(data, dict):
             redacted: dict[str, Any] = {}
             for key, value in data.items():
                 key_name = str(key or "")
-                if key_name.strip().lower() in self._REDACT_KEYS:
+                if _is_sensitive_key(key_name):
                     continue
                 redacted[key_name] = self._redact_sensitive(value)
             return redacted
