@@ -130,10 +130,14 @@ Oncelik: Yuksek — Faz 1 Anti veya Codex Tab-2 ile yapilabilir
   - Slice A4 complete: `/cloud-*` Telegram commands in `server/bridge.py`
   - Added `tests/test_cloud_bridge_commands.py`
   - Validation passed with `pytest tests/test_cloud_bridge_commands.py` (`2 passed`) and `python -m py_compile server/bridge.py`
+  - Slice A5 complete: `/api/cloud/*` endpoints in `server/bridge.py`
+  - Added `apps/web-ui/src/app/cloud/page.tsx`
+  - Added `tests/test_cloud_http_surface.py`
+  - Validation passed with `pytest tests/test_cloud_http_surface.py` (`2 passed`), `python -m py_compile server/bridge.py`, `cmd /c npx tsc --noEmit`
 - Remaining:
-  - Slice A5-A6 (`/api/cloud/*`, `/cloud` UI, Part A integration)
+  - Slice A6 (Part A integration test and smoke validation)
   - Slice B1-B5 (`server/skill_registry.py`, cloud registry entries, `/yardim`, incremental command migration, Part B integration)
   - Final handoff doc: `OPS/408_CLOUDMANAGER_HANDOFF.md`
 - Next Step:
-  - Slice A5: add `/api/cloud/*` endpoints in `server/bridge.py` and build `apps/web-ui/src/app/cloud/page.tsx`
+  - Slice A6: run Part A integration tests and import smoke, then mark Part A complete in `CLAUDE.md`
 <!-- MANUAL ADDITIONS END -->
