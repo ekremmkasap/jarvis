@@ -94,3 +94,46 @@ def test_get_instance_status_includes_uptime() -> None:
         "type": "t3.micro",
         "region": "us-east-1",
     }
+
+
+def test_get_instance_metrics_returns_format() -> None:
+    fake_client = Mock()
+    fake_client.get_metric_statistics.side_effect = [
+        {"Datapoints": [{"Average": 18.0}, {"Average": 22.0}]},
+        {"Datapoints": [{"Average": 1048576.0}, {"Average": 2097152.0}]},
+        {"Datapoints": [{"Average": 3145728.0}]},
+    ]
+
+    with patch.object(aws_ec2_skill, "aws_client", return_value=fake_client):
+        with patch.object(
+            aws_ec2_skill,
+            "utcnow",
+            return_value=datetime(2026, 4, 13, 12, 0, tzinfo=timezone.utc),
+        ):
+            result = aws_ec2_skill.get_instance_metrics("i-metrics", hours=2)
+
+    assert result == {
+        "ok": True,
+        "instance_id": "i-metrics",
+        "cpu_avg": 20.0,
+        "network_in_mb": 1.5,
+        "network_out_mb": 3.0,
+        "period_hours": 2,
+    }
+
+
+def test_reboot_instance_returns_ok() -> None:
+    fake_client = Mock()
+
+    with patch.object(aws_ec2_skill, "aws_client", return_value=fake_client):
+        result = aws_ec2_skill.reboot_instance("i-reboot")
+
+    fake_client.reboot_instances.assert_called_once_with(InstanceIds=["i-reboot"])
+    assert result == {"ok": True, "message": "i-reboot yeniden baslatildi."}
+
+
+def test_metrics_exception_returns_error_dict() -> None:
+    with patch.object(aws_ec2_skill, "aws_client", side_effect=RuntimeError("cw boom")):
+        result = aws_ec2_skill.get_instance_metrics("i-fail")
+
+    assert result == {"ok": False, "error": "cw boom"}

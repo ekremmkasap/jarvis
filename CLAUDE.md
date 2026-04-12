@@ -31,8 +31,9 @@ Python 3.11 (skill + bridge), TypeScript / Next.js 14 (web-ui): Follow standard 
 - Durum: IN PROGRESS (production hardening)
 - Tamamlanan: refreshed `OPS/300_AGENTS_AUDIT.md`, `OPS/301_AGENTS_IMPLEMENTATION_PLAN.md`, `OPS/302_AGENTS_ROLLOUT_PLAN.md`; canonical base package; `planner`, `repo_analyst`, `developer`, `reviewer`, `debug`, `release`, `docs`, `voice_narrator`, `mission_control`; initial bridge `POST /agent` handler + canonical keyword routing; initial `OPS/308_HANDOFF.md`
 - Slice A: `hey_jarvis.py` VoiceNarratorAgent hook dogrulandi; `pytest tests/test_hey_jarvis_live_mode.py -v --tb=short` gecti (`2 passed`)
-- Kalan: bridge canonical endpoint hardening + smoke wrapper; Telegram canonical keyword regression tests; `GET /api/agents/health`; per-agent persistent memory; handoff refresh; tam paket dogrulama
-- Sonraki Adim: `server/bridge.py` canonical agent surfacesini backward-safe sekilde harden edip smoke testleri calistir
+- Slice B-D: `server/bridge.py` icine `_run_canonical_agent`, `_detect_agent_from_text`, wrapped `/agent` fallback, `GET /api/agents/health` ve Telegram canonical keyword hardening eklendi; `pytest tests/test_canonical_batch4.py tests/test_canonical_telegram.py -v --tb=short` gecti (`9 passed`); planner smoke `POST /agent` wrapper dogrulandi
+- Kalan: per-agent persistent memory; `OPS/308_HANDOFF.md` refresh; tam paket dogrulama
+- Sonraki Adim: canonical agent base class'a kalici memory ekleyip agent bazli regression testlerini calistir
 
 ### Multi-Codex Control Plane (Tab-2 Codex Sprint)
 - Status: TAMAMLANDI
@@ -164,4 +165,10 @@ Oncelik: Cok Yuksek — Codex Tab-2 ile paralel yapilabilir
 - Registry: `server/skill_registry.py` - 12 commands migrated
 - Tests: `pytest` combined suite `19 passed`
 - Handoff: `OPS/408_CLOUDMANAGER_HANDOFF.md`
+
+### CloudManagerSystem + Skill Registry (Tab-4 Codex Faz2)
+- Durum: IN PROGRESS
+- Slice A: `server/skills/aws_ec2_skill.py` icine `get_instance_metrics()` ve `reboot_instance()` eklendi
+- Tests: `python -m pytest tests/test_aws_ec2_skill.py -v --tb=short` (`7 passed`)
+- Sonraki Adim: S3 presigned URL + object metadata
 <!-- MANUAL ADDITIONS END -->

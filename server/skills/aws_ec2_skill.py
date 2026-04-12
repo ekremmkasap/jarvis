@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 try:
@@ -97,6 +97,61 @@ def get_instance_status(instance_id: str) -> dict[str, Any]:
     except Exception as exc:
         error = sanitize_text(exc)
         log_cloud_operation("ec2", "get_instance_status_failed", {"instance_id": instance_id, "error": error})
+        return {"ok": False, "error": error}
+
+
+def get_instance_metrics(instance_id: str, hours: int = 1) -> dict[str, Any]:
+    try:
+        period_hours = max(int(hours or 1), 1)
+        client = aws_client("cloudwatch")
+        end = utcnow()
+        start = end - timedelta(hours=period_hours)
+
+        def _metric_average(metric_name: str, unit: str) -> float:
+            response = client.get_metric_statistics(
+                Namespace="AWS/EC2",
+                MetricName=metric_name,
+                Dimensions=[{"Name": "InstanceId", "Value": instance_id}],
+                StartTime=start,
+                EndTime=end,
+                Period=3600,
+                Statistics=["Average"],
+                Unit=unit,
+            )
+            datapoints = response.get("Datapoints", [])
+            if not datapoints:
+                return 0.0
+            return round(sum(float(point.get("Average") or 0.0) for point in datapoints) / len(datapoints), 2)
+
+        cpu_avg = _metric_average("CPUUtilization", "Percent")
+        network_in_mb = round(_metric_average("NetworkIn", "Bytes") / (1024 * 1024), 3)
+        network_out_mb = round(_metric_average("NetworkOut", "Bytes") / (1024 * 1024), 3)
+        payload = {
+            "ok": True,
+            "instance_id": instance_id,
+            "cpu_avg": cpu_avg,
+            "network_in_mb": network_in_mb,
+            "network_out_mb": network_out_mb,
+            "period_hours": period_hours,
+        }
+        log_cloud_operation("ec2", "get_instance_metrics", payload)
+        return payload
+    except Exception as exc:
+        error = sanitize_text(exc)
+        log_cloud_operation("ec2", "get_instance_metrics_failed", {"instance_id": instance_id, "error": error})
+        return {"ok": False, "error": error}
+
+
+def reboot_instance(instance_id: str) -> dict[str, Any]:
+    try:
+        client = aws_client("ec2")
+        client.reboot_instances(InstanceIds=[instance_id])
+        payload = {"ok": True, "message": f"{instance_id} yeniden baslatildi."}
+        log_cloud_operation("ec2", "reboot_instance", {"instance_id": instance_id, "ok": True})
+        return payload
+    except Exception as exc:
+        error = sanitize_text(exc)
+        log_cloud_operation("ec2", "reboot_instance_failed", {"instance_id": instance_id, "error": error})
         return {"ok": False, "error": error}
 
 
