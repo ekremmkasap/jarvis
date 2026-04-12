@@ -38,16 +38,15 @@ Python 3.11 (skill + bridge), TypeScript / Next.js 14 (web-ui): Follow standard 
 - Completed:
   - OPS audit and rollout artifacts (`OPS/200-204`)
   - Slice 1 complete: `server/account_manager.py` hardened as the single slot read surface
-  - Added slot APIs: `get_slot`, `list_slots`, `get_active_slot`, `set_slot_status`, `get_quota_estimate`, `is_slot_available`
-  - Added recursive redaction for auth/token-like keys before operator reads
-  - Expanded `tests/test_account_manager.py`
-  - Slice 2 complete: `server/codex_task_router.py` now exposes role-affinity routing, fallback chains, `CodexTaskRouter`, and `SlotExhaustedError`
-  - Added `tests/test_codex_task_router.py`
+  - Slot/operator metadata matching now tolerates blank `execution_slot` by using slot-role heuristics
+  - Added stricter recursive redaction for auth/token/secret-like keys before operator reads
+  - Expanded `tests/test_account_manager.py` to cover heuristic matching and nested redaction
 - Remaining:
-  - Slice 3 persistent canonical job queue
+  - Slice 2 role-affinity router alignment to canonical slot roles
+  - Slice 3 persistent canonical job queue validation and contract cleanup
   - Slice 4 quota-aware dispatch + cooldown + failover
   - Slice 5-8 bridge/API/UI/worktree/Telegram integration
   - Slice 9 handoff and final validation
 - Next Step:
-  - Replace legacy job payload storage with canonical JSONL queue semantics in `server/codex_job_manager.py`
+  - Align `server/codex_task_router.py` with canonical slot roles (`spark=voice`, `nexus=overflow`) and validate fallback routing
 <!-- MANUAL ADDITIONS END -->
