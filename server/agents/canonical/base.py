@@ -7,7 +7,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from ...model_router import ModelRouter, build_model_router
+try:
+    from ...model_router import ModelRouter, build_model_router
+except ImportError:  # Support top-level `agents.canonical` imports when `server/` is on sys.path.
+    from model_router import ModelRouter, build_model_router
 
 
 SENSITIVE_TOKENS = ("key", "token", "secret", "password", "authorization", "cookie")
