@@ -3840,6 +3840,233 @@ def _build_codex_accounts_payload() -> dict[str, object]:
     return {"accounts": accounts}
 
 
+def _redact_codex_payload(data: object) -> object:
+    try:
+        from account_manager import get_account_manager
+    except Exception:
+        from server.account_manager import get_account_manager  # type: ignore
+
+    return get_account_manager()._redact_sensitive(data)
+
+
+def _build_codex_jobs_payload(status: str | None = None, slot_id: str | None = None, limit: int = 100) -> dict[str, object]:
+    try:
+        from codex_job_manager import get_job_manager
+    except Exception:
+        from server.codex_job_manager import get_job_manager  # type: ignore
+
+    jobs = []
+    for item in get_job_manager().list_jobs(status=status, slot_id=slot_id, limit=min(max(int(limit or 0), 0), 100)):
+        if not isinstance(item, dict):
+            continue
+        jobs.append(
+            {
+                "job_id": item.get("id"),
+                "status": item.get("status"),
+                "priority": item.get("priority", 5),
+                "role": item.get("type"),
+                "slot_id": item.get("slot_id"),
+                "worktree": item.get("worktree"),
+                "task": {"description": item.get("task"), "type": item.get("type"), "payload": {}},
+                "task_description": item.get("task"),
+                "requested_slots": item.get("requested_slots", []),
+                "selected_slots": item.get("selected_slots", []),
+                "failure_reason": item.get("failure_reason"),
+                "started_at": item.get("started_at"),
+                "completed_at": item.get("finished_at"),
+                "dispatch_after": item.get("dispatch_after"),
+                "output_summary": item.get("result_summary"),
+            }
+        )
+    return _redact_codex_payload({"jobs": jobs})
+
+
+def _build_codex_queue_payload() -> dict[str, object]:
+    payload = _build_codex_jobs_payload(status="pending", limit=100)
+    jobs = payload.get("jobs", []) if isinstance(payload, dict) else []
+    return {"jobs": jobs}
+
+
+def _build_codex_slots_payload() -> dict[str, object]:
+    try:
+        from account_manager import get_account_manager
+    except Exception:
+        from server.account_manager import get_account_manager  # type: ignore
+    try:
+        from codex_job_manager import get_job_manager
+    except Exception:
+        from server.codex_job_manager import get_job_manager  # type: ignore
+    try:
+        from codex_orchestrator import get_cooldown_state
+    except Exception:
+        from server.codex_orchestrator import get_cooldown_state  # type: ignore
+
+    slots = get_account_manager().list_slots()
+    jobs = get_job_manager().list_jobs(limit=500)
+    cooldowns = get_cooldown_state()
+    records: list[dict[str, object]] = []
+
+    for slot in slots:
+        slot_id = str(slot.get("slot_id") or "").strip().lower()
+        slot_jobs = [job for job in jobs if str(job.get("slot_id") or "").strip().lower() == slot_id]
+        current_job = next((job for job in slot_jobs if str(job.get("status") or "").strip().lower() == "running"), None)
+        completed_jobs = [job for job in slot_jobs if str(job.get("status") or "").strip().lower() in {"done", "failed", "cancelled"}]
+        fail_count = sum(1 for job in slot_jobs if str(job.get("status") or "").strip().lower() == "failed")
+        cooldown = cooldowns.get(slot_id, {}) if isinstance(cooldowns, dict) else {}
+        cooldown_remaining = int(cooldown.get("remaining_seconds") or 0) if isinstance(cooldown, dict) else 0
+
+        status = "idle"
+        effective_status = str(slot.get("effective_status") or slot.get("status") or "").strip().lower()
+        if current_job:
+            status = "active"
+        elif cooldown_remaining > 0:
+            status = "cooldown"
+        elif effective_status in {"inactive", "failed", "quota_exceeded", "limited", "rate_limited", "pending_login", "offline"}:
+            status = "disabled"
+
+        records.append(
+            {
+                "slot_id": slot_id,
+                "label": slot.get("label"),
+                "role": slot.get("role"),
+                "status": status,
+                "quota_estimate": slot.get("quota_estimate"),
+                "is_available": slot.get("is_available"),
+                "current_job": {
+                    "job_id": current_job.get("id"),
+                    "description": current_job.get("task"),
+                    "started_at": current_job.get("started_at"),
+                    "duration_seconds": current_job.get("duration_seconds"),
+                }
+                if current_job
+                else None,
+                "last_completion": completed_jobs[0].get("finished_at") if completed_jobs else slot.get("last_completion"),
+                "fail_count": fail_count,
+                "cooldown_remaining": cooldown_remaining,
+                "cooldown_until": slot.get("cooldown_until") or (cooldown.get("until") if isinstance(cooldown, dict) else None),
+            }
+        )
+
+    return _redact_codex_payload({"slots": records})
+
+
+def _build_codex_health_payload() -> dict[str, object]:
+    try:
+        from codex_health import CodexHealthWatcher
+    except Exception:
+        from server.codex_health import CodexHealthWatcher  # type: ignore
+    try:
+        from codex_job_manager import get_job_manager
+    except Exception:
+        from server.codex_job_manager import get_job_manager  # type: ignore
+    try:
+        from codex_orchestrator import get_cooldown_state
+    except Exception:
+        from server.codex_orchestrator import get_cooldown_state  # type: ignore
+
+    slot_records = _build_codex_slots_payload().get("slots", [])
+    stuck_jobs = get_job_manager().find_stuck_jobs(timeout_minutes=30)
+    cooldowns = get_cooldown_state()
+    health_slots = []
+    for slot in slot_records if isinstance(slot_records, list) else []:
+        if not isinstance(slot, dict):
+            continue
+        quota_text = str(slot.get("quota_estimate") or "").strip().replace("%", "").replace("~", "")
+        quota_value = int(float(quota_text)) if quota_text.replace(".", "", 1).isdigit() else 0
+        health_score = 100
+        if str(slot.get("status") or "") == "disabled":
+            health_score -= 60
+        if str(slot.get("status") or "") == "cooldown":
+            health_score -= 30
+        health_score -= min(int(slot.get("fail_count") or 0) * 10, 40)
+        health_score = min(max(health_score + min(quota_value, 100) // 10, 0), 100)
+        health_slots.append(
+            {
+                "slot_id": slot.get("slot_id"),
+                "health_score": health_score,
+                "status": slot.get("status"),
+                "quota_estimate": slot.get("quota_estimate"),
+                "cooldown": cooldowns.get(slot.get("slot_id")) if isinstance(cooldowns, dict) else None,
+            }
+        )
+
+    return _redact_codex_payload({"slots": health_slots, "stuck_jobs": stuck_jobs, "cooldowns": cooldowns})
+
+
+def _build_codex_audit_payload(limit: int = 50) -> dict[str, object]:
+    try:
+        from codex_orchestrator import read_dispatch_audit
+    except Exception:
+        from server.codex_orchestrator import read_dispatch_audit  # type: ignore
+
+    return _redact_codex_payload({"entries": read_dispatch_audit(limit=min(max(int(limit or 0), 0), 50))})
+
+
+def _dispatch_codex_job(*, task_description: str, role: str | None, priority: int) -> dict[str, object]:
+    try:
+        from codex_orchestrator import dispatch_job
+    except Exception:
+        from server.codex_orchestrator import dispatch_job  # type: ignore
+
+    result = dispatch_job(task_description, role=role, priority=priority)
+    selected_slots = result.get("selected_slots") or []
+    return _redact_codex_payload(
+        {
+            "ok": bool(result.get("ok")),
+            "job_id": result.get("job_id"),
+            "slot_id": selected_slots[0] if selected_slots else None,
+            "status": "pending",
+            "message": result.get("message"),
+        }
+    )
+
+
+def _control_codex_plane(*, action: str, slot_id: str | None, job_id: str | None) -> dict[str, object]:
+    try:
+        from account_manager import get_account_manager
+    except Exception:
+        from server.account_manager import get_account_manager  # type: ignore
+    try:
+        from codex_job_manager import get_job_manager
+    except Exception:
+        from server.codex_job_manager import get_job_manager  # type: ignore
+    try:
+        import codex_orchestrator as codex_orchestrator_module
+    except Exception:
+        import server.codex_orchestrator as codex_orchestrator_module  # type: ignore
+
+    manager = get_job_manager()
+    account_manager = get_account_manager()
+
+    if action == "drain" and slot_id:
+        codex_orchestrator_module.set_cooldown(slot_id, minutes=10, reason="drain")
+        return {"ok": True, "message": f"{slot_id} drain moduna alindi."}
+    if action == "pause" and slot_id:
+        codex_orchestrator_module.set_cooldown(slot_id, minutes=15, reason="pause")
+        return {"ok": True, "message": f"{slot_id} pause moduna alindi."}
+    if action == "disable" and slot_id:
+        account_manager.set_slot_status(slot_id, "inactive")
+        codex_orchestrator_module.set_cooldown(slot_id, minutes=60, reason="disabled")
+        return {"ok": True, "message": f"{slot_id} disable edildi."}
+    if action == "retry" and job_id:
+        retried = manager.retry_job(job_id)
+        if retried is None:
+            return {"ok": False, "message": "Job bulunamadi."}
+        selected_slot = codex_orchestrator_module.dispatch(job_id)
+        if selected_slot:
+            codex_orchestrator_module._spawn_slot_thread(job_id, selected_slot, str(retried.get("task") or ""))
+        return {"ok": True, "message": f"{job_id} retry edildi.", "slot_id": selected_slot}
+    if action == "cancel" and job_id:
+        cancelled = manager.cancel_job(job_id)
+        if cancelled is None:
+            return {"ok": False, "message": "Job bulunamadi."}
+        return {"ok": True, "message": f"{job_id} iptal edildi."}
+    if action == "clear_cooldowns":
+        codex_orchestrator_module.clear_cooldown()
+        return {"ok": True, "message": "Tum cooldown kayitlari temizlendi."}
+    return {"ok": False, "message": "unsupported action"}
+
+
 def _build_codex_status_payload(limit: int = 10) -> dict[str, object]:
     try:
         from codex_orchestrator import get_status_payload
@@ -4236,10 +4463,12 @@ def _cloud_status_code(payload) -> int:
 
 from server.skill_registry import SkillRegistry
 from server.skills.registry_entries.cloud_entries import register_cloud_skills
+from server.skills.registry_entries.help_entries import register_help_skill
 
 # Legacy note: the original handle_command chain contained 81 elif branches before registry extraction.
-CLOUD_COMMAND_REGISTRY = SkillRegistry()
-register_cloud_skills(CLOUD_COMMAND_REGISTRY)
+COMMAND_REGISTRY = SkillRegistry()
+register_cloud_skills(COMMAND_REGISTRY)
+register_help_skill(COMMAND_REGISTRY)
 
 
 _SPRINT45_HELP_LINES = """
@@ -4282,8 +4511,8 @@ def _handle_command_with_sprint_extensions(chat_id: int, cmd: str) -> str:
 
     if command in ("/start", "/help"):
         return _ORIGINAL_HANDLE_COMMAND(chat_id, cmd) + _SPRINT45_HELP_LINES
-    elif command.startswith("/cloud-"):
-        return CLOUD_COMMAND_REGISTRY.dispatch(command, args, {"chat_id": chat_id, "command": command})
+    elif command.startswith("/cloud-") or command == "/yardim":
+        return COMMAND_REGISTRY.dispatch(command, args, {"chat_id": chat_id, "command": command, "registry": COMMAND_REGISTRY})
     elif command == "/crew":
         return _handle_crewai_command(chat_id, args)
     elif command == "/crewai":

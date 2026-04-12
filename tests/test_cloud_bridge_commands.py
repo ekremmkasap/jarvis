@@ -14,13 +14,15 @@ if str(SERVER_PATH) not in sys.path:
 
 from skill_registry import SkillRegistry
 from skills.registry_entries.cloud_entries import register_cloud_skills
+from skills.registry_entries.help_entries import register_help_skill
 
 
 def test_cloud_commands_dispatch_through_registry_in_bridge() -> None:
     content = BRIDGE_PATH.read_text(encoding="utf-8", errors="replace")
 
-    assert 'elif command.startswith("/cloud-"):' in content
-    assert "CLOUD_COMMAND_REGISTRY.dispatch(command, args" in content
+    assert 'elif command.startswith("/cloud-") or command == "/yardim":' in content
+    assert 'or command == "/yardim"' in content
+    assert "COMMAND_REGISTRY.dispatch(command, args" in content
 
 
 def test_cloud_registry_entries_register_expected_commands() -> None:
@@ -37,3 +39,14 @@ def test_cloud_registry_entries_register_expected_commands() -> None:
         "/cloud-s3-liste",
         "/cloud-maliyet",
     ]
+
+
+def test_help_entry_returns_non_empty_turkish_list() -> None:
+    registry = SkillRegistry()
+    register_cloud_skills(registry)
+    register_help_skill(registry)
+
+    result = registry.dispatch("/yardim", context={"registry": registry})
+
+    assert result.startswith("Komutlar:")
+    assert "[cloud]" in result
