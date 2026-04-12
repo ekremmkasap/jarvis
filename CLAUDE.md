@@ -54,13 +54,15 @@ Python 3.11 (skill + bridge), TypeScript / Next.js 14 (web-ui): Follow standard 
   - Slice 5 complete: `server/bridge.py` now exposes additive `/api/codex/slots`, `/jobs`, `/queue`, `/dispatch`, `/control`, `/health`, and `/audit` endpoints
   - Operator payload builders now redact slot/job/audit responses through `account_manager`
   - Expanded `tests/test_codex_management.py` to cover the new bridge control-plane payloads and control actions
+  - Slice 6 complete: `apps/web-ui/src/app/codex-accounts/page.tsx` replaced with a dedicated live operator surface
+  - UI now polls slot/queue/health/audit surfaces and exposes dispatch, retry, drain, pause, disable, and clear-cooldown controls
+  - Frontend validation passed with `apps/web-ui/node_modules/.bin/tsc.cmd --noEmit`
 - Remaining:
-  - Slice 6 live `/codex-accounts` operator UI refresh
   - Slice 7 per-slot worktree isolation
   - Slice 8 Telegram `/codex-*` operational commands
   - Slice 9 handoff and final validation
 - Next Step:
-  - Replace the mixed legacy `/codex-accounts` page with a dedicated live control-plane UI using the new operator endpoints
+  - Replace placeholder worktree helpers with real per-slot git worktree management and wire orchestrator execution into those paths
 
 ### Dijital Ajan Dunyasi — SIMS Vizyon Plani (2026-04-13)
 
