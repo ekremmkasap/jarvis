@@ -4025,6 +4025,114 @@ def _handle_wiki_command(chat_id: int, args: str) -> str:
         return f"Hata: {exc}"
 
 
+def _truncate_cloud_text(text: str, limit: int = 400) -> str:
+    value = str(text or "").strip()
+    if len(value) <= limit:
+        return value
+    return value[: max(limit - 3, 0)].rstrip() + "..."
+
+
+def _cloud_state_label(state: str) -> str:
+    mapping = {
+        "running": "calisiyor",
+        "pending": "basliyor",
+        "stopped": "durdu",
+        "stopping": "duruyor",
+        "shutting-down": "kapaniyor",
+        "terminated": "silindi",
+    }
+    return mapping.get(str(state or "").strip().lower(), str(state or "bilinmiyor"))
+
+
+def _load_cloud_modules():
+    from server.skills.aws_cost_skill import get_budget_alerts, get_monthly_cost
+    from server.skills.aws_ec2_skill import get_instance_status, list_instances, start_instance, stop_instance
+    from server.skills.aws_s3_skill import list_buckets
+
+    return {
+        "get_budget_alerts": get_budget_alerts,
+        "get_instance_status": get_instance_status,
+        "get_monthly_cost": get_monthly_cost,
+        "list_buckets": list_buckets,
+        "list_instances": list_instances,
+        "start_instance": start_instance,
+        "stop_instance": stop_instance,
+    }
+
+
+def _cloud_status_summary() -> str:
+    modules = _load_cloud_modules()
+    instances = modules["list_instances"]()
+    buckets = modules["list_buckets"]()
+    costs = modules["get_monthly_cost"]()
+
+    instance_items = instances if isinstance(instances, list) else []
+    bucket_items = buckets if isinstance(buckets, list) else []
+    active_instances = sum(1 for item in instance_items if str(item.get("state")) == "running")
+    total_usd = float(costs.get("total_usd") or 0.0) if isinstance(costs, dict) else 0.0
+    return _truncate_cloud_text(f"EC2: {active_instances} aktif / S3: {len(bucket_items)} bucket / Maliyet: ${total_usd:.2f}")
+
+
+def _cloud_list_ec2() -> str:
+    modules = _load_cloud_modules()
+    instances = modules["list_instances"]()
+    if isinstance(instances, dict) and instances.get("ok") is False:
+        return _truncate_cloud_text(f"EC2 hatasi: {instances.get('error', 'bilinmeyen hata')}")
+    if not instances:
+        return "EC2 Sunucular:\n- Kayit bulunamadi"
+
+    lines = ["EC2 Sunucular:"]
+    for item in instances[:10]:
+        lines.append(
+            f"- {item.get('id')} ({_cloud_state_label(str(item.get('state') or ''))}) "
+            f"{item.get('type')} {item.get('region')}"
+        )
+    return _truncate_cloud_text("\n".join(lines))
+
+
+def _cloud_start_ec2(instance_id: str) -> str:
+    modules = _load_cloud_modules()
+    result = modules["start_instance"](instance_id)
+    if result.get("ok"):
+        return _truncate_cloud_text(f"Sunucu baslatildi: {instance_id}")
+    return _truncate_cloud_text(f"EC2 hatasi: {result.get('error', 'bilinmeyen hata')}")
+
+
+def _cloud_stop_ec2(instance_id: str) -> str:
+    modules = _load_cloud_modules()
+    result = modules["stop_instance"](instance_id)
+    if result.get("ok"):
+        return _truncate_cloud_text(f"Sunucu durduruldu: {instance_id}")
+    return _truncate_cloud_text(f"EC2 hatasi: {result.get('error', 'bilinmeyen hata')}")
+
+
+def _cloud_list_s3() -> str:
+    modules = _load_cloud_modules()
+    buckets = modules["list_buckets"]()
+    if isinstance(buckets, dict) and buckets.get("ok") is False:
+        return _truncate_cloud_text(f"S3 hatasi: {buckets.get('error', 'bilinmeyen hata')}")
+    if not buckets:
+        return "S3 Bucket'lar:\n- Kayit bulunamadi"
+
+    lines = ["S3 Bucket'lar:"]
+    for item in buckets[:10]:
+        lines.append(f"- {item.get('name')} ({item.get('region')})")
+    return _truncate_cloud_text("\n".join(lines))
+
+
+def _cloud_cost_summary() -> str:
+    modules = _load_cloud_modules()
+    payload = modules["get_monthly_cost"]()
+    if not isinstance(payload, dict):
+        return "Maliyet verisi alinamadi."
+
+    total_usd = float(payload.get("total_usd") or 0.0)
+    by_service = payload.get("by_service", {}) if isinstance(payload.get("by_service"), dict) else {}
+    ec2_cost = float(by_service.get("Amazon EC2", 0.0))
+    s3_cost = float(by_service.get("Amazon S3", 0.0))
+    return _truncate_cloud_text(f"Bu ay: ${total_usd:.2f}\nEC2: ${ec2_cost:.2f} / S3: ${s3_cost:.2f}")
+
+
 _SPRINT45_HELP_LINES = """
 
 *Sprint 4 & 5 Komutlari:*
@@ -4065,6 +4173,24 @@ def _handle_command_with_sprint_extensions(chat_id: int, cmd: str) -> str:
 
     if command in ("/start", "/help"):
         return _ORIGINAL_HANDLE_COMMAND(chat_id, cmd) + _SPRINT45_HELP_LINES
+    elif command == "/cloud-durum":
+        return _cloud_status_summary()
+    elif command == "/cloud-ec2-liste":
+        return _cloud_list_ec2()
+    elif command == "/cloud-ec2-baslat":
+        instance_id = args.strip()
+        if not instance_id:
+            return "Kullanim: /cloud-ec2-baslat <instance_id>"
+        return _cloud_start_ec2(instance_id)
+    elif command == "/cloud-ec2-durdur":
+        instance_id = args.strip()
+        if not instance_id:
+            return "Kullanim: /cloud-ec2-durdur <instance_id>"
+        return _cloud_stop_ec2(instance_id)
+    elif command == "/cloud-s3-liste":
+        return _cloud_list_s3()
+    elif command == "/cloud-maliyet":
+        return _cloud_cost_summary()
     elif command == "/crew":
         return _handle_crewai_command(chat_id, args)
     elif command == "/crewai":
