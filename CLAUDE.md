@@ -170,5 +170,7 @@ Oncelik: Cok Yuksek — Codex Tab-2 ile paralel yapilabilir
 - Durum: IN PROGRESS
 - Slice A: `server/skills/aws_ec2_skill.py` icine `get_instance_metrics()` ve `reboot_instance()` eklendi
 - Tests: `python -m pytest tests/test_aws_ec2_skill.py -v --tb=short` (`7 passed`)
-- Sonraki Adim: S3 presigned URL + object metadata
+- Slice B: `server/skills/aws_s3_skill.py` icine `generate_presigned_url()` ve `get_object_metadata()` eklendi
+- Tests: `python -m pytest tests/test_aws_s3_skill.py -v --tb=short` (`8 passed`)
+- Sonraki Adim: cost alerting + summary text
 <!-- MANUAL ADDITIONS END -->

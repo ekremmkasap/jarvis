@@ -107,6 +107,47 @@ def delete_object(bucket: str, key: str) -> dict[str, Any]:
         return {"ok": False, "error": error}
 
 
+def generate_presigned_url(bucket: str, key: str, expires_in: int = 3600) -> dict[str, Any]:
+    try:
+        client = aws_client("s3")
+        url = client.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": bucket, "Key": key},
+            ExpiresIn=int(expires_in),
+        )
+        payload = {
+            "ok": True,
+            "url": str(url),
+            "expires_in": int(expires_in),
+            "bucket": bucket,
+            "key": key,
+        }
+        log_cloud_operation("s3", "generate_presigned_url", {"bucket": bucket, "key": key, "expires_in": int(expires_in)})
+        return payload
+    except Exception as exc:
+        error = sanitize_text(exc)
+        log_cloud_operation("s3", "generate_presigned_url_failed", {"bucket": bucket, "key": key, "error": error})
+        return {"ok": False, "error": error}
+
+
+def get_object_metadata(bucket: str, key: str) -> dict[str, Any]:
+    try:
+        client = aws_client("s3")
+        response = client.head_object(Bucket=bucket, Key=key)
+        payload = {
+            "ok": True,
+            "content_type": str(response.get("ContentType") or "unknown"),
+            "size_bytes": int(response.get("ContentLength") or 0),
+            "last_modified": isoformat_or_none(response.get("LastModified")) or "",
+        }
+        log_cloud_operation("s3", "get_object_metadata", {"bucket": bucket, "key": key, "ok": True})
+        return payload
+    except Exception as exc:
+        error = sanitize_text(exc)
+        log_cloud_operation("s3", "get_object_metadata_failed", {"bucket": bucket, "key": key, "error": error})
+        return {"ok": False, "error": error}
+
+
 def _bucket_region(client: Any, bucket: str) -> str:
     response = client.get_bucket_location(Bucket=bucket)
     location = response.get("LocationConstraint")

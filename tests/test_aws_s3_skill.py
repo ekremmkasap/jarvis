@@ -112,3 +112,51 @@ def test_exception_returns_error_dict() -> None:
         result = aws_s3_skill.list_buckets()
 
     assert result == {"ok": False, "error": "bucket failure"}
+
+
+def test_generate_presigned_url_returns_url() -> None:
+    fake_client = Mock()
+    fake_client.generate_presigned_url.return_value = "https://signed.example/object"
+
+    with patch.object(aws_s3_skill, "aws_client", return_value=fake_client):
+        result = aws_s3_skill.generate_presigned_url("alpha-bucket", "reports/daily.csv", expires_in=900)
+
+    fake_client.generate_presigned_url.assert_called_once_with(
+        "get_object",
+        Params={"Bucket": "alpha-bucket", "Key": "reports/daily.csv"},
+        ExpiresIn=900,
+    )
+    assert result == {
+        "ok": True,
+        "url": "https://signed.example/object",
+        "expires_in": 900,
+        "bucket": "alpha-bucket",
+        "key": "reports/daily.csv",
+    }
+
+
+def test_get_object_metadata_returns_format() -> None:
+    fake_client = Mock()
+    fake_client.head_object.return_value = {
+        "ContentType": "text/csv",
+        "ContentLength": 128,
+        "LastModified": datetime(2026, 4, 13, 10, 15, tzinfo=timezone.utc),
+    }
+
+    with patch.object(aws_s3_skill, "aws_client", return_value=fake_client):
+        result = aws_s3_skill.get_object_metadata("alpha-bucket", "reports/daily.csv")
+
+    fake_client.head_object.assert_called_once_with(Bucket="alpha-bucket", Key="reports/daily.csv")
+    assert result == {
+        "ok": True,
+        "content_type": "text/csv",
+        "size_bytes": 128,
+        "last_modified": "2026-04-13T10:15:00+00:00",
+    }
+
+
+def test_presigned_url_exception_returns_error() -> None:
+    with patch.object(aws_s3_skill, "aws_client", side_effect=RuntimeError("s3 down")):
+        result = aws_s3_skill.generate_presigned_url("alpha-bucket", "reports/daily.csv")
+
+    assert result == {"ok": False, "error": "s3 down"}
