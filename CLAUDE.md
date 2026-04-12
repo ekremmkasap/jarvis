@@ -44,13 +44,15 @@ Python 3.11 (skill + bridge), TypeScript / Next.js 14 (web-ui): Follow standard 
   - Slice 2 complete: `server/codex_task_router.py` aligned to canonical role affinity and slot keyword routing
   - Voice/video dispatch now resolves to `spark`; overflow/reserve keywords now resolve to `nexus`
   - Expanded `tests/test_codex_task_router.py` and updated route expectations in `tests/test_codex_management.py`
+  - Slice 3 complete: `server/codex_job_manager.py` validated as the canonical JSONL queue owner
+  - Flat bridge/orchestrator payloads now normalize into canonical `task={description,type,payload}` records
+  - Expanded `tests/test_codex_job_manager.py` to cover flat payload normalization and filtered job listing
 - Remaining:
-  - Slice 3 persistent canonical job queue validation and contract cleanup
   - Slice 4 quota-aware dispatch + cooldown + failover
   - Slice 5-8 bridge/API/UI/worktree/Telegram integration
   - Slice 9 handoff and final validation
 - Next Step:
-  - Finalize canonical queue contract in `server/codex_job_manager.py` and validate JSONL persistence semantics
+  - Rework `server/codex_orchestrator.py` into a queue-first dispatcher with cooldown persistence, failover, and dispatch audit logging
 
 ### CloudManagerSystem + Skill Registry (Tab-3 Codex)
 - Durum: IN PROGRESS
