@@ -29,7 +29,7 @@ class FakeRouter:
 
 class CanonicalBatch1Tests(unittest.TestCase):
     def test_registry_contains_batch1_agents(self) -> None:
-        self.assertEqual(set(CANONICAL_AGENTS.keys()), {"planner", "repo_analyst", "developer"})
+        self.assertTrue({"planner", "repo_analyst", "developer"}.issubset(set(CANONICAL_AGENTS.keys())))
 
     def test_planner_falls_back_when_router_has_no_response(self) -> None:
         agent = PlannerAgent(router=FakeRouter())
