@@ -54,21 +54,6 @@ Python 3.11 (skill + bridge), TypeScript / Next.js 14 (web-ui): Follow standard 
 - Next Step:
   - Rework `server/codex_orchestrator.py` into a queue-first dispatcher with cooldown persistence, failover, and dispatch audit logging
 
-### CloudManagerSystem + Skill Registry (Tab-3 Codex)
-- Durum: IN PROGRESS
-- Completed:
-  - Slice A1 complete: `server/skills/aws_common.py` and `server/skills/aws_ec2_skill.py`
-  - Added `tests/test_aws_ec2_skill.py`
-  - Validation passed with `pytest tests/test_aws_ec2_skill.py` (`4 passed`)
-  - Slice A2 complete: `server/skills/aws_s3_skill.py`
-  - Added `tests/test_aws_s3_skill.py`
-  - Validation passed with `pytest tests/test_aws_s3_skill.py` (`5 passed`)
-- Remaining:
-  - Slice A3-A6 (`aws_cost_skill`, bridge `/cloud-*`, `/api/cloud/*`, `/cloud` UI, Part A integration)
-  - Slice B1-B5 (`server/skill_registry.py`, cloud registry entries, `/yardim`, incremental command migration, Part B integration)
-  - Final handoff doc: `OPS/408_CLOUDMANAGER_HANDOFF.md`
-- Next Step:
-  - Slice A3: implement `server/skills/aws_cost_skill.py` and `tests/test_aws_cost_skill.py`
 ### Dijital Ajan Dunyasi — SIMS Vizyon Plani (2026-04-13)
 
 Vizyon: Jarvis altinda calisiran 7 ajanin (Seda/Mert/Buse/Eren/Luna/Sabrican/Sabri) her biri
@@ -142,10 +127,13 @@ Oncelik: Yuksek — Faz 1 Anti veya Codex Tab-2 ile yapilabilir
   - Slice A3 complete: `server/skills/aws_cost_skill.py`
   - Added `tests/test_aws_cost_skill.py`
   - Validation passed with `pytest tests/test_aws_cost_skill.py` (`5 passed`)
+  - Slice A4 complete: `/cloud-*` Telegram commands in `server/bridge.py`
+  - Added `tests/test_cloud_bridge_commands.py`
+  - Validation passed with `pytest tests/test_cloud_bridge_commands.py` (`2 passed`) and `python -m py_compile server/bridge.py`
 - Remaining:
-  - Slice A4-A6 (bridge `/cloud-*`, `/api/cloud/*`, `/cloud` UI, Part A integration)
+  - Slice A5-A6 (`/api/cloud/*`, `/cloud` UI, Part A integration)
   - Slice B1-B5 (`server/skill_registry.py`, cloud registry entries, `/yardim`, incremental command migration, Part B integration)
   - Final handoff doc: `OPS/408_CLOUDMANAGER_HANDOFF.md`
 - Next Step:
-  - Slice A4: add `/cloud-*` Telegram commands and `/api/cloud/*` endpoints to `server/bridge.py`
+  - Slice A5: add `/api/cloud/*` endpoints in `server/bridge.py` and build `apps/web-ui/src/app/cloud/page.tsx`
 <!-- MANUAL ADDITIONS END -->
