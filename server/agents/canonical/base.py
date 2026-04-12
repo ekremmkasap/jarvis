@@ -114,15 +114,32 @@ class CanonicalAgent:
         return self._router
 
     def _call_llm(self, prompt: str, system: str | None = None, max_tokens: int = 800) -> str:
-        response, trace = self._get_router().chat(
-            route_name=self.model_chain,
-            primary_model=self.model_preference,
-            fallback_model=None,
-            messages=[{"role": "user", "content": str(prompt)}],
-            system=system,
-            max_tokens=max_tokens,
-            num_ctx=4096,
-        )
+        router = self._get_router()
+        if hasattr(router, "settings") and hasattr(router.settings, "chains"):
+            original_chains = router.settings.chains
+            router.settings.chains = {}
+            try:
+                response, trace = router.chat(
+                    route_name=None,
+                    primary_model=self.model_preference,
+                    fallback_model=None,
+                    messages=[{"role": "user", "content": str(prompt)}],
+                    system=system,
+                    max_tokens=max_tokens,
+                    num_ctx=4096,
+                )
+            finally:
+                router.settings.chains = original_chains
+        else:
+            response, trace = router.chat(
+                route_name=None,
+                primary_model=self.model_preference,
+                fallback_model=None,
+                messages=[{"role": "user", "content": str(prompt)}],
+                system=system,
+                max_tokens=max_tokens,
+                num_ctx=4096,
+            )
         self._last_llm_trace = trace if isinstance(trace, dict) else {}
         if self._last_llm_trace.get("ok"):
             return str(response).strip()

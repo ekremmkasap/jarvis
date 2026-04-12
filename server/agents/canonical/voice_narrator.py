@@ -15,16 +15,21 @@ class VoiceNarratorAgent(CanonicalAgent):
 
     async def _execute(self, task: str, context: dict[str, Any]) -> dict[str, Any]:
         raw_output = str(context.get("raw_output") or task).strip()
-        narrated = self._call_llm(
-            (
-                "Teknik ciktiyi 2-3 kisa Turkce cumleye indir. "
-                "Kod blogu, markdown, URL veya jargon kullanma. "
-                f"Maksimum 200 karakter. Cikti:\n{raw_output[:4000]}"
-            ),
-            system="You are VoiceNarratorAgent. Return spoken Turkish only.",
-            max_tokens=180,
-        )
-        tts_text = self._normalize_tts_text(narrated or raw_output)
+        prefer_llm = bool(context.get("prefer_llm"))
+        candidate_text = raw_output
+        if prefer_llm:
+            narrated = self._call_llm(
+                (
+                    "Teknik ciktiyi 2-3 kisa Turkce cumleye indir. "
+                    "Kod blogu, markdown, URL veya jargon kullanma. "
+                    f"Maksimum 200 karakter. Cikti:\n{raw_output[:4000]}"
+                ),
+                system="You are VoiceNarratorAgent. Return spoken Turkish only.",
+                max_tokens=180,
+            )
+            if narrated:
+                candidate_text = narrated
+        tts_text = self._normalize_tts_text(candidate_text)
         return {
             "tts_text": tts_text,
             "original_length": len(raw_output),
