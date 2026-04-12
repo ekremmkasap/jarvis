@@ -158,9 +158,11 @@ Oncelik: Yuksek — Faz 1 Anti veya Codex Tab-2 ile yapilabilir
   - Added `server/skills/registry_entries/ops_entries.py`
   - Added `tests/test_registry_migrated_commands.py`
   - Validation passed with `pytest tests/test_skill_registry.py tests/test_registry_migrated_commands.py` (`11 passed`)
+  - Slice B5 complete: SkillRegistry integration validation
+  - Validation passed with `pytest tests/test_skill_registry.py` (`5 passed`)
+  - Smoke passed with standalone imports from `server`
 - Remaining:
-  - Slice B5 (Part B integration)
   - Final handoff doc: `OPS/408_CLOUDMANAGER_HANDOFF.md`
 - Next Step:
-  - Slice B5: run SkillRegistry integration test and smoke validation
+  - Finalize handoff doc, combined test run, and completion summary
 <!-- MANUAL ADDITIONS END -->
