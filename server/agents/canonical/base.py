@@ -61,6 +61,7 @@ class CanonicalAgent:
         self._router = router
         self.log_path = Path(log_path) if log_path else self.root_dir / "server" / "logs" / "canonical_agents.jsonl"
         self.log_path.parent.mkdir(parents=True, exist_ok=True)
+        self._memory_path = self.root_dir / "state" / "agent_memory" / f"{self.agent_id}.json"
         self._last_llm_trace: dict[str, Any] = {}
         self._last_run_context: dict[str, Any] = {}
 
@@ -79,6 +80,9 @@ class CanonicalAgent:
             )
             self._log_result(result)
             return result
+
+        self.remember("last_task", clean_task[:200])
+        self.remember("last_run", timestamp)
 
         try:
             payload = await self._execute(clean_task, context_data)
@@ -167,6 +171,30 @@ class CanonicalAgent:
         }
         with self.log_path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(log_entry, ensure_ascii=False) + "\n")
+
+    def remember(self, key: str, value: object) -> None:
+        self._memory_path.parent.mkdir(parents=True, exist_ok=True)
+        data = self._load_memory()
+        data[str(key)] = value
+        self._memory_path.write_text(
+            json.dumps(data, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
+    def recall(self, key: str, default: Any = None) -> Any:
+        return self._load_memory().get(key, default)
+
+    def memory_summary(self) -> dict[str, Any]:
+        return self._load_memory()
+
+    def _load_memory(self) -> dict[str, Any]:
+        if not self._memory_path.exists():
+            return {}
+        try:
+            loaded = json.loads(self._memory_path.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+        return loaded if isinstance(loaded, dict) else {}
 
     def _sanitize_context(self, value: Any) -> Any:
         if isinstance(value, dict):

@@ -32,8 +32,9 @@ Python 3.11 (skill + bridge), TypeScript / Next.js 14 (web-ui): Follow standard 
 - Tamamlanan: refreshed `OPS/300_AGENTS_AUDIT.md`, `OPS/301_AGENTS_IMPLEMENTATION_PLAN.md`, `OPS/302_AGENTS_ROLLOUT_PLAN.md`; canonical base package; `planner`, `repo_analyst`, `developer`, `reviewer`, `debug`, `release`, `docs`, `voice_narrator`, `mission_control`; initial bridge `POST /agent` handler + canonical keyword routing; initial `OPS/308_HANDOFF.md`
 - Slice A: `hey_jarvis.py` VoiceNarratorAgent hook dogrulandi; `pytest tests/test_hey_jarvis_live_mode.py -v --tb=short` gecti (`2 passed`)
 - Slice B-D: `server/bridge.py` icine `_run_canonical_agent`, `_detect_agent_from_text`, wrapped `/agent` fallback, `GET /api/agents/health` ve Telegram canonical keyword hardening eklendi; `pytest tests/test_canonical_batch4.py tests/test_canonical_telegram.py -v --tb=short` gecti (`9 passed`); planner smoke `POST /agent` wrapper dogrulandi
-- Kalan: per-agent persistent memory; `OPS/308_HANDOFF.md` refresh; tam paket dogrulama
-- Sonraki Adim: canonical agent base class'a kalici memory ekleyip agent bazli regression testlerini calistir
+- Slice E-F: `server/agents/canonical/base.py` icine `remember/recall/memory_summary` eklendi; run bazli `last_task` + `last_run` persistence aktif; `state/agent_memory/` canonical hale geldi; `OPS/308_HANDOFF.md` gercek davranisa gore yenilendi; `pytest tests/test_canonical_batch1.py tests/test_canonical_batch2.py tests/test_canonical_batch3.py tests/test_canonical_batch4.py tests/test_agent_memory.py -v --tb=short` gecti (`25 passed`)
+- Kalan: full suite + final smoke + final production-ready kaydi
+- Sonraki Adim: canonical suite'in tamamini ve final bridge smoke testini calistirip sprinti production-ready olarak kapat
 
 ### Multi-Codex Control Plane (Tab-2 Codex Sprint)
 - Status: TAMAMLANDI

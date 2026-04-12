@@ -1,52 +1,30 @@
-# 308 Handoff
+# AGENTS.md 9-Agent Canonical — Handoff Notu
 
-Date: 2026-04-13
-Scope: AGENTS.md 9-agent canonical implementation handoff for Tab-3 Codex sprint.
+## Ozet
+9 canonical agent implement edildi, bridge entegrasyonu harden edildi, Telegram keyword dispatch ve per-agent persistent memory eklendi.
 
-## Canonical Agents
+## Agent Listesi
 
-1. `planner`
-   - File: `server/agents/canonical/planner.py`
-   - Signature: `async def run(task: str, context: dict | None = None) -> dict`
-2. `repo_analyst`
-   - File: `server/agents/canonical/repo_analyst.py`
-   - Signature: `async def run(task: str, context: dict | None = None) -> dict`
-3. `developer`
-   - File: `server/agents/canonical/developer.py`
-   - Signature: `async def run(task: str, context: dict | None = None) -> dict`
-4. `reviewer`
-   - File: `server/agents/canonical/reviewer.py`
-   - Signature: `async def run(task: str, context: dict | None = None) -> dict`
-5. `debug`
-   - File: `server/agents/canonical/debug_agent.py`
-   - Signature: `async def run(task: str, context: dict | None = None) -> dict`
-6. `release`
-   - File: `server/agents/canonical/release_agent.py`
-   - Signature: `async def run(task: str, context: dict | None = None) -> dict`
-7. `docs`
-   - File: `server/agents/canonical/docs_agent.py`
-   - Signature: `async def run(task: str, context: dict | None = None) -> dict`
-8. `voice_narrator`
-   - File: `server/agents/canonical/voice_narrator.py`
-   - Signature: `async def run(task: str, context: dict | None = None) -> dict`
-9. `mission_control`
-   - File: `server/agents/canonical/mission_control.py`
-   - Signature: `async def run(task: str, context: dict | None = None) -> dict`
+| Agent | Dosya | Gorev |
+|-------|-------|-------|
+| PlannerAgent | `server/agents/canonical/planner.py` | Goal -> structured plan |
+| RepoAnalystAgent | `server/agents/canonical/repo_analyst.py` | git log + file scan -> health report |
+| DeveloperAgent | `server/agents/canonical/developer.py` | Feature/bug -> bounded code change |
+| ReviewerAgent | `server/agents/canonical/reviewer.py` | git diff -> review raporu |
+| DebugAgent | `server/agents/canonical/debug_agent.py` | Hata -> root cause analysis |
+| ReleaseAgent | `server/agents/canonical/release_agent.py` | git log -> changelog + semver |
+| DocsAgent | `server/agents/canonical/docs_agent.py` | Kod -> dokumantasyon |
+| VoiceNarratorAgent | `server/agents/canonical/voice_narrator.py` | Output -> kisa TTS metni |
+| MissionControlAgent | `server/agents/canonical/mission_control.py` | Tum canonical agentleri izle |
 
-Registry:
-- `server/agents/canonical/__init__.py`
+## Bridge Endpoint
 
-Shared helpers:
-- `server/agents/canonical/base.py`
-- `server/agents/canonical/constants.py`
-- `server/agents/canonical/runtime.py`
+Primary endpoint:
 
-## Bridge `/agent` Endpoint
+`POST http://127.0.0.1:8081/agent`
 
-Location:
-- `server/bridge.py`
+Request body:
 
-Request:
 ```json
 {
   "agent": "planner",
@@ -55,77 +33,114 @@ Request:
 }
 ```
 
-Response:
-- HTTP `200` with canonical agent result dict on success
-- HTTP `400` if `agent`, `task`, or `context` shape is invalid
-- HTTP `404` if agent id is unknown
+Backward-compatible default:
+- canonical agent raw payload doner
 
-Handler path:
-- `POST /agent` -> `server.agents.canonical.runtime.handle_agent_request(...)`
+Optional wrapped response:
 
-## Telegram Keyword Routing
+```json
+{
+  "agent": "planner",
+  "task": "Jarvis durumunu raporla",
+  "context": {},
+  "wrapped_response": true
+}
+```
 
-Natural-language keyword map:
-- `planner`: `plan yap`, `hedef`, `gorev olustur`, `ne yapayim`
-- `repo_analyst`: `repo analiz`, `saglik raporu`, `git durum`, `kod durumu`
-- `developer`: `kod yaz`, `implement`, `feature ekle`, `degistir`
-- `reviewer`: `review`, `incele`, `pr kontrol`, `kod incele`
-- `debug`: `hata`, `debug`, `neden calismiyor`, `fix`
-- `release`: `release`, `changelog`, `versiyon`, `ne degisti`
-- `docs`: `dokumantasyon`, `readme guncelle`, `acikla`
-- `mission_control`: `sistem durumu`, `agent saglik`, `ne calisiyor`
-- `voice_narrator`: internal only
+Wrapped response shape:
 
-Bridge flow:
-- non-command Telegram text enters `process_message(...)`
-- active `/agent` mode and team mode still preserve precedence
-- canonical keyword dispatch runs before generic LLM route fallback
+```json
+{
+  "ok": true,
+  "agent": "planner",
+  "result": "[CANONICAL/planner] ...",
+  "raw": {
+    "agent_id": "planner",
+    "status": "ok"
+  }
+}
+```
+
+## Telegram Kullanimi
+
+- `plan yap X` -> `PlannerAgent`
+- `hata var X` -> `DebugAgent`
+- `review et X` -> `ReviewerAgent`
+- `kod yaz X` -> `DeveloperAgent`
+- `release yap X` -> `ReleaseAgent`
+- `dokumantasyon yaz X` -> `DocsAgent`
+- `sistem durumu X` -> `MissionControlAgent`
+
+Tam liste:
+- `AGENT_KEYWORDS` in [server/bridge.py](C:\Users\sergen\Desktop\jarvis-mission-control\server\bridge.py)
+
+## Health Check
+
+`GET http://127.0.0.1:8081/api/agents/health`
+
+Payload:
+- `agents`: per-agent `ok/error`
+- `total`: canonical agent count
+- `healthy`: successful health checks
+
+Health mode lightweight calisir; full agent task execution yapmaz.
+
+## Persistent Memory
+
+Konum:
+- `state/agent_memory/<agent_id>.json`
+
+API:
+- `remember(key, value)`
+- `recall(key, default=None)`
+- `memory_summary()`
+
+Automatic writes:
+- `last_task`
+- `last_run`
+
+Base class:
+- [base.py](C:\Users\sergen\Desktop\jarvis-mission-control\server\agents\canonical\base.py)
 
 ## Voice Hook
 
-Location:
-- `hey_jarvis.py`
+Dosya:
+- [hey_jarvis.py](C:\Users\sergen\Desktop\jarvis-mission-control\hey_jarvis.py)
 
-Added functions:
-- `async def speak_agent_result(raw_output: str, *, track_response: bool = False) -> str`
-- `def narrate_agent_result(raw_output: str, *, track_response: bool = False) -> str`
+Akis:
+- `handle(...)` -> `narrate_agent_result(...)`
+- `VoiceNarratorAgent` sonucu kisaltir
+- narrator fail ederse sanitized fallback TTS kullanilir
 
-Runtime behavior:
-- narrator summary comes from `VoiceNarratorAgent`
-- if narrator fails, fallback is local sanitized text under 200 chars
-- `handle(...)` now uses `narrate_agent_result(...)` for final spoken output
+## Yeni Agent Ekleme
 
-How to test:
-1. Run `python -m pytest tests/test_hey_jarvis_live_mode.py -v --tb=short`
-2. Import `hey_jarvis` and call `narrate_agent_result("raw output")`
-3. In live runtime, speak any normal command response and verify condensed TTS
+1. `server/agents/canonical/yeni_agent.py` olustur ve `CanonicalAgent` extend et
+2. `server/agents/canonical/__init__.py` icine export ekle
+3. `server/bridge.py` icindeki `_load_canonical_agent_classes()` ve `AGENT_KEYWORDS` map'ini guncelle
 
-## Validation Performed
+## Bridge Restart
 
-Pytest:
-- `python -m pytest tests/test_canonical_batch1.py tests/test_canonical_batch2.py tests/test_canonical_batch3.py tests/test_canonical_batch4.py tests/test_hey_jarvis_live_mode.py -q`
-- Result: `22 passed`
+- `python server/bridge.py`
+- veya `SISTEM_J.bat webonly`
 
-Canonical import smoke:
-- verified 9 registered agents
-- verified `planner.run(...)`
-- verified `voice_narrator.run(...)`
-- verified `mission_control.run(...)`
+Canli process eskiyse yeni `/agent` ve `/api/agents/health` surface'leri gorunmez.
 
-Bridge handler smoke:
-- verified `server.agents.canonical.runtime.handle_agent_request(...)` returns `200` for a valid request
+## Test Komutu
 
-## Adding a New Canonical Agent
+```powershell
+python -m pytest `
+  tests/test_canonical_batch1.py `
+  tests/test_canonical_batch2.py `
+  tests/test_canonical_batch3.py `
+  tests/test_canonical_batch4.py `
+  tests/test_hey_jarvis_live_mode.py `
+  tests/test_canonical_telegram.py `
+  tests/test_agent_memory.py -v --tb=short
+```
 
-1. Add the new id to `server/agents/canonical/constants.py`
-2. Implement the agent under `server/agents/canonical/`
-3. Export it in `server/agents/canonical/__init__.py`
-4. Add keyword routing only if natural-language dispatch is desired
-5. Add focused pytest coverage
-6. Update `AGENTS.md`, `CLAUDE.md`, and this handoff if the registry changes
+## Bilinen Limitasyonlar
 
-## Known Limitations
-
-- The live bridge instance already running on `127.0.0.1:8081` returned `404` for `POST /agent` during verification. This indicates the current running process predates the new code and needs a restart to expose the new endpoint.
-- Canonical agents intentionally fall back deterministically when the preferred model is unavailable; they do not block the flow waiting on long fallback chains.
-- `VoiceNarratorAgent` defaults to deterministic compression unless `context["prefer_llm"]` is explicitly enabled.
+- Canli bridge process restart edilmeden yeni endpoint surface'leri gorunmeyebilir
+- `DeveloperAgent` health check lightweight instantiate modunda dogrulanir; write task execution yapilmaz
+- `VoiceNarratorAgent` varsayilan olarak deterministic compression kullanir
+- LLM provider erisimi yoksa canonical agentler fallback payload uretebilir
