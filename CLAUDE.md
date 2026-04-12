@@ -28,10 +28,10 @@ Python 3.11 (skill + bridge), TypeScript / Next.js 14 (web-ui): Follow standard 
 
 <!-- MANUAL ADDITIONS START -->
 ### AGENTS.md 9-Agent Canonical (Tab-3 Codex Sprint)
-- Durum: BATCH 3 TAMAMLANDI
-- Tamamlanan: refreshed `OPS/300_AGENTS_AUDIT.md`, `OPS/301_AGENTS_IMPLEMENTATION_PLAN.md`, `OPS/302_AGENTS_ROLLOUT_PLAN.md`; canonical base package; `planner`, `repo_analyst`, `developer`, `reviewer`, `debug`, `release`, `docs`, `voice_narrator`; `tests/test_canonical_batch1.py`, `tests/test_canonical_batch2.py`, `tests/test_canonical_batch3.py`; validation passed with `pytest tests/test_canonical_batch1.py tests/test_canonical_batch2.py tests/test_canonical_batch3.py` (`16 passed`)
-- Kalan: `mission_control`, bridge `/agent` endpoint, Telegram keyword routing, `hey_jarvis.py` voice hook, final smoke + handoff
-- Sonraki Adim: Batch 4 `mission_control`, sonra bridge `/agent` endpoint, keyword routing, voice hook ve `OPS/308_HANDOFF.md`
+- Durum: TAMAMLANDI
+- Tamamlanan: refreshed `OPS/300_AGENTS_AUDIT.md`, `OPS/301_AGENTS_IMPLEMENTATION_PLAN.md`, `OPS/302_AGENTS_ROLLOUT_PLAN.md`; canonical base package; `planner`, `repo_analyst`, `developer`, `reviewer`, `debug`, `release`, `docs`, `voice_narrator`, `mission_control`; bridge `POST /agent` handler + canonical keyword routing; `hey_jarvis.py` narrator hook; `OPS/308_HANDOFF.md`; validation passed with `pytest tests/test_canonical_batch1.py tests/test_canonical_batch2.py tests/test_canonical_batch3.py tests/test_canonical_batch4.py tests/test_hey_jarvis_live_mode.py` (`22 passed`)
+- Kalan: Kod tarafinda yok; operasyonel olarak `127.0.0.1:8081` uzerindeki mevcut bridge process'i restart edilmeden canli `POST /agent` endpoint'i gorunmeyecek
+- Sonraki Adim: Calisan bridge process'ini restart edip canli `POST /agent` smoke testini tekrar et
 
 ### Multi-Codex Control Plane (Tab-2 Codex Sprint)
 - Status: In Progress
@@ -146,9 +146,12 @@ Oncelik: Yuksek — Faz 1 Anti veya Codex Tab-2 ile yapilabilir
   - Slice B2 complete: `/cloud-*` commands migrated to `SkillRegistry`
   - Added `server/cloud_command_handlers.py` and `server/skills/registry_entries/cloud_entries.py`
   - Validation passed with `pytest tests/test_skill_registry.py tests/test_cloud_bridge_commands.py` (`7 passed`)
+  - Slice B3 complete: `/yardim` registered via `SkillRegistry`
+  - Added `server/help_command_handlers.py` and `server/skills/registry_entries/help_entries.py`
+  - Validation passed with `pytest tests/test_skill_registry.py tests/test_cloud_bridge_commands.py` (`8 passed`)
 - Remaining:
-  - Slice B3-B5 (`/yardim`, incremental command migration, Part B integration)
+  - Slice B4-B5 (incremental command migration, Part B integration)
   - Final handoff doc: `OPS/408_CLOUDMANAGER_HANDOFF.md`
 - Next Step:
-  - Slice B3: add `/yardim` via `SkillRegistry`
+  - Slice B4: migrate 5 more high-traffic commands to `SkillRegistry`
 <!-- MANUAL ADDITIONS END -->

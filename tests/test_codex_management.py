@@ -272,6 +272,41 @@ class CodexManagementTests(unittest.TestCase):
         self.assertIn("ATLAS", status_text)
         self.assertIn("FORGE", status_text)
 
+    def test_new_codex_operator_payloads_expose_slots_queue_health_and_audit(self) -> None:
+        manager = codex_job_manager.get_job_manager()
+        pending_id = manager.enqueue({"role": "backend", "task": {"description": "pending bridge", "type": "backend", "payload": {}}})
+        running_id = manager.enqueue({"role": "backend", "task": {"description": "running bridge", "type": "backend", "payload": {}}})
+        codex_orchestrator.dispatch(running_id)
+        codex_orchestrator.set_cooldown("forge", minutes=5, reason="drain")
+
+        slots_payload = self.bridge._build_codex_slots_payload()
+        queue_payload = self.bridge._build_codex_queue_payload()
+        health_payload = self.bridge._build_codex_health_payload()
+        audit_payload = self.bridge._build_codex_audit_payload(limit=50)
+
+        self.assertEqual(len(slots_payload["slots"]), 5)
+        self.assertTrue(any(slot["slot_id"] == "forge" for slot in slots_payload["slots"]))
+        self.assertTrue(any(job["job_id"] == pending_id for job in queue_payload["jobs"]))
+        self.assertIn("slots", health_payload)
+        self.assertTrue(audit_payload["entries"])
+
+    def test_dispatch_codex_job_returns_pending_contract(self) -> None:
+        payload = self.bridge._dispatch_codex_job(task_description="bridge endpoint ekle", role="backend", priority=7)
+
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["status"], "pending")
+        self.assertTrue(payload["job_id"])
+        self.assertIn(payload["slot_id"], {"forge", "nexus"})
+
+    def test_control_codex_plane_can_drain_and_clear_cooldowns(self) -> None:
+        drain_result = self.bridge._control_codex_plane(action="drain", slot_id="forge", job_id=None)
+        self.assertTrue(drain_result["ok"])
+        self.assertTrue(codex_orchestrator.is_in_cooldown("forge"))
+
+        clear_result = self.bridge._control_codex_plane(action="clear_cooldowns", slot_id=None, job_id=None)
+        self.assertTrue(clear_result["ok"])
+        self.assertFalse(codex_orchestrator.is_in_cooldown("forge"))
+
     def test_codex_result_command_returns_missing_message(self) -> None:
         result_text = self.bridge._handle_codex_result_command(100, "job_missing")
 
