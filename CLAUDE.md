@@ -49,4 +49,17 @@ Python 3.11 (skill + bridge), TypeScript / Next.js 14 (web-ui): Follow standard 
   - Slice 9 handoff and final validation
 - Next Step:
   - Align `server/codex_task_router.py` with canonical slot roles (`spark=voice`, `nexus=overflow`) and validate fallback routing
+
+### CloudManagerSystem + Skill Registry (Tab-3 Codex)
+- Durum: IN PROGRESS
+- Completed:
+  - Slice A1 complete: `server/skills/aws_common.py` and `server/skills/aws_ec2_skill.py`
+  - Added `tests/test_aws_ec2_skill.py`
+  - Validation passed with `pytest tests/test_aws_ec2_skill.py` (`4 passed`)
+- Remaining:
+  - Slice A2-A6 (`aws_s3_skill`, `aws_cost_skill`, bridge `/cloud-*`, `/api/cloud/*`, `/cloud` UI, Part A integration)
+  - Slice B1-B5 (`server/skill_registry.py`, cloud registry entries, `/yardim`, incremental command migration, Part B integration)
+  - Final handoff doc: `OPS/408_CLOUDMANAGER_HANDOFF.md`
+- Next Step:
+  - Slice A2: implement `server/skills/aws_s3_skill.py` and `tests/test_aws_s3_skill.py`
 <!-- MANUAL ADDITIONS END -->
