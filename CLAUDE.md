@@ -143,9 +143,12 @@ Oncelik: Yuksek — Faz 1 Anti veya Codex Tab-2 ile yapilabilir
   - Slice B1 complete: `server/skill_registry.py`
   - Added `tests/test_skill_registry.py`
   - Validation passed with `pytest tests/test_skill_registry.py` (`5 passed`)
+  - Slice B2 complete: `/cloud-*` commands migrated to `SkillRegistry`
+  - Added `server/cloud_command_handlers.py` and `server/skills/registry_entries/cloud_entries.py`
+  - Validation passed with `pytest tests/test_skill_registry.py tests/test_cloud_bridge_commands.py` (`7 passed`)
 - Remaining:
-  - Slice B2-B5 (cloud registry entries, `/yardim`, incremental command migration, Part B integration)
+  - Slice B3-B5 (`/yardim`, incremental command migration, Part B integration)
   - Final handoff doc: `OPS/408_CLOUDMANAGER_HANDOFF.md`
 - Next Step:
-  - Slice B2: migrate `/cloud-*` commands to `SkillRegistry`
+  - Slice B3: add `/yardim` via `SkillRegistry`
 <!-- MANUAL ADDITIONS END -->
