@@ -3,15 +3,26 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from .aws_common import (
-    aws_client,
-    aws_region,
-    aws_resource,
-    isoformat_or_none,
-    log_cloud_operation,
-    sanitize_text,
-    utcnow,
-)
+try:
+    from .aws_common import (
+        aws_client,
+        aws_region,
+        aws_resource,
+        isoformat_or_none,
+        log_cloud_operation,
+        sanitize_text,
+        utcnow,
+    )
+except ImportError:  # pragma: no cover - used by standalone smoke imports
+    from aws_common import (  # type: ignore
+        aws_client,
+        aws_region,
+        aws_resource,
+        isoformat_or_none,
+        log_cloud_operation,
+        sanitize_text,
+        utcnow,
+    )
 
 
 def list_instances() -> list[dict[str, Any]] | dict[str, Any]:

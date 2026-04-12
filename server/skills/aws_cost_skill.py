@@ -6,7 +6,10 @@ from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
 
-from .aws_common import aws_client, log_cloud_operation, sanitize_text, utcnow
+try:
+    from .aws_common import aws_client, log_cloud_operation, sanitize_text, utcnow
+except ImportError:  # pragma: no cover - used by standalone smoke imports
+    from aws_common import aws_client, log_cloud_operation, sanitize_text, utcnow  # type: ignore
 
 
 ROOT_DIR = Path(__file__).resolve().parents[2]

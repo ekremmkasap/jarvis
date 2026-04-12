@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from .aws_common import aws_client, isoformat_or_none, log_cloud_operation, sanitize_text
+try:
+    from .aws_common import aws_client, isoformat_or_none, log_cloud_operation, sanitize_text
+except ImportError:  # pragma: no cover - used by standalone smoke imports
+    from aws_common import aws_client, isoformat_or_none, log_cloud_operation, sanitize_text  # type: ignore
 
 
 def list_buckets() -> list[dict[str, Any]] | dict[str, Any]:
