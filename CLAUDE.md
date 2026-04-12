@@ -34,7 +34,7 @@ Python 3.11 (skill + bridge), TypeScript / Next.js 14 (web-ui): Follow standard 
 - Sonraki Adim: Calisan bridge process'ini restart edip canli `POST /agent` smoke testini tekrar et
 
 ### Multi-Codex Control Plane (Tab-2 Codex Sprint)
-- Status: In Progress
+- Status: TAMAMLANDI
 - Completed:
   - OPS audit and rollout artifacts (`OPS/200-204`)
   - Slice 1 complete: `server/account_manager.py` hardened as the single slot read surface
@@ -65,10 +65,12 @@ Python 3.11 (skill + bridge), TypeScript / Next.js 14 (web-ui): Follow standard 
   - Added `_handle_codex_slots_command`, `_handle_codex_stop_command`, and cooldown-clear routing backed by the operator control plane
   - Expanded `tests/test_codex_management.py` with `test_codex_telegram_commands`
   - Validation passed with `python -m pytest tests/test_codex_management.py -v --tb=short` (`12 passed`)
+  - Slice 9 complete: `OPS/209_MULTI_CODEX_HANDOFF.md` added with slot architecture, Telegram commands, API endpoint table, and skill extension notes
+  - Final validation passed with `python -m pytest tests/test_account_manager.py tests/test_codex_task_router.py tests/test_codex_job_manager.py tests/test_codex_orchestrator.py tests/test_codex_management.py tests/test_codex_workspace.py -v --tb=short` (`47 passed`)
 - Remaining:
-  - Slice 9 handoff and final validation
+  - Kod tarafinda kalan is yok
 - Next Step:
-  - Write `OPS/209_MULTI_CODEX_HANDOFF.md`, update final status, and run the full Tab-2 validation suite
+  - Canli bridge process'ini restart edip yeni Telegram `/codex-*` komutlarini runtime'da yukle
 
 ### Dijital Ajan Dunyasi V2 — 3 Katmanli Mimari (2026-04-13)
 
