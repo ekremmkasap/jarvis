@@ -2338,6 +2338,43 @@ Son Model: `{last_sel}` | Fallback: `{fallback}`"""
         except Exception as e:
             return f"Hata: {e}"
 
+    elif command == "/mert-ara":
+        if not args:
+            return "Kullanim: /mert-ara <sorgu>"
+        try:
+            from server.skills.mert_research_skill import search_and_summarize
+
+            result = search_and_summarize(args)
+            if not result.get("ok"):
+                return f"Mert arastirma hatasi: {result.get('error', 'bilinmeyen_hata')}"
+
+            lines = ["*Mert Arastirma Ozeti*", str(result.get("summary") or "").strip()]
+            saved_to = str(result.get("saved_to") or "").strip()
+            if saved_to:
+                lines.append(f"Kayit: {saved_to}")
+            sources = result.get("sources") if isinstance(result.get("sources"), list) else []
+            if sources:
+                lines.append("Kaynaklar:")
+                for source in sources[:3]:
+                    title = str(source.get("title") or "Kaynak").strip()
+                    url = str(source.get("url") or "").strip()
+                    lines.append(f"- {title}" + (f" -> {url}" if url else ""))
+            return "\n".join(line for line in lines if line).strip()[:3500]
+        except Exception as exc:
+            return f"Mert arastirma hatasi: {exc}"
+
+    elif command == "/mert-rakip":
+        if not args:
+            return "Kullanim: /mert-rakip <urun_adi>"
+        try:
+            from server.skills.mert_research_skill import competitor_analysis
+
+            result = competitor_analysis(args)
+            if not result.get("ok"):
+                return f"Mert rakip analizi hatasi: {result.get('error', 'bilinmeyen_hata')}"
+            return str(result.get("report") or "Rapor olusturulamadi.")[:3500]
+        except Exception as exc:
+            return f"Mert rakip analizi hatasi: {exc}"
     elif command == "/cevirici":
         if not args:
             return "Kullanim: /cevirici [metin]\nOtomatik TR<->EN cevirir"
