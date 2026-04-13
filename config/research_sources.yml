@@ -1,0 +1,22 @@
+github:
+  trending_atom_url: "https://github.com/trending.atom"
+  max_items: 5
+
+reddit:
+  subreddits:
+    - programming
+    - MachineLearning
+    - artificial
+    - LocalLLaMA
+    - learnpython
+  max_items: 5
+  user_agent: "JarvisMissionControl/1.0 Research Bot"
+
+twitter_nitter:
+  base_url: "https://nitter.poast.org"
+  queries:
+    - "AI agent"
+    - "Claude API"
+    - "LLM 2026"
+  max_items: 5
+  fallback_message: "X/Twitter içeriği şu an alınamıyor."

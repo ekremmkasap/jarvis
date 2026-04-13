@@ -1,0 +1,14 @@
+frameworks:
+  crewai:
+    repo_path: external-repos/crewAI
+    install_check: crewai
+    bridge_command: /crewai
+    entry_command: ["python", "-m", "crewai", "run"]
+    description: "Multi-agent framework for autonomous AI workflows"
+
+  openhands:
+    repo_path: external-repos/OpenHands
+    install_check: openhands
+    bridge_command: /openhands
+    entry_command: ["python", "-m", "openhands", "run"]
+    description: "Open-source AI software engineer agent"

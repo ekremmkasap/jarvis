@@ -5,12 +5,15 @@ Multi-Model AI Router | Telegram + Web Dashboard | eBay + Trendyol Skills
 """
 
 import os
+import asyncio
 import json
+import inspect
 import time
 import logging
 import threading
 import queue
 import socket
+import unicodedata
 from concurrent.futures import ThreadPoolExecutor
 import subprocess
 import sys
@@ -19,6 +22,7 @@ from pathlib import Path
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.request import urlopen, Request
 from urllib.error import URLError
+from urllib.parse import parse_qs, urlparse
 
 # ─────────────────────────── PATHS ────────────────────────────────
 BASE_DIR = Path(__file__).parent          # app/
@@ -37,6 +41,11 @@ from runtime_config import apply_runtime_cli_overrides, load_runtime_config, val
 from model_router import build_model_router
 from runtime_state import RuntimeState
 from telegram.telegram_intelligence import TelegramIntelligence
+from services.orchestrator.live_state import (
+    build_live_event_counts,
+    load_task_queue_snapshot,
+    read_recent_live_events,
+)
 
 
 OPENAI_API_KEY    = os.environ.get("OPENAI_API_KEY", "")
@@ -81,6 +90,237 @@ logging.basicConfig(
     ]
 )
 log = logging.getLogger("jarvis")
+
+
+def _get_canonical_runtime():
+    try:
+        from server.agents.canonical import runtime as canonical_runtime
+
+        return canonical_runtime
+    except Exception as exc:  # noqa: BLE001
+        try:
+            from agents.canonical import runtime as canonical_runtime
+
+            return canonical_runtime
+        except Exception:
+            log.warning(f"Canonical runtime unavailable: {exc}")
+            return None
+
+
+AGENT_KEYWORDS = {
+    "planner": ["plan yap", "hedef belirle", "gorev olustur", "görev oluştur", "planla"],
+    "repo_analyst": ["repo analiz", "saglik raporu", "sağlık raporu", "git durumu", "kod sagligi", "kod sağlığı"],
+    "developer": ["kod yaz", "implement et", "feature ekle", "gelistir", "geliştir"],
+    "reviewer": ["review et", "incele", "pr kontrol", "kodu gozden gecir", "kodu gözden geçir"],
+    "debug": ["hata var", "debug et", "neden calismiyor", "neden çalışmıyor", "hata bul"],
+    "release": ["release yap", "changelog", "versiyon guncelle", "versiyon güncelle", "yayinla", "yayınla"],
+    "docs": ["dokumantasyon yaz", "dökümantasyon yaz", "readme guncelle", "readme güncelle", "dokumante et", "dokümante et"],
+    "mission_control": ["sistem durumu", "agent saglik", "agent sağlık", "ne calisiyor", "ne çalışıyor"],
+}
+
+
+def _normalize_agent_text(text: str) -> str:
+    normalized = unicodedata.normalize("NFKD", str(text or ""))
+    ascii_text = normalized.encode("ascii", "ignore").decode("ascii")
+    return " ".join(ascii_text.lower().split())
+
+
+def _detect_agent_from_text(text: str) -> str | None:
+    lowered = _normalize_agent_text(text)
+    if not lowered:
+        return None
+    for agent_name, keywords in AGENT_KEYWORDS.items():
+        if any(_normalize_agent_text(keyword) in lowered for keyword in keywords):
+            return agent_name
+    return None
+
+
+def _load_canonical_agent_classes():
+    import sys as _sys
+
+    server_path = str(BASE_DIR)
+    if server_path not in _sys.path:
+        _sys.path.insert(0, server_path)
+
+    try:
+        from server.agents.canonical import (
+            PlannerAgent,
+            RepoAnalystAgent,
+            DeveloperAgent,
+            ReviewerAgent,
+            DebugAgent,
+            ReleaseAgent,
+            DocsAgent,
+            VoiceNarratorAgent,
+            MissionControlAgent,
+        )
+    except Exception:
+        from agents.canonical import (
+            PlannerAgent,
+            RepoAnalystAgent,
+            DeveloperAgent,
+            ReviewerAgent,
+            DebugAgent,
+            ReleaseAgent,
+            DocsAgent,
+            VoiceNarratorAgent,
+            MissionControlAgent,
+        )
+
+    return {
+        "planner": PlannerAgent,
+        "repo_analyst": RepoAnalystAgent,
+        "developer": DeveloperAgent,
+        "reviewer": ReviewerAgent,
+        "debug": DebugAgent,
+        "release": ReleaseAgent,
+        "docs": DocsAgent,
+        "voice_narrator": VoiceNarratorAgent,
+        "mission_control": MissionControlAgent,
+    }
+
+
+def _execute_canonical_agent(agent_name: str, task: str, context: dict | None = None) -> dict:
+    normalized_agent = str(agent_name or "").strip().lower()
+    context_data = context if isinstance(context, dict) else {}
+    agent_classes = _load_canonical_agent_classes()
+    agent_class = agent_classes.get(normalized_agent)
+    if agent_class is None:
+        raise KeyError(normalized_agent)
+
+    agent = agent_class()
+    if str(context_data.get("mode") or "").strip().lower() == "health":
+        return {
+            "agent_id": normalized_agent,
+            "status": "ok",
+            "message": "health_check_ready",
+            "output": {"message": "health_check_ready"},
+        }
+
+    run_method = getattr(agent, "run", None)
+    if run_method is None:
+        raise AttributeError(f"{agent_class.__name__} has no run method")
+    if inspect.iscoroutinefunction(run_method):
+        return asyncio.run(run_method(task, context_data))
+
+    result = run_method(task, context_data)
+    if inspect.isawaitable(result):
+        return asyncio.run(result)
+    if not isinstance(result, dict):
+        raise TypeError("Canonical agent result must be a dictionary")
+    return result
+
+
+def _format_canonical_agent_result(agent_name: str, result: dict) -> str:
+    runtime = _get_canonical_runtime()
+    if runtime is not None:
+        try:
+            formatted = runtime.format_canonical_result(agent_name, result)
+            if formatted:
+                return str(formatted)
+        except Exception as exc:  # noqa: BLE001
+            log.warning(f"Canonical result formatting failed for {agent_name}: {exc}")
+    try:
+        return json.dumps(result, ensure_ascii=False)[:2000]
+    except Exception:
+        return str(result)[:2000]
+
+
+def _run_canonical_agent(agent_name: str, task: str, context: dict | None = None) -> dict:
+    normalized_agent = str(agent_name or "").strip().lower()
+    task_text = str(task or "").strip()
+    context_data = context if isinstance(context, dict) else {}
+    health_mode = str(context_data.get("mode") or "").strip().lower() == "health"
+
+    if not normalized_agent:
+        return {"ok": False, "error": "agent field required"}
+    if normalized_agent not in _load_canonical_agent_classes():
+        available = sorted(_load_canonical_agent_classes().keys())
+        return {"ok": False, "agent": normalized_agent, "error": f"Unknown agent: {normalized_agent}. Available: {available}"}
+    if not task_text and not health_mode:
+        return {"ok": False, "agent": normalized_agent, "error": "task field required"}
+    if context is not None and not isinstance(context, dict):
+        return {"ok": False, "agent": normalized_agent, "error": "context must be an object"}
+
+    try:
+        raw_result = _execute_canonical_agent(normalized_agent, task_text or "health_check", context_data)
+    except KeyError:
+        available = sorted(_load_canonical_agent_classes().keys())
+        return {"ok": False, "agent": normalized_agent, "error": f"Unknown agent: {normalized_agent}. Available: {available}"}
+    except Exception as exc:  # noqa: BLE001
+        return {"ok": False, "agent": normalized_agent, "error": str(exc)}
+
+    if str(raw_result.get("status") or "").strip().lower() != "ok":
+        return {
+            "ok": False,
+            "agent": normalized_agent,
+            "error": str(raw_result.get("error") or "agent execution failed"),
+            "raw": raw_result,
+        }
+
+    return {
+        "ok": True,
+        "agent": normalized_agent,
+        "result": _format_canonical_agent_result(normalized_agent, raw_result),
+        "raw": raw_result,
+    }
+
+
+def _build_agents_health_payload() -> dict:
+    agent_names = [
+        "planner",
+        "repo_analyst",
+        "developer",
+        "reviewer",
+        "debug",
+        "release",
+        "docs",
+        "voice_narrator",
+        "mission_control",
+    ]
+    results = []
+    for agent_name in agent_names:
+        agent_result = _run_canonical_agent(agent_name, "health_check", {"mode": "health"})
+        results.append(
+            {
+                "agent": agent_name,
+                "status": "ok" if agent_result.get("ok") else "error",
+                "error": None if agent_result.get("ok") else agent_result.get("error"),
+            }
+        )
+    return {
+        "agents": results,
+        "total": len(results),
+        "healthy": sum(1 for item in results if item["status"] == "ok"),
+    }
+
+
+def _dispatch_canonical_message(chat_id: int, text: str):
+    runtime = _get_canonical_runtime()
+    detected_agent = _detect_agent_from_text(text)
+    if detected_agent:
+        wrapped = _run_canonical_agent(detected_agent, text, {"chat_id": chat_id, "source": "telegram"})
+        if wrapped.get("ok"):
+            raw_result = wrapped.get("raw") if isinstance(wrapped.get("raw"), dict) else {}
+            formatted = (
+                runtime.format_canonical_result(detected_agent, raw_result)
+                if runtime is not None and raw_result
+                else str(wrapped.get("result") or "")
+            )
+            return detected_agent, raw_result, formatted
+
+    if runtime is None:
+        return None
+    try:
+        dispatched = runtime.dispatch_keyword_routed_agent(text, {"chat_id": chat_id, "source": "telegram"})
+    except Exception as exc:  # noqa: BLE001
+        log.warning(f"Canonical keyword dispatch failed: {exc}")
+        return None
+    if not dispatched:
+        return None
+    agent_id, result = dispatched
+    formatted = runtime.format_canonical_result(agent_id, result)
+    return agent_id, result, formatted
 
 
 def _watchdog_timestamp() -> str:
@@ -184,6 +424,36 @@ except Exception as _e:
     TELEGRAM_INTELLIGENCE = None
     log.warning(f"Telegram intelligence init failed: {_e}")
 
+# ─── SELF-LEARNING ENGINE ────────────────────────────────────────────
+try:
+    import sys as _sys
+    _sys.path.insert(0, str(BASE_DIR.parent))
+    from agents.conversation_learner import ConversationLearner
+    from agents.skill_auto_tuner import SkillAutoTuner
+    _CONV_LEARNER: ConversationLearner = None  # call_ollama hazır olunca init edilir
+    _SKILL_TUNER: SkillAutoTuner = None
+    _LEARNING_ENABLED = True
+    log.info("Self-learning modules loaded")
+except Exception as _le:
+    _CONV_LEARNER = None
+    _SKILL_TUNER = None
+    _LEARNING_ENABLED = False
+    log.warning(f"Self-learning init failed: {_le}")
+
+
+def _get_conv_learner():
+    """ConversationLearner'ı call_ollama hazır olduktan sonra lazy-init et."""
+    global _CONV_LEARNER, _SKILL_TUNER
+    if not _LEARNING_ENABLED:
+        return None
+    if _CONV_LEARNER is None:
+        try:
+            _CONV_LEARNER = ConversationLearner(call_ollama)
+            _SKILL_TUNER = SkillAutoTuner(call_ollama)
+        except Exception as e:
+            log.warning(f"ConversationLearner lazy-init failed: {e}")
+    return _CONV_LEARNER
+
 # ─────────────────────────── MODEL ROUTES ─────────────────────────
 MODEL_ROUTES = {
     "code": {
@@ -233,14 +503,14 @@ MODEL_ROUTES = {
     "general": {
         "model": "groq/llama-3.1-8b-instant",
         "fallback": "gemini/gemini-2.5-flash-lite-preview-06-17",
-        "second_fallback": "qwen3:8b",
+        "second_fallback": "gemma4:e2b",
         "keywords": [],
         "system": "Sen yardimci bir AI asistanisin. Kisa ve net yanit ver."
     },
     "chat": {
         "model": "groq/llama-3.1-8b-instant",
         "fallback": "gemini/gemini-2.5-flash-lite-preview-06-17",
-        "second_fallback": "minimax-m2.7:cloud",
+        "second_fallback": "gemma4:e2b",
         "keywords": [],
         "system": JARVIS_SOUL
     },
@@ -301,7 +571,7 @@ def _start_reme_loop():
                 log.info("ReMe: OpenAI embedding aktif")
             else:
                 emb_cfg = {
-                    "backend": "openai", "model_name": "llama3.2:latest",
+                    "backend": "openai", "model_name": "gemma4:e2b",
                     "base_url": "http://127.0.0.1:11434/v1", "api_key": "ollama"
                 }
                 log.info("ReMe: Ollama embedding aktif (OpenAI key girilmedi)")
@@ -309,7 +579,7 @@ def _start_reme_loop():
                 working_dir=str(BASE_DIR / ".reme"),
                 enable_logo=False, log_to_console=False,
                 default_llm_config={
-                    "backend": "openai", "model_name": "llama3.2:latest",
+                    "backend": "openai", "model_name": "gemma4:e2b",
                     "base_url": "http://127.0.0.1:11434/v1", "api_key": "ollama"
                 },
                 default_embedding_model_config=emb_cfg,
@@ -403,25 +673,26 @@ def get_selected_candidate(default_model: str) -> str:
 
 
 def get_provider_health() -> dict:
-    providers = MODEL_ROUTER.settings.providers
-    local_models = get_available_models()
-    health = {}
-    for name, provider in providers.items():
-        if name == "ollama":
-            ok = bool(local_models)
-            health[name] = {
-                "ok": ok,
-                "label": "ready" if ok else "offline",
-                "detail": f"{len(local_models)} model",
-            }
-            continue
-        key_ok = bool(provider.api_key)
-        health[name] = {
-            "ok": key_ok,
-            "label": "ready" if key_ok else "missing_key",
-            "detail": provider.kind,
-        }
-    return health
+    return get_router_health_snapshot().get("providers", {})
+
+
+def get_router_health_snapshot() -> dict:
+    return MODEL_ROUTER.build_health_snapshot(
+        route_map=MODEL_ROUTES,
+        ollama_models=get_available_models(),
+        last_trace=STATE.last_route_trace if isinstance(STATE.last_route_trace, dict) else {},
+    )
+
+
+def _merge_health_status(primary_status: str, router_status: str) -> str:
+    primary = str(primary_status or "").strip().lower()
+    router = str(router_status or "").strip().lower()
+
+    if primary in {"unhealthy", "failed"} or router in {"unhealthy"}:
+        return "unhealthy"
+    if primary in {"degraded", "warning"} or router in {"degraded", "disabled"}:
+        return "degraded"
+    return primary_status
 
 
 def get_agent_os_runtime():
@@ -577,6 +848,259 @@ def get_agent_os_visual_events(limit: int = 25) -> list:
         return [json.loads(line) for line in lines if line.strip()]
     except Exception:
         return []
+
+
+def get_desktop_assistant_payload() -> dict:
+    payload_path = BASE_DIR / "logs" / "desktop_assistant.json"
+    default_payload = {
+        "phase": "idle",
+        "text": "Jarvis hazir.",
+        "agent": "jarvis",
+        "latestPreview": "",
+        "updated_at": time.time(),
+        "runtime": {
+            "status": "offline",
+            "detail": "voice runtime inactive",
+            "source": "bridge",
+            "mode": "",
+            "wake_mode": "",
+            "stt_backend": "",
+            "tts_backend": "",
+        },
+        "voice": {
+            "last_heard": "",
+            "last_response": "",
+            "heard_at": 0.0,
+            "response_at": 0.0,
+            "turn_count": 0,
+        },
+    }
+
+    payload: dict = {}
+    if payload_path.exists():
+        try:
+            loaded = json.loads(payload_path.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                payload = loaded
+        except Exception:
+            payload = {}
+
+    status = get_agent_os_visual_status()
+    current_job = status.get("current_job") if isinstance(status, dict) else None
+    active_agent = status.get("active_agent") if isinstance(status, dict) else None
+
+    if not payload:
+        preview = ""
+        if isinstance(current_job, dict):
+            preview = str(current_job.get("task") or "").strip()
+        payload = {
+            **default_payload,
+            "phase": "thinking" if current_job else "idle",
+            "agent": str(active_agent or "jarvis"),
+            "latestPreview": preview[:180],
+        }
+
+    payload.setdefault("phase", default_payload["phase"])
+    payload.setdefault("text", default_payload["text"])
+    payload.setdefault("agent", str(active_agent or "jarvis"))
+    payload.setdefault("latestPreview", "")
+    payload.setdefault("updated_at", time.time())
+
+    runtime = payload.get("runtime") if isinstance(payload.get("runtime"), dict) else {}
+    voice = payload.get("voice") if isinstance(payload.get("voice"), dict) else {}
+    payload["runtime"] = {**default_payload["runtime"], **runtime}
+    payload["voice"] = {**default_payload["voice"], **voice}
+
+    if isinstance(current_job, dict):
+        payload.setdefault("latestPreview", str(current_job.get("task") or "")[:180])
+
+    if not payload.get("text") and payload["voice"].get("last_response"):
+        payload["text"] = str(payload["voice"].get("last_response") or "")[:220]
+    if not payload.get("latestPreview") and payload["voice"].get("last_heard"):
+        payload["latestPreview"] = str(payload["voice"].get("last_heard") or "")[:180]
+
+    payload.setdefault(
+        "mission",
+        {
+            "active_agent": active_agent,
+            "task_status": status.get("status") if isinstance(status, dict) else None,
+            "last_event": status.get("last_event") if isinstance(status, dict) else None,
+            "last_task_summary": current_job.get("task") if isinstance(current_job, dict) else None,
+        },
+    )
+
+    return payload
+
+
+def get_office_presence_payload(limit: int = 20) -> dict:
+    online: list[str] = []
+    seen: set[str] = set()
+    assistant_payload = get_desktop_assistant_payload()
+
+    status = get_agent_os_visual_status()
+    agents = status.get("agents", {}) if isinstance(status, dict) else {}
+    if isinstance(agents, dict):
+        for agent_name, agent_state in agents.items():
+            state_text = str(agent_state or "").strip().lower()
+            if state_text in {"running", "thinking", "listening", "speaking", "active"}:
+                seen.add(str(agent_name))
+                online.append(str(agent_name))
+
+    for event in reversed(get_agent_os_visual_events(limit=limit)):
+        if not isinstance(event, dict):
+            continue
+        data = event.get("data") if isinstance(event.get("data"), dict) else {}
+        agent_name = (
+            data.get("agent_name")
+            or data.get("agent_id")
+            or event.get("agent")
+            or event.get("agent_id")
+        )
+        if not agent_name:
+            continue
+        agent_text = str(agent_name)
+        if agent_text in seen:
+            continue
+        seen.add(agent_text)
+        online.append(agent_text)
+
+    assistant_runtime = (
+        assistant_payload.get("runtime")
+        if isinstance(assistant_payload.get("runtime"), dict)
+        else {}
+    )
+    assistant_phase = str(assistant_payload.get("phase") or "").strip().lower()
+    assistant_status = str(assistant_runtime.get("status") or "").strip().lower()
+    if assistant_status in {"online", "ready"} or assistant_phase in {"listening", "thinking", "speaking"}:
+        assistant_name = str(assistant_payload.get("agent") or "voice").strip().lower() or "voice"
+        presence_agent = "voice" if assistant_name == "jarvis" else assistant_name
+        if presence_agent not in seen:
+            seen.add(presence_agent)
+            online.insert(0, presence_agent)
+
+    return {
+        "online_agents": online,
+        "bridge": "online",
+        "updated_at": time.time(),
+        "assistant": {
+            "phase": assistant_phase or "idle",
+            "status": assistant_status or "offline",
+            "source": str(assistant_runtime.get("source") or assistant_payload.get("agent") or ""),
+        },
+    }
+
+
+def get_orchestrator_live_payload(event_limit: int = 25) -> dict:
+    queue_snapshot = load_task_queue_snapshot()
+    recent_events = read_recent_live_events(limit=event_limit)
+    assistant_payload = get_desktop_assistant_payload()
+    assistant_runtime = (
+        assistant_payload.get("runtime")
+        if isinstance(assistant_payload.get("runtime"), dict)
+        else {}
+    )
+    assistant_voice = (
+        assistant_payload.get("voice")
+        if isinstance(assistant_payload.get("voice"), dict)
+        else {}
+    )
+    active_statuses = {"pending", "queued", "running", "awaiting_confirmation"}
+    current_task = None
+    last_task = None
+
+    for event in reversed(recent_events):
+        task = event.get("task") if isinstance(event.get("task"), dict) else None
+        if not task:
+            continue
+        if last_task is None:
+            last_task = task
+        if current_task is None and str(task.get("status") or "").strip().lower() in active_statuses:
+            current_task = task
+
+    voice_phase = str(assistant_payload.get("phase") or "idle").strip().lower() or "idle"
+    voice_active = voice_phase in {"listening", "thinking", "speaking"}
+    state_file = Path(str(queue_snapshot.get("state_file") or ""))
+    orchestrator_ready = state_file.exists()
+    status = "degraded" if queue_snapshot.get("failed_tasks", 0) else "healthy"
+    if not orchestrator_ready:
+        status = "degraded"
+
+    return {
+        "status": status,
+        "timestamp": datetime.now().isoformat(),
+        "activity": "busy"
+        if current_task or queue_snapshot.get("queued_tasks", 0) or queue_snapshot.get("running_tasks", 0) or voice_active
+        else "idle",
+        "queue_snapshot": queue_snapshot,
+        "current_task": current_task,
+        "last_task": last_task,
+        "recent_events": recent_events,
+        "event_counts": build_live_event_counts(limit=max(event_limit, 100)),
+        "voice": {
+            "active": voice_active,
+            "phase": voice_phase,
+            "status": str(assistant_runtime.get("status") or "offline"),
+            "detail": str(assistant_runtime.get("detail") or ""),
+            "turn_count": int(assistant_voice.get("turn_count") or 0),
+            "last_heard": str(assistant_voice.get("last_heard") or ""),
+            "last_response": str(assistant_voice.get("last_response") or ""),
+            "updated_at": assistant_payload.get("updated_at", 0.0),
+        },
+    }
+
+
+def build_telegram_health_payload() -> dict:
+    live_payload = get_orchestrator_live_payload(event_limit=10)
+    queue_snapshot = live_payload["queue_snapshot"]
+    current_task = live_payload.get("current_task") or live_payload.get("last_task")
+    provider_health = get_provider_health()
+    route_trace = STATE.last_route_trace if isinstance(STATE.last_route_trace, dict) else {}
+    orchestrator_state_file = Path(str(queue_snapshot.get("state_file") or ""))
+
+    return {
+        "status": live_payload.get("status", "unknown"),
+        "timestamp": live_payload.get("timestamp"),
+        "bridge_status": "healthy",
+        "orchestrator_status": "healthy" if orchestrator_state_file.exists() else "degraded",
+        "queue_size": int(queue_snapshot.get("queued_tasks", 0)),
+        "running_tasks": int(queue_snapshot.get("running_tasks", 0)),
+        "awaiting_confirmation": int(queue_snapshot.get("awaiting_confirmation_tasks", 0)),
+        "completed_tasks": int(queue_snapshot.get("done_tasks", 0)),
+        "failed_tasks": int(queue_snapshot.get("failed_tasks", 0)),
+        "total_requests": int(memory.data["stats"].get("total_queries", 0)),
+        "error_count": int(memory.data["stats"].get("errors", 0)),
+        "current_task": current_task,
+        "voice_phase": live_payload.get("voice", {}).get("phase", "idle"),
+        "voice_status": live_payload.get("voice", {}).get("status", "offline"),
+        "voice_active": bool(live_payload.get("voice", {}).get("active")),
+        "provider_health": provider_health,
+        "route_trace": route_trace,
+    }
+
+
+def build_telegram_metrics_payload() -> dict:
+    live_payload = get_orchestrator_live_payload(event_limit=50)
+    queue_snapshot = live_payload["queue_snapshot"]
+    event_counts = live_payload.get("event_counts", {})
+    completed_tasks = int(queue_snapshot.get("done_tasks", 0))
+    failed_tasks = int(queue_snapshot.get("failed_tasks", 0))
+    total_finished = completed_tasks + failed_tasks
+    success_rate = (completed_tasks / total_finished) if total_finished else 0.0
+
+    return {
+        "total_executions": total_finished,
+        "successful_tasks": completed_tasks,
+        "failed_tasks": failed_tasks,
+        "queue_depth": int(queue_snapshot.get("queued_tasks", 0)),
+        "running_tasks": int(queue_snapshot.get("running_tasks", 0)),
+        "retry_events": int(event_counts.get("task_retry", 0)),
+        "recent_events": len(live_payload.get("recent_events", [])),
+        "voice_turn_count": int(live_payload.get("voice", {}).get("turn_count", 0)),
+        "success_rate": success_rate,
+        "avg_latency_ms": 0.0,
+        "p95_latency_ms": 0.0,
+        "cache_hit_rate": 0.0,
+    }
 
 
 def is_local_port_busy(port: int) -> bool:
@@ -753,6 +1277,133 @@ def run_shell_full(cmd: str) -> str:
         return f"Hata: {e}"
 
 # ─────────────────────────── COMMANDS ─────────────────────────────
+def _get_admin_chat_id() -> str:
+    return os.environ.get("ADMIN_CHAT_ID", "").strip()
+
+
+def _is_admin_chat(chat_id: int | str) -> bool:
+    admin_chat_id = _get_admin_chat_id()
+    return bool(admin_chat_id) and str(chat_id) == admin_chat_id
+
+
+def _capture_screenshot(target_path: Path | None = None) -> Path | None:
+    output_path = Path(target_path) if target_path else (DATA_DIR / "screenshot.png")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    try:
+        from PIL import ImageGrab
+
+        img = ImageGrab.grab()
+        img.save(output_path)
+        if output_path.exists():
+            return output_path
+    except Exception as exc:
+        log.debug(f"PIL screenshot fallback'a dustu: {exc}")
+
+    escaped_path = str(output_path).replace("'", "''")
+    ps_cmd = (
+        "Add-Type -AssemblyName System.Windows.Forms,System.Drawing;"
+        "$bmp=New-Object System.Drawing.Bitmap("
+        "[System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Width,"
+        "[System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Height);"
+        "$g=[System.Drawing.Graphics]::FromImage($bmp);"
+        "$g.CopyFromScreen(0,0,0,0,$bmp.Size);"
+        f"$bmp.Save('{escaped_path}');"
+        "$g.Dispose();$bmp.Dispose()"
+    )
+    try:
+        subprocess.run(
+            ["powershell", "-Command", ps_cmd],
+            capture_output=True,
+            timeout=15,
+        )
+    except Exception as exc:
+        log.warning(f"PowerShell screenshot alinamadi: {exc}")
+
+    return output_path if output_path.exists() else None
+
+
+def _handle_vision_command(chat_id: int, args: str) -> str:
+    admin_chat_id = _get_admin_chat_id()
+    if not admin_chat_id:
+        return "ADMIN_CHAT_ID tanimli degil."
+    if not _is_admin_chat(chat_id):
+        return "Bu komut sadece admin kullanicisi icin acik."
+
+    screenshot_path = _capture_screenshot()
+    if not screenshot_path:
+        return "Ekran goruntusu alinamadi."
+
+    prompt = args.strip() or "Bu ekranda ne var? Detayli acikla. Turkce cevap ver."
+    try:
+        from vision_skill import analyze_image_with_ollama
+
+        return analyze_image_with_ollama(str(screenshot_path), prompt)
+    except Exception as exc:
+        return f"Hata: {exc}"
+
+
+def _handle_swarm_command(args: str) -> str:
+    try:
+        from swarm_skill import swarm_run
+
+        return swarm_run(args.strip())
+    except Exception as exc:
+        return f"Hata: {exc}"
+
+
+def _handle_youtube_command(args: str) -> str:
+    query = args.strip()
+    if not query:
+        return "Kullanim: /youtube [url veya arama]"
+
+    try:
+        from youtube_skill import format_report, get_transcript
+
+        return format_report(get_transcript(query))
+    except Exception as exc:
+        return f"Hata: {exc}"
+
+
+def _handle_autoresearch_command(args: str) -> str:
+    topic = args.strip() or "genel arastirma"
+    try:
+        from autoresearch_skill import run_deep_research
+
+        return run_deep_research(topic)
+    except Exception as exc:
+        return f"Hata: {exc}"
+
+
+def _handle_skill_registry_command(args: str) -> str:
+    try:
+        from skill_registry_skill import run
+
+        return run(args)
+    except Exception as exc:
+        return f"Hata: {exc}"
+
+
+def _handle_whisper_command(args: str) -> str:
+    audio_path = args.strip().strip('"')
+    if not audio_path:
+        return "Kullanim: /transkript [ses dosyasi]"
+
+    candidate = Path(audio_path)
+    if not candidate.is_absolute():
+        candidate = ROOT_DIR / candidate
+    if not candidate.exists():
+        return f"Ses dosyasi bulunamadi: {candidate}"
+
+    try:
+        from whisper_skill import transcribe_audio
+
+        transcript = transcribe_audio(str(candidate))
+        return f"*Transkript:*\n\n{transcript}"
+    except Exception as exc:
+        return f"Hata: {exc}"
+
+
 def handle_command(chat_id: int, cmd: str) -> str:
     parts = cmd.split(" ", 2)
     command = parts[0].lower()
@@ -771,6 +1422,8 @@ def handle_command(chat_id: int, cmd: str) -> str:
 
 *Arama & Arastirma:*
   `/ara [sorgu]` -> Perplexica AI arama (web + ozet)
+  `/arastir [konu]` -> Derin arastirma ve ozet
+  `/youtube [url/arama]` -> YouTube transcript ve analiz
   `/rakip [hedef]` -> Rakip analizi
   `/ebay [urun]` -> eBay piyasa analizi
   `/trendyol [urun]` -> Trendyol TR analizi
@@ -798,7 +1451,10 @@ def handle_command(chat_id: int, cmd: str) -> str:
 
 *AI Uzman Ajanlar:*
   `/jcoder [gorev]` -> Jarvis Coder - bridge.py bilir, kod yazar
+  `/markxxxv [gorev]` -> Mark-XXXV planner/executor gorevi
   `/skill [isim] [aciklama]` -> Yeni Jarvis skill dosyasi yaz
+  `/skills [kategori|ara kelime]` -> Aktif ve curated skill listesi
+  `/swarm [gorev]` -> Multi-agent orchestration
   `/analyst [konu]` -> Iş analizi, SaaS strateji, pazarlama
 
 *Ajanlar:*
@@ -812,6 +1468,8 @@ def handle_command(chat_id: int, cmd: str) -> str:
   `/not [metin]` -> Not kaydet
   `/notlar` -> Tum notlari listele
   `/not-sil` -> Tum notlari sil
+  `/gor [soru]` -> Ekrani analiz et (admin)
+  `/transkript [ses dosyasi]` -> Whisper ile sesi metne donustur
   `/cevirici [metin]` -> TR<->EN otomatik ceviri
   `/ozet [metin/url]` -> Metin veya URL ozetleme
   `/gpt [soru]` -> GPT-4o ile soru sor
@@ -833,6 +1491,7 @@ def handle_command(chat_id: int, cmd: str) -> str:
 
 *Uzak Yonetim & PC Kontrol:*
   `/kabul` -> AnyDesk baglanti istegini kabul et
+  `/tarayici [komut]` -> Playwright ile gorunen Chromium oturumu
   `/mouse [x] [y]` -> Mouse'u konuma tasI
   `/tıkla [x] [y]` -> Sol tikla
   `/çifttıkla [x] [y]` -> Cift tikla
@@ -848,6 +1507,11 @@ def handle_command(chat_id: int, cmd: str) -> str:
   `/kill [isim]` -> Proses durdur
   `/ip` -> Dis IP ve yerel IP adresini goster
 
+*Öz-Öğrenme:*
+  `/ogren` -> Tüm komutları analiz et, ne öğrenilmeli söyle
+  `/rapor` -> Son öğrenme raporunu göster
+  `/tune [skill]` -> Bir skill'in promptunu otomatik iyileştir (Karpathy döngüsü)
+
 *Yeni Ajanlar:*
   `/agent growth-hacker` -> Buyume stratejisti
   `/agent icerik-stratejisti` -> Cok platform icerik
@@ -857,6 +1521,56 @@ def handle_command(chat_id: int, cmd: str) -> str:
 
 *Modeller:*
 {models_str}"""
+
+    # ─── SELF-LEARNING KOMUTLARI ─────────────────────────────────────
+    elif command == "/ogren":
+        learner = _get_conv_learner()
+        if not learner:
+            return "Öğrenme motoru başlatılamadı."
+        try:
+            send_telegram_message(chat_id, "Analiz ediyorum... (30-60 sn sürebilir)")
+            insight = learner.analyze(limit=300)
+            return f"*Jarvis Öğrenme Raporu*\n\n{insight}"
+        except Exception as e:
+            return f"Analiz hatası: {e}"
+
+    elif command == "/rapor":
+        learner = _get_conv_learner()
+        if not learner:
+            return "Öğrenme motoru başlatılamadı."
+        return f"*Son Öğrenme Raporu*\n\n{learner.get_last_insight()[:1500]}"
+
+    elif command == "/tune":
+        if not args:
+            return "Kullanım: `/tune [skill_adi]`\nÖrnek: `/tune reklam`"
+        learner = _get_conv_learner()
+        if not _SKILL_TUNER or not learner:
+            return "Tuning motoru başlatılamadı."
+        try:
+            skill_name = args.strip()
+            send_telegram_message(chat_id, f"*{skill_name}* skill'ini optimize ediyorum... (2-3 dk)")
+            # Örnek test girdileri
+            test_inputs = [
+                f"{skill_name} için örnek bir görev",
+                f"{skill_name} kullanarak sonuç üret",
+                f"{skill_name} ile analiz yap",
+            ]
+            base_prompt = f"Sen Jarvis'in {skill_name} uzmanısın. Türkçe, kısa ve etkili yanıtlar ver."
+            result = _SKILL_TUNER.tune(
+                skill_name=skill_name,
+                current_prompt=base_prompt,
+                test_inputs=test_inputs,
+                iterations=3,
+            )
+            return (
+                f"*{skill_name} Tuning Tamamlandı*\n"
+                f"Başlangıç skoru: {result['original_score']:.1f}/10\n"
+                f"Final skor: {result['final_score']:.1f}/10\n"
+                f"İyileşme: +{result['improvement']:.1f}\n"
+                f"İterasyon: {result['iterations']}"
+            )
+        except Exception as e:
+            return f"Tuning hatası: {e}"
 
     elif command == "/status":
         try:
@@ -908,7 +1622,7 @@ Son Model: `{last_sel}` | Fallback: `{fallback}`"""
 
     elif command == "/model":
         if not args:
-            return "Kullanim: /model [route] [model]\nOrnek: /model chat qwen3:8b\nOrnek: /model reasoning minimax-m2.7:cloud\n\nRoute'lar: " + ", ".join(MODEL_ROUTES.keys())
+            return "Kullanim: /model [route] [model]\nOrnek: /model chat gemma4:e2b\nOrnek: /model reasoning minimax-m2.7:cloud\n\nRoute'lar: " + ", ".join(MODEL_ROUTES.keys())
         parts2 = args.split(None, 1)
         if len(parts2) < 2:
             return "Kullanim: /model [route] [model-adi]"
@@ -941,6 +1655,24 @@ Son Model: `{last_sel}` | Fallback: `{fallback}`"""
             return update_task(str(chat_id), int(args.strip()), "done")
         except:
             return "Gecersiz gorev ID"
+
+    elif command == "/gor":
+        return _handle_vision_command(chat_id, args)
+
+    elif command == "/swarm":
+        return _handle_swarm_command(args)
+
+    elif command == "/youtube":
+        return _handle_youtube_command(args)
+
+    elif command == "/arastir":
+        return _handle_autoresearch_command(args)
+
+    elif command == "/skills":
+        return _handle_skill_registry_command(args)
+
+    elif command == "/transkript":
+        return _handle_whisper_command(args)
 
     elif command == "/ebay":
         query = args or "kazancli dropshipping urun"
@@ -1204,7 +1936,7 @@ Son Model: `{last_sel}` | Fallback: `{fallback}`"""
             ACTIVE_AGENTS[str(chat_id)] = {
                 "name": agent_name,
                 "prompt": system_prompt,
-                "model": "llama3.2:latest"
+                "model": "gemma4:e2b"
             }
             preview = clean_prompt[:120].replace("\n", " ")
             return (
@@ -1426,6 +2158,61 @@ Son Model: `{last_sel}` | Fallback: `{fallback}`"""
             return result
         except Exception as e:
             return f"Notion hatasi: {e}"
+
+    elif command in ("/markxxxv", "/mark-xxxv", "/mark_xxxv"):
+        try:
+            import sys as _sys; _sys.path.insert(0, str(Path(__file__).parent / "skills"))
+            from markxxxv_skill import handle_markxxxv
+            result = handle_markxxxv(args, str(chat_id))
+            memory.add_message(chat_id, "user", f"/markxxxv {args[:50]}")
+            memory.add_message(chat_id, "assistant", result[:200])
+            return result
+        except Exception as e:
+            log.exception("Mark-XXXV komutu basarisiz")
+            return f"Mark-XXXV hatasi: {str(e)[:200]}"
+
+    elif command in ("/stripe_webhook", "/stripe-webhook"):
+        try:
+            import sys as _sys; _sys.path.insert(0, str(Path(__file__).parent / "skills"))
+            from stripe_webhook_skill import run as run_stripe_webhook
+            result = run_stripe_webhook(args)
+            memory.add_message(chat_id, "user", f"/stripe_webhook {args[:50]}")
+            memory.add_message(chat_id, "assistant", result[:200])
+            return result
+        except Exception as e:
+            return f"Stripe webhook hatasi: {e}"
+
+    elif command == "/admin_musteriler":
+        admin_chat_id = os.environ.get("ADMIN_CHAT_ID", "").strip()
+        if not admin_chat_id:
+            return "ADMIN_CHAT_ID tanimli degil."
+        if str(chat_id) != admin_chat_id:
+            return "Bu komut sadece admin kullanicisi icin acik."
+        try:
+            import sys as _sys; _sys.path.insert(0, str(Path(__file__).parent / "skills"))
+            from tenant_manager import format_tenant_list
+            result = format_tenant_list()
+            memory.add_message(chat_id, "user", "/admin_musteriler")
+            memory.add_message(chat_id, "assistant", result[:200])
+            return result
+        except Exception as e:
+            return f"Admin musteri listesi hatasi: {e}"
+
+    elif command == "/admin_stats":
+        admin_chat_id = os.environ.get("ADMIN_CHAT_ID", "").strip()
+        if not admin_chat_id:
+            return "ADMIN_CHAT_ID tanimli degil."
+        if str(chat_id) != admin_chat_id:
+            return "Bu komut sadece admin kullanicisi icin acik."
+        try:
+            import sys as _sys; _sys.path.insert(0, str(Path(__file__).parent / "skills"))
+            from tenant_manager import format_stats
+            result = format_stats()
+            memory.add_message(chat_id, "user", "/admin_stats")
+            memory.add_message(chat_id, "assistant", result[:200])
+            return result
+        except Exception as e:
+            return f"Admin istatistik hatasi: {e}"
 
     elif command == "/holding":
         return "*Holding Departmanlari*\n\n*/reklam_ajans [brief]* - Konsept + Gorsel Prompt + 3 Kopya\n*/satis [urun]* - Pazar + USP + Email + Kapanis\n*/websitesi [brief]* - HTML/Tailwind landing page"
@@ -1704,6 +2491,18 @@ Son Model: `{last_sel}` | Fallback: `{fallback}`"""
         except Exception as e:
             return f"❌ Computer control hatası: {e}"
 
+    elif command in ("/tarayici", "/browser"):
+        try:
+            import sys as _sys; _sys.path.insert(0, str(Path(__file__).parent / "skills"))
+            from playwright_browser_skill import handle_browser
+            result = handle_browser(args, str(chat_id))
+            memory.add_message(chat_id, "user", f"/tarayici {args[:50]}")
+            memory.add_message(chat_id, "assistant", result[:200])
+            return result
+        except Exception as e:
+            log.exception("Tarayici komutu basarisiz")
+            return f"Tarayici hatasi: {str(e)[:200]}"
+
     elif command in ("/yap", "/bak", "/otonom", "/kodcalistir"):
         try:
             sys.path.insert(0, r"C:\Users\sergen\Desktop\jarvis-mission-control\server\skills")
@@ -1838,14 +2637,22 @@ Son Model: `{last_sel}` | Fallback: `{fallback}`"""
     elif command == "/health":
         if TELEGRAM_INTELLIGENCE:
             try:
-                metrics = {
-                    "status": "healthy",
-                    "uptime_seconds": int(time.time()),
-                    "error_count": memory.data["stats"].get("errors", 0),
-                    "total_requests": memory.data["stats"].get("total_queries", 0)
-                }
+                metrics = build_telegram_health_payload()
                 msg = TELEGRAM_INTELLIGENCE.format_health_message(metrics)
-                TELEGRAM_INTELLIGENCE.log_command("/health", chat_id, "success", len(msg))
+                TELEGRAM_INTELLIGENCE.log_command(
+                    "/health",
+                    chat_id,
+                    "success",
+                    len(msg),
+                    metadata={
+                        "current_task_id": (
+                            metrics.get("current_task", {}).get("id")
+                            if isinstance(metrics.get("current_task"), dict)
+                            else None
+                        ),
+                        "voice_phase": metrics.get("voice_phase"),
+                    },
+                )
                 return msg
             except Exception as e:
                 return f"❌ Health check failed: {e}"
@@ -1854,14 +2661,18 @@ Son Model: `{last_sel}` | Fallback: `{fallback}`"""
     elif command == "/metrics":
         if TELEGRAM_INTELLIGENCE:
             try:
-                metrics = {
-                    "avg_latency_ms": 45.5,
-                    "p95_latency_ms": 120.3,
-                    "cache_hit_rate": 0.85,
-                    "total_executions": memory.data["stats"].get("total_queries", 0)
-                }
+                metrics = build_telegram_metrics_payload()
                 msg = TELEGRAM_INTELLIGENCE.format_metrics_message(metrics)
-                TELEGRAM_INTELLIGENCE.log_command("/metrics", chat_id, "success", len(msg))
+                TELEGRAM_INTELLIGENCE.log_command(
+                    "/metrics",
+                    chat_id,
+                    "success",
+                    len(msg),
+                    metadata={
+                        "queue_depth": metrics.get("queue_depth"),
+                        "running_tasks": metrics.get("running_tasks"),
+                    },
+                )
                 return msg
             except Exception as e:
                 return f"❌ Metrics retrieval failed: {e}"
@@ -1912,6 +2723,107 @@ Son Model: `{last_sel}` | Fallback: `{fallback}`"""
                 return f"❌ Cache statistics failed: {e}"
         return "Telegram intelligence not initialized"
 
+    # ─── 002: AUTONOMOUS RESEARCH AGENT ──────────────────────────────
+    elif command == "/sabah-brief":
+        try:
+            import sys as _sys, os as _os
+            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), "skills"))
+            from research_scheduler_skill import run_morning_brief
+            _chat = chat_id
+            def _send(msg): pass  # bridge will return response string
+            result = run_morning_brief(_send)
+            if result.get("ok"):
+                return f"Brief gonderildi — {result['items_count']} kaynak taranadi"
+            return f"Brief gonderilemedi: {result.get('error', 'bilinmiyor')}"
+        except Exception as e:
+            return f"Hata: {str(e)[:200]}"
+
+    elif command == "/arastirma-durum":
+        try:
+            import sys as _sys, os as _os
+            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), "skills"))
+            from research_scheduler_skill import get_scheduler_status, load_today_brief
+            status = get_scheduler_status()
+            today_brief = load_today_brief()
+            running = "Calisiyor" if status.get("running") else "Durdurulmus"
+            jobs = status.get("jobs", [])
+            next_run = jobs[0].get("next_run", "bilinmiyor") if jobs else "job yok"
+            brief_info = "yok" if not today_brief else f"{today_brief['send_status']} ({today_brief.get('items_count', '?')} madde)"
+            return (f"Arastirma Durumu\nScheduler: {running}\nSonraki brief: {next_run}\nBugunku brief: {brief_info}")[:400]
+        except Exception as e:
+            return f"Durum alinamadi: {str(e)[:150]}"
+
+    elif command == "/instagram":
+        try:
+            import sys as _sys, os as _os
+            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), "skills"))
+            from instagram_skill import add_watched_account, list_watched_accounts, remove_watched_account
+            sub = args.strip()
+            if sub.startswith("takip "):
+                handle = sub[len("takip "):].strip()
+                result = add_watched_account(handle)
+                return result["message"]
+            elif sub == "listele":
+                accounts = list_watched_accounts()
+                if not accounts:
+                    return "Takip listesi bos. /instagram takip @hesap ile ekle."
+                lines = ["Takip Listesi"]
+                for acc in accounts[:20]:
+                    last = acc.get("last_checked_at", "")[:10] if acc.get("last_checked_at") else "hic"
+                    lines.append(f"@{acc['username']} (son kontrol: {last})")
+                return "\n".join(lines)[:400]
+            elif sub.startswith("cikar "):
+                handle = sub[len("cikar "):].strip()
+                result = remove_watched_account(handle)
+                return result["message"]
+            return "Kullanim: /instagram takip @hesap | /instagram listele | /instagram cikar @hesap"
+        except Exception as e:
+            return f"Instagram hatasi: {str(e)[:150]}"
+
+    elif command == "/crewai":
+        try:
+            import sys as _sys, os as _os
+            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), "skills"))
+            from external_agent_skill import run_agent_task, get_agent_status
+            task_text = args.strip()
+            if not task_text or task_text == "durum":
+                status = get_agent_status("crewai")
+                installed = "Kurulu" if status["installed"] else "Kurulu degil"
+                return f"CrewAI: {installed}\n{status.get('message', '')}"[:400]
+            result = run_agent_task("crewai", task_text, timeout_seconds=60)
+            return result["output"][:400]
+        except Exception as e:
+            return f"CrewAI hatasi: {str(e)[:150]}"
+
+    elif command == "/openhands":
+        try:
+            import sys as _sys, os as _os
+            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), "skills"))
+            from external_agent_skill import run_agent_task, get_agent_status
+            task_text = args.strip()
+            if not task_text or task_text == "durum":
+                status = get_agent_status("openhands")
+                installed = "Kurulu" if status["installed"] else "Kurulu degil"
+                return f"OpenHands: {installed}\n{status.get('message', '')}"[:400]
+            result = run_agent_task("openhands", task_text, timeout_seconds=60)
+            return result["output"][:400]
+        except Exception as e:
+            return f"OpenHands hatasi: {str(e)[:150]}"
+
+    elif command in ("/bugun-ne-var", "/bugun"):
+        try:
+            import sys as _sys, os as _os
+            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), "skills"))
+            from research_scheduler_skill import load_today_brief
+            brief = load_today_brief()
+            if brief:
+                msg = brief.get("message_text", "")
+                return (msg[:350] + "...") if len(msg) > 350 else msg
+            return "Bugun henuz brief yok. /sabah-brief ile simdi olustur."
+        except Exception as e:
+            return f"Hata: {str(e)[:150]}"
+    # ─── END 002 ──────────────────────────────────────────────────────
+
     return f"Bilinmeyen komut: {command}\n/help yaz yardim icin."
 
 # ─────────────────────────── PROCESS MESSAGE ──────────────────────
@@ -1937,7 +2849,24 @@ def process_message(chat_id: int, text: str) -> str:
             return str(e)
 
     if text.startswith("/"):
-        return handle_command(chat_id, text)
+        _t0 = time.time()
+        _cmd = text.split()[0] if text.split() else text
+        _result = handle_command(chat_id, text)
+        # Self-learning log
+        try:
+            _learner = _get_conv_learner()
+            if _learner:
+                _learner.log_command(
+                    command=_cmd,
+                    chat_id=chat_id,
+                    user_input=text,
+                    response=_result or "",
+                    duration_ms=(time.time() - _t0) * 1000,
+                    status="success" if _result and not _result.startswith("❌") else "error",
+                )
+        except Exception:
+            pass
+        return _result
 
     # ── NATURAL LANGUAGE INTERCEPTS ────────────────────────────────
     try:
@@ -2026,7 +2955,7 @@ def process_message(chat_id: int, text: str) -> str:
     if active_agent:
         hist = memory.get_history(chat_id)
         hist.append({"role": "user", "content": text})
-        model = active_agent.get("model", "llama3.2:latest")
+        model = active_agent.get("model", "gemma4:e2b")
         response = call_ollama(model, hist, active_agent["prompt"])
         selected_candidate = get_selected_candidate(model)
         memory.add_message(chat_id, "user", text)
@@ -2038,6 +2967,13 @@ def process_message(chat_id: int, text: str) -> str:
             return run_team_task(chat_id, text)
         except Exception as e:
             log.warning(f"dogal dil team modu hatasi: {e}")
+
+    canonical_dispatch = _dispatch_canonical_message(chat_id, text)
+    if canonical_dispatch:
+        agent_id, result, formatted = canonical_dispatch
+        memory.add_message(chat_id, "user", text)
+        memory.add_message(chat_id, "assistant", formatted, f"canonical/{agent_id}")
+        return formatted
 
     # Normal routing
     route_name, route = detect_route(text)
@@ -2174,6 +3110,25 @@ class TelegramBot:
         text = msg.get("text", "")
         username = msg.get("from", {}).get("username", "?")
 
+        photos = msg.get("photo") or []
+        if photos:
+            if not _is_admin_chat(chat_id):
+                return
+            self.send(chat_id, "_Gorsel analiz ediliyor..._")
+            caption = (msg.get("caption") or "").strip()
+            prompt = caption
+            if caption.lower().startswith("/gor"):
+                prompt = caption[len("/gor"):].strip()
+            try:
+                from vision_skill import handle_photo_message
+
+                file_id = photos[-1]["file_id"]
+                result = handle_photo_message(self.token, file_id, prompt or None)
+                self.send(chat_id, result)
+            except Exception as e:
+                self.send(chat_id, f"Hata: {e}")
+            return
+
         # ── Sesli mesaj (voice/audio) ──────────────────────────────────────
         voice = msg.get("voice") or msg.get("audio")
         if voice and chat_id == self.authorized_id:
@@ -2262,7 +3217,11 @@ class WebHandler(BaseHTTPRequestHandler):
         pass
 
     def do_GET(self):
-        if self.path in ("/", "/dashboard"):
+        parsed = urlparse(self.path)
+        path = parsed.path
+        query = parse_qs(parsed.query)
+
+        if path in ("/", "/dashboard"):
             models = get_available_models()
             stats = memory.data["stats"]
             last_trace = STATE.last_route_trace if isinstance(STATE.last_route_trace, dict) else {}
@@ -2468,32 +3427,83 @@ refreshRuntimeStatus();
             self.end_headers()
             self.wfile.write(html.encode("utf-8"))
 
-        elif self.path == "/api/status":
+        elif path == "/api/status":
             provider_health = get_provider_health()
             data = {"status": "online", "models": get_available_models(),
                     "stats": memory.data["stats"], "time": datetime.now().isoformat(),
                     "last_route_trace": STATE.last_route_trace,
-                    "provider_health": provider_health}
+                    "provider_health": provider_health,
+                    "live": get_orchestrator_live_payload(event_limit=5)}
             self._json(data)
-        elif self.path == "/api/agent-os/status":
+        elif path == "/api/agent-os/status":
             self._json(get_agent_os_visual_status())
-        elif self.path == "/api/agent-os/events":
+        elif path == "/api/agent-os/events":
             self._json({"events": get_agent_os_visual_events()})
+        elif path == "/api/live/status":
+            self._json(get_orchestrator_live_payload(event_limit=15))
+        elif path == "/api/live/events":
+            live_payload = get_orchestrator_live_payload(event_limit=50)
+            self._json(
+                {
+                    "status": live_payload.get("status", "unknown"),
+                    "activity": live_payload.get("activity", "idle"),
+                    "current_task": live_payload.get("current_task"),
+                    "last_task": live_payload.get("last_task"),
+                    "events": live_payload.get("recent_events", []),
+                }
+            )
+        elif path == "/api/desktop-assistant":
+            self._json(get_desktop_assistant_payload())
+        elif path == "/api/office/presence":
+            self._json(get_office_presence_payload())
+        elif path == "/api/cloud/ec2":
+            self._handle_cloud_ec2_endpoint()
+        elif path == "/api/cloud/s3":
+            self._handle_cloud_s3_endpoint()
+        elif path == "/api/cloud/cost":
+            self._handle_cloud_cost_endpoint()
+        elif path == "/api/cloud/alerts":
+            self._handle_cloud_alerts_endpoint()
 
         # ──── WEEK 2: HEALTH & METRICS ENDPOINTS ────
-        elif self.path == "/health":
+        elif path == "/health":
             self._handle_health_endpoint()
-        elif self.path == "/metrics":
+        elif path == "/metrics":
             self._handle_metrics_endpoint()
-        elif self.path == "/metrics/cache":
+        elif path == "/metrics/cache":
             self._handle_cache_metrics_endpoint()
-        elif self.path == "/learning/status":
+        elif path == "/learning/status":
             self._handle_learning_status_endpoint()
+        elif path == "/api/swarm-status":
+            self._handle_swarm_status_endpoint()
+        elif path == "/api/accounts":
+            self._handle_codex_accounts_endpoint()
+        elif path == "/api/codex/slots":
+            self._handle_codex_slots_endpoint()
+        elif path == "/api/codex/jobs":
+            self._handle_codex_jobs_endpoint(query)
+        elif path == "/api/codex/queue":
+            self._handle_codex_queue_endpoint()
+        elif path == "/api/codex/health":
+            self._handle_codex_health_endpoint()
+        elif path == "/api/agents/health":
+            self._handle_agents_health_endpoint()
+        elif path == "/api/codex/audit":
+            self._handle_codex_audit_endpoint()
+        elif path == "/api/codex/result":
+            self._handle_codex_result_endpoint(query)
+        elif path == "/api/codex/status":
+            self._handle_codex_status_endpoint()
+        elif path == "/api/persona/active":
+            self._handle_persona_active_endpoint()
         else:
             self.send_error(404)
 
     def do_POST(self):
-        if self.path == "/api/chat":
+        parsed = urlparse(self.path)
+        path = parsed.path
+
+        if path == "/api/chat":
             try:
                 length = int(self.headers.get("Content-Length", 0))
                 body = json.loads(self.rfile.read(length))
@@ -2514,7 +3524,11 @@ refreshRuntimeStatus();
                 )
             except Exception as e:
                 self._json({"error": str(e)}, 500)
-        elif self.path == "/command":
+        elif path == "/agent":
+            self._handle_agent_endpoint()
+        elif path == "/api/persona/switch":
+            self._handle_persona_switch_endpoint()
+        elif path == "/command":
             try:
                 length = int(self.headers.get("Content-Length", 0))
                 body = json.loads(self.rfile.read(length) or b"{}")
@@ -2544,39 +3558,82 @@ refreshRuntimeStatus();
                         args_text = args["args"]
                     else:
                         args_text = json.dumps(args, ensure_ascii=False)
+                elif isinstance(body.get("data"), dict) and body["data"]:
+                    args_text = json.dumps(body["data"], ensure_ascii=False)
 
                 result = handle_command(chat_id, f"{command} {args_text}".strip())
                 self._json({"ok": True, "result": result})
             except Exception as e:
                 self._json({"ok": False, "error": str(e)}, 500)
+        elif path == "/api/cloud/ec2/action":
+            self._handle_cloud_ec2_action_endpoint()
+        elif path == "/api/accounts/update":
+            self._handle_codex_accounts_update_endpoint()
+        elif path == "/api/codex/dispatch":
+            self._handle_codex_dispatch_endpoint()
+        elif path == "/api/codex/control":
+            self._handle_codex_control_endpoint()
         else:
             self.send_error(404)
 
     # ──── WEEK 2: NEW ENDPOINT HANDLERS ────
     def _handle_health_endpoint(self):
         """GET /health - System health status"""
+        router_snapshot = get_router_health_snapshot()
+        live_payload = get_orchestrator_live_payload(event_limit=10)
+
         if not MONITORING_ENABLED or HEALTH_CHECKER is None:
             # Fallback health response if monitoring not available
             health_data = {
-                "status": "healthy",
+                "status": _merge_health_status(
+                    _merge_health_status("healthy", str(router_snapshot.get("status", "healthy"))),
+                    str(live_payload.get("status", "healthy")),
+                ),
                 "timestamp": datetime.now().isoformat(),
                 "components": {
                     "logs_writable": True,
                     "bridge_running": True,
+                    "model_router_enabled": bool(router_snapshot.get("enabled", False)),
+                    "model_router_ready": str(router_snapshot.get("status", "")).lower() in {"healthy", "degraded"},
                 },
-                "warning": "Monitoring modules disabled"
+                "warning": "Monitoring modules disabled",
+                "runtime_label": str(CONFIG["runtime_label"]),
+                "provider_health": router_snapshot.get("providers", {}),
+                "router": router_snapshot,
+                "route_trace": router_snapshot.get("active", {}),
+                "live": live_payload,
             }
-            self._json(health_data, 200)
+            status_code = 200 if health_data["status"] == "healthy" else 503
+            self._json(health_data, status_code)
             return
 
         # Use HealthChecker for comprehensive status
+        metrics_data = METRICS_COLLECTOR.get_stats(time_window_minutes=60) if METRICS_COLLECTOR else None
         health_status = HEALTH_CHECKER.get_status(
-            metrics_data=METRICS_COLLECTOR.get_stats(time_window_minutes=60) if METRICS_COLLECTOR else None
+            metrics_data=metrics_data
         )
         response, status_code = HEALTH_CHECKER.get_health_endpoint_response(
             include_metrics=True,
-            metrics_data=METRICS_COLLECTOR.get_stats(time_window_minutes=60) if METRICS_COLLECTOR else None
+            metrics_data=metrics_data
         )
+        response["status"] = _merge_health_status(
+            _merge_health_status(
+                str(response.get("status", "healthy")),
+                str(router_snapshot.get("status", "healthy")),
+            ),
+            str(live_payload.get("status", "healthy")),
+        )
+        if response["status"] != "healthy":
+            status_code = 503
+        components = response.get("components")
+        if isinstance(components, dict):
+            components["model_router_enabled"] = bool(router_snapshot.get("enabled", False))
+            components["model_router_ready"] = str(router_snapshot.get("status", "")).lower() in {"healthy", "degraded"}
+        response["runtime_label"] = str(CONFIG["runtime_label"])
+        response["provider_health"] = router_snapshot.get("providers", {})
+        response["router"] = router_snapshot
+        response["route_trace"] = router_snapshot.get("active", {})
+        response["live"] = live_payload
         self._json(response, status_code)
         log.debug(f"Health check: {health_status.status}")
 
@@ -2598,6 +3655,7 @@ refreshRuntimeStatus();
                 # Include memory stats from bridge
                 "memory_stats": memory.data.get("stats", {}),
                 "total_queries": memory.data.get("stats", {}).get("total_queries", 0),
+                "live": get_orchestrator_live_payload(event_limit=10),
             }
             self._json(metrics_response, 200)
             log.debug("Metrics endpoint accessed")
@@ -2664,6 +3722,343 @@ refreshRuntimeStatus();
             log.error(f"Error retrieving learning status: {e}")
             self._json({"error": str(e)}, 500)
 
+    # ──── SWARM & CODEX CONTROL PLANE ENDPOINTS ────
+
+    def _handle_swarm_status_endpoint(self):
+        """GET /api/swarm-status - 7 clone agent aktiflik durumu"""
+        try:
+            state_dir = Path(__file__).parent.parent / "state" / "codex-accounts"
+            active_agents = []
+            slots = ["atlas", "forge", "nexus", "shield", "spark", "seda", "mert", "buse", "eren", "luna", "sabrican", "sabri"]
+            runtime_slots = {}
+            for slot in slots:
+                slot_file = state_dir / f"{slot}.json"
+                if slot_file.exists():
+                    try:
+                        data = json.loads(slot_file.read_text(encoding="utf-8"))
+                        status = data.get("status", "idle")
+                        runtime_slots[slot] = status
+                        if status in ("running", "active"):
+                            active_agents.append(slot)
+                    except Exception:
+                        runtime_slots[slot] = "unknown"
+            
+            speaking_state = {}
+            speaking_file = Path(__file__).parent.parent / "state" / "swarm_speaking_state.json"
+            if speaking_file.exists():
+                try:
+                    speaking_state = json.loads(speaking_file.read_text(encoding="utf-8"))
+                except Exception:
+                    pass
+
+            self._json({
+                "active": active_agents,
+                "active_agents": active_agents,
+                "slots": runtime_slots,
+                "speaking": speaking_state.get("speaking"),
+                "text": speaking_state.get("text", ""),
+                "ceo_phase": speaking_state.get("ceo_phase", "idle"),
+                "dialogue_active": speaking_state.get("dialogue_active", False),
+                "participants": speaking_state.get("participants", []),
+                "timestamp": datetime.now().isoformat()
+            })
+        except Exception as e:
+            log.error(f"swarm-status error: {e}")
+            self._json({
+                "active": [], "active_agents": [], "slots": {},
+                "speaking": None, "text": "", "ceo_phase": "idle",
+                "dialogue_active": False, "participants": []
+            })
+
+    def _handle_codex_accounts_endpoint(self):
+        """GET /api/accounts - operator metadata (secrets olmadan)"""
+        try:
+            self._json(_build_codex_accounts_payload())
+        except Exception as e:
+            log.error(f"accounts endpoint error: {e}")
+            self._json({"error": "internal error"}, 500)
+
+    def _handle_codex_accounts_update_endpoint(self):
+        """POST /api/accounts/update - operator metadata mutasyonu"""
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length) or b"{}")
+            payload, status_code = _update_codex_account_payload(
+                str(body.get("account_id") or "").strip(),
+                str(body.get("field") or "").strip(),
+                body.get("value"),
+            )
+            self._json(payload, status_code)
+        except Exception as e:
+            log.error(f"accounts/update error: {e}")
+            self._json({"ok": False, "error": "internal error"}, 500)
+
+    def _handle_codex_status_endpoint_legacy(self):
+        """GET /api/codex/status - job queue + quota özeti"""
+        try:
+            state_dir = Path(__file__).parent.parent / "state" / "codex-accounts"
+            # Job queue
+            job_file = state_dir / "job_queue.json"
+            jobs = []
+            if job_file.exists():
+                raw = json.loads(job_file.read_text(encoding="utf-8"))
+                for j in raw.get("jobs", [])[-10:]:
+                    jobs.append({
+                        "id": j.get("id"),
+                        "task": j.get("task", "")[:80],
+                        "status": j.get("status"),
+                        "created_at": j.get("created_at"),
+                        "finished_at": j.get("finished_at"),
+                        "slots": j.get("selected_slots", []),
+                    })
+            # Quota
+            quota_file = state_dir / "quota.json"
+            quotas = {}
+            if quota_file.exists():
+                quotas = json.loads(quota_file.read_text(encoding="utf-8"))
+            # Runtime slots
+            slots = ["atlas", "forge", "nexus", "shield", "spark"]
+            runtime_slots = {}
+            for slot in slots:
+                sf = state_dir / f"{slot}.json"
+                if sf.exists():
+                    try:
+                        d = json.loads(sf.read_text(encoding="utf-8"))
+                        runtime_slots[slot] = {"status": d.get("status", "idle")}
+                    except Exception:
+                        runtime_slots[slot] = {"status": "unknown"}
+            self._json({
+                "jobs": jobs,
+                "queue": {"total": len(jobs)},
+                "quotas": quotas,
+                "runtime_slots": runtime_slots,
+            })
+        except Exception as e:
+            log.error(f"codex/status error: {e}")
+            self._json({"error": "internal error"}, 500)
+
+    def _handle_codex_result_endpoint_legacy(self):
+        """GET /api/codex/result?job_id=... - tek job sonucu"""
+        try:
+            from urllib.parse import urlparse, parse_qs
+            parsed = urlparse(self.path)
+            params = parse_qs(parsed.query)
+            job_id = params.get("job_id", [None])[0]
+            if not job_id:
+                self._json({"ok": False, "error": "job_id required"}, 400)
+                return
+            state_dir = Path(__file__).parent.parent / "state" / "codex-accounts"
+            job_file = state_dir / "job_queue.json"
+            if not job_file.exists():
+                self._json({"ok": False, "error": "job not found"}, 404)
+                return
+            raw = json.loads(job_file.read_text(encoding="utf-8"))
+            for j in raw.get("jobs", []):
+                if j.get("id") == job_id:
+                    result = None
+                    for agent_data in j.get("agents", {}).values():
+                        if agent_data.get("output"):
+                            result = str(agent_data["output"])[:500]
+                            break
+                    self._json({"ok": True, "job_id": job_id, "result": result or j.get("status")})
+                    return
+            self._json({"ok": False, "error": "job not found"}, 404)
+        except Exception as e:
+            log.error(f"codex/result error: {e}")
+            self._json({"error": "internal error"}, 500)
+
+    def _handle_codex_status_endpoint(self):
+        """GET /api/codex/status - job queue + quota ozeti"""
+        try:
+            self._json(_build_codex_status_payload(limit=10))
+        except Exception as e:
+            log.error(f"codex/status error: {e}")
+            self._json({"error": "internal error"}, 500)
+
+    def _handle_codex_slots_endpoint(self):
+        try:
+            self._json(_build_codex_slots_payload())
+        except Exception as e:
+            log.error(f"codex/slots error: {e}")
+            self._json({"error": "internal error"}, 500)
+
+    def _handle_codex_jobs_endpoint(self, query: dict[str, list[str]]):
+        try:
+            status = (query.get("status") or [None])[0]
+            slot_id = (query.get("slot_id") or [None])[0]
+            self._json(_build_codex_jobs_payload(status=status, slot_id=slot_id, limit=100))
+        except Exception as e:
+            log.error(f"codex/jobs error: {e}")
+            self._json({"error": "internal error"}, 500)
+
+    def _handle_codex_queue_endpoint(self):
+        try:
+            self._json(_build_codex_queue_payload())
+        except Exception as e:
+            log.error(f"codex/queue error: {e}")
+            self._json({"error": "internal error"}, 500)
+
+    def _handle_codex_health_endpoint(self):
+        try:
+            self._json(_build_codex_health_payload())
+        except Exception as e:
+            log.error(f"codex/health error: {e}")
+            self._json({"error": "internal error"}, 500)
+
+    def _handle_agents_health_endpoint(self):
+        try:
+            self._json(_build_agents_health_payload())
+        except Exception as e:
+            log.error(f"agents/health error: {e}")
+            self._json({"error": str(e)}, 500)
+
+    def _handle_codex_audit_endpoint(self):
+        try:
+            self._json(_build_codex_audit_payload(limit=50))
+        except Exception as e:
+            log.error(f"codex/audit error: {e}")
+            self._json({"error": "internal error"}, 500)
+
+    def _handle_agent_endpoint(self):
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length) or b"{}")
+            if not isinstance(body, dict):
+                self._json({"ok": False, "error": "JSON object body is required."}, 400)
+                return
+
+            agent_name = str(body.get("agent") or "").strip().lower()
+            task = str(body.get("task") or "").strip()
+            context = body.get("context") or {}
+            wrapped = bool(body.get("wrapped_response"))
+
+            if wrapped:
+                result = _run_canonical_agent(agent_name, task, context)
+                status_code = 200
+                if not result.get("ok"):
+                    error_text = str(result.get("error") or "").lower()
+                    if "unknown agent" in error_text:
+                        status_code = 404
+                    elif "required" in error_text or "context must be an object" in error_text:
+                        status_code = 400
+                    else:
+                        status_code = 500
+                self._json(result, status_code)
+                return
+
+            runtime = _get_canonical_runtime()
+            if runtime is not None:
+                payload, status_code = runtime.handle_agent_request(body)
+                self._json(payload, status_code)
+                return
+
+            result = _run_canonical_agent(agent_name, task, context)
+            status_code = 200 if result.get("ok") else 500
+            error_text = str(result.get("error") or "").lower()
+            if "unknown agent" in error_text:
+                status_code = 404
+            elif "required" in error_text or "context must be an object" in error_text:
+                status_code = 400
+            self._json(result, status_code)
+        except Exception as e:
+            log.error(f"/agent error: {e}")
+            self._json({"ok": False, "error": "internal error"}, 500)
+
+    def _handle_codex_result_endpoint(self, query: dict[str, list[str]]):
+        """GET /api/codex/result?job_id=... - tek job sonucu"""
+        try:
+            job_id = (query.get("job_id") or [None])[0]
+            if not job_id:
+                self._json({"ok": False, "error": "job_id required"}, 400)
+                return
+            payload, status_code = _build_codex_result_payload(str(job_id))
+            self._json(payload, status_code)
+        except Exception as e:
+            log.error(f"codex/result error: {e}")
+            self._json({"error": "internal error"}, 500)
+
+    def _handle_codex_dispatch_endpoint(self):
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length) or b"{}")
+            task_description = str(body.get("task_description") or "").strip()
+            role = str(body.get("role") or "").strip() or None
+            priority = int(body.get("priority") or 5)
+            if not task_description:
+                self._json({"ok": False, "error": "task_description required"}, 400)
+                return
+            result = _dispatch_codex_job(task_description=task_description, role=role, priority=priority)
+            self._json(result, 200 if result.get("ok") else 400)
+        except Exception as e:
+            log.error(f"codex/dispatch error: {e}")
+            self._json({"ok": False, "error": "internal error"}, 500)
+
+    def _handle_codex_control_endpoint(self):
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length) or b"{}")
+            action = str(body.get("action") or "").strip().lower()
+            slot_id = str(body.get("slot_id") or "").strip() or None
+            job_id = str(body.get("job_id") or "").strip() or None
+            result = _control_codex_plane(action=action, slot_id=slot_id, job_id=job_id)
+            self._json(result, 200 if result.get("ok") else 400)
+        except Exception as e:
+            log.error(f"codex/control error: {e}")
+            self._json({"ok": False, "error": "internal error"}, 500)
+
+    def _handle_cloud_ec2_endpoint(self):
+        try:
+            payload = _load_cloud_modules()["list_instances"]()
+            self._json(payload, _cloud_status_code(payload))
+        except Exception as e:
+            log.error(f"cloud/ec2 error: {e}")
+            self._json({"ok": False, "error": "internal error"}, 500)
+
+    def _handle_cloud_s3_endpoint(self):
+        try:
+            payload = _load_cloud_modules()["list_buckets"]()
+            self._json(payload, _cloud_status_code(payload))
+        except Exception as e:
+            log.error(f"cloud/s3 error: {e}")
+            self._json({"ok": False, "error": "internal error"}, 500)
+
+    def _handle_cloud_cost_endpoint(self):
+        try:
+            payload = _load_cloud_modules()["get_monthly_cost"]()
+            self._json(payload, _cloud_status_code(payload))
+        except Exception as e:
+            log.error(f"cloud/cost error: {e}")
+            self._json({"ok": False, "error": "internal error"}, 500)
+
+    def _handle_cloud_alerts_endpoint(self):
+        try:
+            payload = _load_cloud_modules()["get_budget_alerts"]()
+            self._json(payload, _cloud_status_code(payload))
+        except Exception as e:
+            log.error(f"cloud/alerts error: {e}")
+            self._json({"ok": False, "error": "internal error"}, 500)
+
+    def _handle_cloud_ec2_action_endpoint(self):
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length) or b"{}")
+            instance_id = str(body.get("instance_id", "") or "").strip()
+            action = str(body.get("action", "") or "").strip().lower()
+
+            if not instance_id:
+                self._json({"ok": False, "error": "instance_id required"}, 400)
+                return
+            if action not in {"start", "stop"}:
+                self._json({"ok": False, "error": "action must be start or stop"}, 400)
+                return
+
+            modules = _load_cloud_modules()
+            payload = modules["start_instance"](instance_id) if action == "start" else modules["stop_instance"](instance_id)
+            self._json(payload, _cloud_status_code(payload))
+        except Exception as e:
+            log.error(f"cloud/ec2/action error: {e}")
+            self._json({"ok": False, "error": "internal error"}, 500)
+
     def _json(self, data, code=200):
         body = json.dumps(data, ensure_ascii=False).encode("utf-8")
         self.send_response(code)
@@ -2672,12 +4067,1112 @@ refreshRuntimeStatus();
         self.end_headers()
         self.wfile.write(body)
 
+
+def _handle_crewai_command(chat_id: int, args: str) -> str:
+    try:
+        from crewai_skill import run_crewai
+
+        return run_crewai(args.strip())
+    except ModuleNotFoundError:
+        return "Skill henüz kurulu değil"
+    except Exception as exc:
+        log.exception("CrewAI command failed")
+        return f"Hata: {exc}"
+
+
+def _handle_openhands_command(chat_id: int, args: str) -> str:
+    try:
+        from openhands_skill import run_openhands
+
+        return run_openhands(args.strip())
+    except ModuleNotFoundError:
+        return "Skill henüz kurulu değil"
+    except Exception as exc:
+        log.exception("OpenHands command failed")
+        return f"Hata: {exc}"
+
+
+def _handle_upondhand_command(chat_id: int, args: str) -> str:
+    try:
+        from upondhand_skill import run_upondhand
+
+        return run_upondhand(args.strip())
+    except ModuleNotFoundError:
+        return "Skill henuz kurulu degil"
+    except Exception as exc:
+        log.exception("upondhand command failed")
+        return f"Hata: {exc}"
+
+
+_CODEX_SLOT_META = {
+    "atlas": {"label": "ATLAS", "role": "Manager/Core"},
+    "forge": {"label": "FORGE", "role": "Backend Ops"},
+    "nexus": {"label": "NEXUS", "role": "Voice + Hologram"},
+    "shield": {"label": "SHIELD", "role": "Security / Audit"},
+    "spark": {"label": "SPARK", "role": "Web UI / Frontend"},
+}
+_CODEX_SLOT_ORDER = ["atlas", "forge", "nexus", "shield", "spark"]
+_CODEX_MUTABLE_FIELDS = {"status", "daily_limit", "weekly_limit", "remaining_estimate", "notes"}
+
+
+def _strip_wrapping_quotes(value: str) -> str:
+    text = str(value or "").strip()
+    if len(text) >= 2 and text[0] == text[-1] and text[0] in {'"', "'"}:
+        return text[1:-1].strip()
+    return text
+
+
+def _build_codex_runtime_slots() -> list[dict[str, object]]:
+    try:
+        from account_manager import get_account_manager
+    except Exception:
+        from server.account_manager import get_account_manager  # type: ignore
+
+    try:
+        from codex_quota_tracker import get_all_quotas
+    except Exception:
+        from server.codex_quota_tracker import get_all_quotas  # type: ignore
+
+    try:
+        from codex_job_manager import get_queue_stats
+    except Exception:
+        from server.codex_job_manager import get_queue_stats  # type: ignore
+
+    account_manager = get_account_manager()
+    codex_status = account_manager.get_status().get("codex", {})
+    runtime_accounts = {
+        str(item.get("runtime_slot") or "").strip(): item
+        for item in codex_status.get("accounts", [])
+        if isinstance(item, dict) and str(item.get("runtime_slot") or "").strip()
+    }
+    quotas = get_all_quotas()
+    queue = get_queue_stats()
+    slot_stats = queue.get("slots", {}) if isinstance(queue, dict) else {}
+
+    records: list[dict[str, object]] = []
+    for slot in _CODEX_SLOT_ORDER:
+        meta = _CODEX_SLOT_META[slot]
+        account = runtime_accounts.get(slot, {})
+        quota = quotas.get(slot, {}) if isinstance(quotas, dict) else {}
+        stats = slot_stats.get(slot, {}) if isinstance(slot_stats, dict) else {}
+        remaining_pct = int(quota.get("remaining_pct") or 0)
+        records.append(
+            {
+                "slot": slot,
+                "label": meta["label"],
+                "role": meta["role"],
+                "status": str(account.get("status") or "unknown"),
+                "runtime_account_id": account.get("runtime_account_id"),
+                "operator_label": account.get("operator_label"),
+                "last_seen": account.get("last_used") or account.get("last_synced_at") or "-",
+                "daily_limit": int(quota.get("daily_limit") or 0),
+                "weekly_limit": int(quota.get("weekly_limit") or 0),
+                "daily_used": int(quota.get("daily_used") or 0),
+                "weekly_used": int(quota.get("weekly_used") or 0),
+                "remaining_pct": remaining_pct,
+                "remaining_estimate": f"%{remaining_pct}",
+                "cooldown_until": quota.get("cooldown_until"),
+                "exhausted": remaining_pct <= 0,
+                "running": int(stats.get("running") or 0),
+                "queued": int(stats.get("queued") or 0),
+                "done": int(stats.get("done") or 0),
+                "failed": int(stats.get("failed") or 0),
+                "total_jobs": int(stats.get("total") or 0),
+            }
+        )
+    return records
+
+
+def _build_codex_accounts_payload() -> dict[str, object]:
+    try:
+        from skills.account_monitor import get_public_account_registry
+    except Exception:
+        try:
+            from account_monitor import get_public_account_registry
+        except Exception:
+            from server.skills.account_monitor import get_public_account_registry  # type: ignore
+
+    registry = get_public_account_registry()
+    accounts = registry.get("accounts", []) if isinstance(registry, dict) else []
+    return {"accounts": accounts}
+
+
+def _redact_codex_payload(data: object) -> object:
+    try:
+        from account_manager import get_account_manager
+    except Exception:
+        from server.account_manager import get_account_manager  # type: ignore
+
+    return get_account_manager()._redact_sensitive(data)
+
+
+def _build_codex_jobs_payload(status: str | None = None, slot_id: str | None = None, limit: int = 100) -> dict[str, object]:
+    try:
+        from codex_job_manager import get_job_manager
+    except Exception:
+        from server.codex_job_manager import get_job_manager  # type: ignore
+
+    jobs = []
+    for item in get_job_manager().list_jobs(status=status, slot_id=slot_id, limit=min(max(int(limit or 0), 0), 100)):
+        if not isinstance(item, dict):
+            continue
+        jobs.append(
+            {
+                "job_id": item.get("id"),
+                "status": item.get("status"),
+                "priority": item.get("priority", 5),
+                "role": item.get("type"),
+                "slot_id": item.get("slot_id"),
+                "worktree": item.get("worktree"),
+                "task": {"description": item.get("task"), "type": item.get("type"), "payload": {}},
+                "task_description": item.get("task"),
+                "requested_slots": item.get("requested_slots", []),
+                "selected_slots": item.get("selected_slots", []),
+                "failure_reason": item.get("failure_reason"),
+                "started_at": item.get("started_at"),
+                "completed_at": item.get("finished_at"),
+                "dispatch_after": item.get("dispatch_after"),
+                "output_summary": item.get("result_summary"),
+            }
+        )
+    return _redact_codex_payload({"jobs": jobs})
+
+
+def _build_codex_queue_payload() -> dict[str, object]:
+    payload = _build_codex_jobs_payload(status="pending", limit=100)
+    jobs = payload.get("jobs", []) if isinstance(payload, dict) else []
+    return {"jobs": jobs}
+
+
+def _build_codex_slots_payload() -> dict[str, object]:
+    try:
+        from account_manager import get_account_manager
+    except Exception:
+        from server.account_manager import get_account_manager  # type: ignore
+    try:
+        from codex_job_manager import get_job_manager
+    except Exception:
+        from server.codex_job_manager import get_job_manager  # type: ignore
+    try:
+        from codex_orchestrator import get_cooldown_state
+    except Exception:
+        from server.codex_orchestrator import get_cooldown_state  # type: ignore
+
+    slots = get_account_manager().list_slots()
+    jobs = get_job_manager().list_jobs(limit=500)
+    cooldowns = get_cooldown_state()
+    records: list[dict[str, object]] = []
+
+    for slot in slots:
+        slot_id = str(slot.get("slot_id") or "").strip().lower()
+        slot_jobs = [job for job in jobs if str(job.get("slot_id") or "").strip().lower() == slot_id]
+        current_job = next((job for job in slot_jobs if str(job.get("status") or "").strip().lower() == "running"), None)
+        completed_jobs = [job for job in slot_jobs if str(job.get("status") or "").strip().lower() in {"done", "failed", "cancelled"}]
+        fail_count = sum(1 for job in slot_jobs if str(job.get("status") or "").strip().lower() == "failed")
+        cooldown = cooldowns.get(slot_id, {}) if isinstance(cooldowns, dict) else {}
+        cooldown_remaining = int(cooldown.get("remaining_seconds") or 0) if isinstance(cooldown, dict) else 0
+
+        status = "idle"
+        effective_status = str(slot.get("effective_status") or slot.get("status") or "").strip().lower()
+        if current_job:
+            status = "active"
+        elif cooldown_remaining > 0:
+            status = "cooldown"
+        elif effective_status in {"inactive", "failed", "quota_exceeded", "limited", "rate_limited", "pending_login", "offline"}:
+            status = "disabled"
+
+        records.append(
+            {
+                "slot_id": slot_id,
+                "label": slot.get("label"),
+                "role": slot.get("role"),
+                "status": status,
+                "quota_estimate": slot.get("quota_estimate"),
+                "is_available": slot.get("is_available"),
+                "current_job": {
+                    "job_id": current_job.get("id"),
+                    "description": current_job.get("task"),
+                    "started_at": current_job.get("started_at"),
+                    "duration_seconds": current_job.get("duration_seconds"),
+                }
+                if current_job
+                else None,
+                "last_completion": completed_jobs[0].get("finished_at") if completed_jobs else slot.get("last_completion"),
+                "fail_count": fail_count,
+                "cooldown_remaining": cooldown_remaining,
+                "cooldown_until": slot.get("cooldown_until") or (cooldown.get("until") if isinstance(cooldown, dict) else None),
+            }
+        )
+
+    return _redact_codex_payload({"slots": records})
+
+
+def _build_codex_health_payload() -> dict[str, object]:
+    try:
+        from codex_health import CodexHealthWatcher
+    except Exception:
+        from server.codex_health import CodexHealthWatcher  # type: ignore
+    try:
+        from codex_job_manager import get_job_manager
+    except Exception:
+        from server.codex_job_manager import get_job_manager  # type: ignore
+    try:
+        from codex_orchestrator import get_cooldown_state
+    except Exception:
+        from server.codex_orchestrator import get_cooldown_state  # type: ignore
+
+    slot_records = _build_codex_slots_payload().get("slots", [])
+    stuck_jobs = get_job_manager().find_stuck_jobs(timeout_minutes=30)
+    cooldowns = get_cooldown_state()
+    health_slots = []
+    for slot in slot_records if isinstance(slot_records, list) else []:
+        if not isinstance(slot, dict):
+            continue
+        quota_text = str(slot.get("quota_estimate") or "").strip().replace("%", "").replace("~", "")
+        quota_value = int(float(quota_text)) if quota_text.replace(".", "", 1).isdigit() else 0
+        health_score = 100
+        if str(slot.get("status") or "") == "disabled":
+            health_score -= 60
+        if str(slot.get("status") or "") == "cooldown":
+            health_score -= 30
+        health_score -= min(int(slot.get("fail_count") or 0) * 10, 40)
+        health_score = min(max(health_score + min(quota_value, 100) // 10, 0), 100)
+        health_slots.append(
+            {
+                "slot_id": slot.get("slot_id"),
+                "health_score": health_score,
+                "status": slot.get("status"),
+                "quota_estimate": slot.get("quota_estimate"),
+                "cooldown": cooldowns.get(slot.get("slot_id")) if isinstance(cooldowns, dict) else None,
+            }
+        )
+
+    return _redact_codex_payload({"slots": health_slots, "stuck_jobs": stuck_jobs, "cooldowns": cooldowns})
+
+
+def _build_codex_audit_payload(limit: int = 50) -> dict[str, object]:
+    try:
+        from codex_orchestrator import read_dispatch_audit
+    except Exception:
+        from server.codex_orchestrator import read_dispatch_audit  # type: ignore
+
+    return _redact_codex_payload({"entries": read_dispatch_audit(limit=min(max(int(limit or 0), 0), 50))})
+
+
+def _dispatch_codex_job(*, task_description: str, role: str | None, priority: int) -> dict[str, object]:
+    try:
+        from codex_orchestrator import dispatch_job
+    except Exception:
+        from server.codex_orchestrator import dispatch_job  # type: ignore
+
+    result = dispatch_job(task_description, role=role, priority=priority)
+    selected_slots = result.get("selected_slots") or []
+    return _redact_codex_payload(
+        {
+            "ok": bool(result.get("ok")),
+            "job_id": result.get("job_id"),
+            "slot_id": selected_slots[0] if selected_slots else None,
+            "status": "pending",
+            "message": result.get("message"),
+        }
+    )
+
+
+def _control_codex_plane(*, action: str, slot_id: str | None, job_id: str | None) -> dict[str, object]:
+    try:
+        from account_manager import get_account_manager
+    except Exception:
+        from server.account_manager import get_account_manager  # type: ignore
+    try:
+        from codex_job_manager import get_job_manager
+    except Exception:
+        from server.codex_job_manager import get_job_manager  # type: ignore
+    try:
+        import codex_orchestrator as codex_orchestrator_module
+    except Exception:
+        import server.codex_orchestrator as codex_orchestrator_module  # type: ignore
+
+    manager = get_job_manager()
+    account_manager = get_account_manager()
+
+    if action == "drain" and slot_id:
+        codex_orchestrator_module.set_cooldown(slot_id, minutes=10, reason="drain")
+        return {"ok": True, "message": f"{slot_id} drain moduna alindi."}
+    if action == "pause" and slot_id:
+        codex_orchestrator_module.set_cooldown(slot_id, minutes=15, reason="pause")
+        return {"ok": True, "message": f"{slot_id} pause moduna alindi."}
+    if action == "disable" and slot_id:
+        account_manager.set_slot_status(slot_id, "inactive")
+        codex_orchestrator_module.set_cooldown(slot_id, minutes=60, reason="disabled")
+        return {"ok": True, "message": f"{slot_id} disable edildi."}
+    if action == "retry" and job_id:
+        retried = manager.retry_job(job_id)
+        if retried is None:
+            return {"ok": False, "message": "Job bulunamadi."}
+        selected_slot = codex_orchestrator_module.dispatch(job_id)
+        if selected_slot:
+            codex_orchestrator_module._spawn_slot_thread(job_id, selected_slot, str(retried.get("task") or ""))
+        return {"ok": True, "message": f"{job_id} retry edildi.", "slot_id": selected_slot}
+    if action == "cancel" and job_id:
+        cancelled = manager.cancel_job(job_id)
+        if cancelled is None:
+            return {"ok": False, "message": "Job bulunamadi."}
+        return {"ok": True, "message": f"{job_id} iptal edildi."}
+    if action == "stop_all":
+        return {"ok": True, "message": str(codex_orchestrator_module.stop_all() or "").strip() or "Aktif Codex isi yok."}
+    if action == "clear_cooldowns":
+        codex_orchestrator_module.clear_cooldown()
+        return {"ok": True, "message": "Tum cooldown kayitlari temizlendi."}
+    return {"ok": False, "message": "unsupported action"}
+
+
+def _build_codex_status_payload(limit: int = 10) -> dict[str, object]:
+    try:
+        from codex_orchestrator import get_status_payload
+    except Exception:
+        from server.codex_orchestrator import get_status_payload  # type: ignore
+    try:
+        from codex_workspace import WorkspaceManager
+    except Exception:
+        from server.codex_workspace import WorkspaceManager  # type: ignore
+
+    payload = get_status_payload(limit=limit)
+    payload["runtime_slots"] = _build_codex_runtime_slots()
+    payload["workspaces"] = WorkspaceManager().status()
+    return payload
+
+
+def _build_codex_result_payload(job_id: str) -> tuple[dict[str, object], int]:
+    try:
+        from codex_orchestrator import get_job_result_payload
+    except Exception:
+        from server.codex_orchestrator import get_job_result_payload  # type: ignore
+
+    result = get_job_result_payload(str(job_id or "").strip())
+    if result is None:
+        return {"ok": False, "error": "job_not_found", "job_id": str(job_id or "").strip()}, 404
+    return result, 200
+
+
+def _update_codex_account_payload(account_id: str, field: str, value: object) -> tuple[dict[str, object], int]:
+    field_name = str(field or "").strip()
+    if field_name not in _CODEX_MUTABLE_FIELDS:
+        return {"ok": False, "error": "unsupported_field"}, 400
+
+    try:
+        from skills.account_monitor import get_public_account_registry, update_account_field
+    except Exception:
+        try:
+            from account_monitor import get_public_account_registry, update_account_field
+        except Exception:
+            from server.skills.account_monitor import get_public_account_registry, update_account_field  # type: ignore
+
+    message = update_account_field(str(account_id or "").strip(), field_name, value)
+    payload = _build_codex_accounts_payload()
+    payload.update({"ok": True, "message": message})
+    return payload, 200
+
+
+def _parse_codex_dispatch_args(args: str) -> tuple[str | None, str]:
+    raw = _strip_wrapping_quotes(args)
+    if not raw:
+        return None, ""
+
+    parts = raw.split(maxsplit=1)
+    first = parts[0].strip().lower()
+    if first in {"auto", *_CODEX_SLOT_ORDER}:
+        task = _strip_wrapping_quotes(parts[1] if len(parts) > 1 else "")
+        return first, task
+    return None, raw
+
+
+def _truncate_telegram(text: str, limit: int = 400) -> str:
+    value = str(text or "").strip()
+    if len(value) <= limit:
+        return value
+    return value[: max(limit - 3, 0)].rstrip() + "..."
+
+
+def _handle_codex_command(chat_id: int, args: str, *, swarm: bool = False) -> str:
+    task = _strip_wrapping_quotes(args)
+    requested_slots = None
+
+    if not swarm:
+        explicit_slot, parsed_task = _parse_codex_dispatch_args(args)
+        task = parsed_task
+        if explicit_slot and explicit_slot != "auto":
+            requested_slots = [explicit_slot]
+
+    if not task:
+        if swarm:
+            return 'Kullanim: /codex-swarm "gorev"'
+        return 'Kullanim: /codex [auto|atlas|forge|nexus|shield|spark] "gorev"'
+
+    try:
+        from codex_orchestrator import dispatch_job
+    except Exception:
+        from server.codex_orchestrator import dispatch_job  # type: ignore
+
+    result = dispatch_job(task, swarm=swarm, requested_slots=requested_slots)
+    if not result.get("ok"):
+        return str(result.get("error") or "Codex dispatch basarisiz.")
+
+    job_id = str(result.get("job_id") or "-")
+    status = str(result.get("status") or "unknown")
+    selected_slots = result.get("selected_slots") or []
+    slot_text = ", ".join(str(slot).upper() for slot in selected_slots) if selected_slots else "BEKLEMEDE"
+    return f"Job: {job_id}\nDurum: {status}\nSlot: {slot_text}\n{result.get('message', '')}".strip()
+
+
+def _handle_codex_status_command(chat_id: int) -> str:
+    payload = _build_codex_status_payload(limit=10)
+    queue = payload.get("queue", {}) if isinstance(payload, dict) else {}
+    totals = queue.get("totals", {}) if isinstance(queue, dict) else {}
+    lines = [
+        "CODEX DURUM",
+        f"Kuyruk: {int(totals.get('queued') or 0)} | Calisan: {int(totals.get('running') or 0)} | Tamamlanan: {int(totals.get('done') or 0)} | Hata: {int(totals.get('failed') or 0)}",
+        "",
+    ]
+
+    for record in payload.get("runtime_slots", []):
+        if not isinstance(record, dict):
+            continue
+        lines.append(
+            f"- {record.get('label')} | {record.get('status')} | run:{record.get('running')} | queue:{record.get('queued')} | quota:{record.get('remaining_estimate')}"
+        )
+
+    recent_jobs = payload.get("jobs", []) if isinstance(payload, dict) else []
+    if recent_jobs:
+        lines.append("")
+        lines.append("Son Joblar:")
+        for job in recent_jobs[:5]:
+            if not isinstance(job, dict):
+                continue
+            lines.append(f"  {job.get('id')} [{job.get('status')}] {job.get('summary')}")
+
+    return "\n".join(lines).strip()
+
+
+def _handle_codex_queue_command(chat_id: int) -> str:
+    payload = _build_codex_queue_payload()
+    jobs = payload.get("jobs", []) if isinstance(payload, dict) else []
+    lines = [f"Kuyrukta {len(jobs)} is var:"]
+    for index, job in enumerate(jobs[:5], start=1):
+        if not isinstance(job, dict):
+            continue
+        lines.append(f"{index}. [{job.get('priority')}] [{job.get('role')}] {str(job.get('task_description') or '')[:48]}")
+    return _truncate_telegram("\n".join(lines))
+
+
+def _handle_codex_start_command(chat_id: int, args: str) -> str:
+    raw = _strip_wrapping_quotes(args)
+    parts = raw.split(maxsplit=1)
+    if len(parts) < 2:
+        return "Kullanim: /codex-baslat <role> <aciklama>"
+    role = parts[0].strip().lower()
+    description = _strip_wrapping_quotes(parts[1])
+    payload = _dispatch_codex_job(task_description=description, role=role, priority=5)
+    text = f"Is kuyruga eklendi: {payload.get('job_id')} — slot: {payload.get('slot_id') or '-'}"
+    return _truncate_telegram(text)
+
+
+def _handle_codex_health_command(chat_id: int) -> str:
+    payload = _build_codex_health_payload()
+    slots = payload.get("slots", []) if isinstance(payload, dict) else []
+    stuck_jobs = payload.get("stuck_jobs", []) if isinstance(payload, dict) else []
+    lines = [f"Health: {len(slots)} slot | stuck jobs: {len(stuck_jobs)}"]
+    for slot in slots[:5]:
+        if not isinstance(slot, dict):
+            continue
+        lines.append(f"- {slot.get('slot_id')}: {slot.get('health_score')} ({slot.get('status')})")
+    return _truncate_telegram("\n".join(lines))
+
+
+def _handle_codex_slots_command(chat_id: int) -> str:
+    return _handle_codex_accounts_command(chat_id)
+
+
+def _handle_codex_accounts_command(chat_id: int) -> str:
+    payload = _build_codex_slots_payload()
+    slots = payload.get("slots", []) if isinstance(payload, dict) else []
+    lines = []
+    for slot in slots[:5]:
+        if not isinstance(slot, dict):
+            continue
+        lines.append(f"- {slot.get('label')}: {slot.get('role')} | {slot.get('status')} | {slot.get('quota_estimate')}")
+    return _truncate_telegram("\n".join(lines) or "Slot verisi yok.")
+
+
+def _handle_codex_stop_command(chat_id: int) -> str:
+    try:
+        from codex_orchestrator import stop_all
+    except Exception:
+        from server.codex_orchestrator import stop_all  # type: ignore
+
+    result = str(stop_all() or "").strip()
+    if result.endswith(" job iptal edildi."):
+        count = result.split(" ", 1)[0]
+        result = f"{count} is iptal edildi."
+    return _truncate_telegram(result or "Aktif Codex isi yok.")
+
+
+def _handle_codex_clear_cooldowns_command(chat_id: int) -> str:
+    result = _control_codex_plane(action="clear_cooldowns", slot_id=None, job_id=None)
+    if result.get("ok"):
+        return "Cooldownlar temizlendi."
+    return _truncate_telegram(str(result.get("message") or "Cooldownlar temizlenemedi."))
+
+
+def _handle_codex_result_command(chat_id: int, args: str) -> str:
+    job_id = _strip_wrapping_quotes(args)
+    if not job_id:
+        return "Kullanim: /codex-sonuc [job_id]"
+    payload, status_code = _build_codex_result_payload(job_id)
+    if status_code >= 400:
+        return f"Job bulunamadi: {job_id}"
+    result = str(payload.get("result") or payload.get("summary") or "Sonuc yok.")
+    return f"Job {job_id}\n{result}".strip()
+
+
+def _handle_devika_command(chat_id: int, args: str) -> str:
+    try:
+        from devika_skill import run_devika
+
+        return run_devika(args.strip())
+    except ModuleNotFoundError:
+        return "Skill henüz kurulu değil"
+    except Exception as exc:
+        log.exception("Devika command failed")
+        return f"Hata: {exc}"
+
+
+def _handle_aider_command(chat_id: int, args: str) -> str:
+    try:
+        from aider_skill import run_aider
+
+        return run_aider(args.strip())
+    except ModuleNotFoundError:
+        return "Skill henüz kurulu değil"
+    except Exception as exc:
+        log.exception("Aider command failed")
+        return f"Hata: {exc}"
+
+
+def _handle_cline_command(chat_id: int, args: str) -> str:
+    try:
+        from cline_skill import run_cline
+
+        return run_cline(args.strip())
+    except ModuleNotFoundError:
+        return "Skill henüz kurulu değil"
+    except Exception as exc:
+        log.exception("Cline command failed")
+        return f"Hata: {exc}"
+
+
+def _handle_clawrouter_command(chat_id: int, args: str) -> str:
+    try:
+        from clawrouter_skill import run_clawrouter
+
+        return run_clawrouter(args.strip())
+    except ModuleNotFoundError:
+        return "Skill henüz kurulu değil"
+    except Exception as exc:
+        log.exception("ClawRouter command failed")
+        return f"Hata: {exc}"
+
+
+def _handle_cli_anything_command(chat_id: int, args: str) -> str:
+    if not _is_admin_chat(chat_id):
+        return "Bu komut sadece admin kullanicisi icin acik."
+    try:
+        from cli_anything_skill import run_cli_anything
+
+        return run_cli_anything(args.strip())
+    except ModuleNotFoundError:
+        return "Skill henüz kurulu değil"
+    except Exception as exc:
+        log.exception("CLI Anything command failed")
+        return f"Hata: {exc}"
+
+
+def _handle_claude_skills_command(chat_id: int, args: str) -> str:
+    try:
+        from claude_skills_skill import list_skills
+
+        return list_skills(args.strip())
+    except ModuleNotFoundError:
+        return "Skill henüz kurulu değil"
+    except Exception as exc:
+        log.exception("Claude skills command failed")
+        return f"Hata: {exc}"
+
+
+def _handle_agent_catalog_command(chat_id: int, args: str) -> str:
+    try:
+        from agent_catalog_skill import catalog_stats, search_agent
+
+        query = args.strip()
+        return search_agent(query) if query else catalog_stats()
+    except ModuleNotFoundError:
+        return "Skill henüz kurulu değil"
+    except Exception as exc:
+        log.exception("Agent catalog command failed")
+        return f"Hata: {exc}"
+
+
+def _handle_prompts_command(chat_id: int, args: str) -> str:
+    try:
+        from prompts_skill import list_prompts
+
+        return list_prompts(args.strip())
+    except ModuleNotFoundError:
+        return "Skill henüz kurulu değil"
+    except Exception as exc:
+        log.exception("Prompts command failed")
+        return f"Hata: {exc}"
+
+
+def _handle_speckit_command(chat_id: int, args: str) -> str:
+    try:
+        from speckit_skill import spec_list, spec_plan, spec_specify, spec_tasks
+
+        payload = args.strip()
+        if not payload:
+            return spec_list()
+
+        action, _, remainder = payload.partition(" ")
+        action_key = action.strip().lower()
+        feature = remainder.strip()
+
+        if action_key in {"list", "liste"}:
+            return spec_list()
+        if action_key in {"specify", "tanimla"}:
+            return spec_specify(feature)
+        if action_key in {"plan", "planla"}:
+            return spec_plan(feature)
+        if action_key in {"tasks", "gorevler"}:
+            return spec_tasks(feature)
+        return spec_specify(payload)
+    except ModuleNotFoundError:
+        return "Skill henüz kurulu değil"
+    except Exception as exc:
+        log.exception("SpecKit command failed")
+        return f"Hata: {exc}"
+
+
+def _handle_paperclip_command(chat_id: int, args: str) -> str:
+    try:
+        from paperclip_skill import run_paperclip
+
+        return run_paperclip(args.strip())
+    except ModuleNotFoundError:
+        return "Skill henüz kurulu değil"
+    except Exception as exc:
+        log.exception("Paperclip command failed")
+        return f"Hata: {exc}"
+
+
+def _handle_youtube_unified_command(chat_id: int, args: str) -> str:
+    try:
+        from youtube_unified_skill import list_backends, transcript_summary
+
+        query = args.strip()
+        return transcript_summary(query) if query else list_backends()
+    except ModuleNotFoundError:
+        return "Skill henüz kurulu değil"
+    except Exception as exc:
+        log.exception("YouTube unified command failed")
+        return f"Hata: {exc}"
+
+
+def _handle_claw_code_command(chat_id: int, args: str) -> str:
+    try:
+        from claw_code_skill import run_claw_code
+
+        return run_claw_code(args.strip())
+    except ModuleNotFoundError:
+        return "Skill henüz kurulu değil"
+    except Exception as exc:
+        log.exception("Claw code command failed")
+        return f"Hata: {exc}"
+
+
+def _handle_swarms_command(chat_id: int, args: str) -> str:
+    try:
+        from swarms_skill import swarms_run, swarms_status
+
+        query = args.strip()
+        return swarms_run(query) if query else swarms_status()
+    except ModuleNotFoundError:
+        return "Skill henüz kurulu değil"
+    except Exception as exc:
+        log.exception("Swarms command failed")
+        return f"Hata: {exc}"
+
+
+def _handle_hooks_command(chat_id: int, args: str) -> str:
+    if not _is_admin_chat(chat_id):
+        return "Bu komut sadece admin kullanicisi icin acik."
+    try:
+        from hooks_skill import add_hook, hooks_list_examples, hooks_status
+
+        payload = args.strip()
+        if not payload:
+            return hooks_status()
+
+        action, _, remainder = payload.partition(" ")
+        action_key = action.strip().lower()
+        rest = remainder.strip()
+
+        if action_key in {"durum", "status"}:
+            return hooks_status()
+        if action_key in {"liste", "ornek", "ornekler"}:
+            return hooks_list_examples()
+        if action_key in {"ekle", "add"}:
+            event, _, command = rest.partition(" ")
+            if not event.strip() or not command.strip():
+                return "Kullanim: /hooks ekle [pre|post|stop|prompt] [komut]"
+            return add_hook(event.strip(), command.strip())
+        return hooks_status()
+    except ModuleNotFoundError:
+        return "Skill henüz kurulu değil"
+    except Exception as exc:
+        log.exception("Hooks command failed")
+        return f"Hata: {exc}"
+
+
+def _handle_gemini_command(chat_id: int, args: str) -> str:
+    query = args.strip()
+    if not query:
+        return "Kullanim: /gemini [soru]"
+    try:
+        return MODEL_ROUTER.route("gemini", query)
+    except Exception as exc:
+        log.exception("Gemini command failed")
+        return f"Hata: {exc}"
+
+
+def _handle_deepseek_command(chat_id: int, args: str) -> str:
+    query = args.strip()
+    if not query:
+        return "Kullanim: /deepseek [soru]"
+    try:
+        return MODEL_ROUTER.route("deep", query)
+    except Exception as exc:
+        log.exception("Deepseek command failed")
+        return f"Hata: {exc}"
+
+
+def _handle_wiki_command(chat_id: int, args: str) -> str:
+    try:
+        from obsidian_sync_skill import run_wiki
+
+        return run_wiki(args.strip())
+    except ModuleNotFoundError:
+        return "Skill henüz kurulu değil"
+    except Exception as exc:
+        log.exception("Wiki command failed")
+        return f"Hata: {exc}"
+
+
+def _load_cloud_modules():
+    from server.skills.aws_cost_skill import get_budget_alerts, get_cost_trend, get_monthly_cost
+    from server.skills.aws_ec2_skill import get_instance_metrics, list_instances, reboot_instance, start_instance, stop_instance
+    from server.skills.aws_s3_skill import list_buckets
+
+    return {
+        "get_budget_alerts": get_budget_alerts,
+        "get_cost_trend": get_cost_trend,
+        "get_instance_metrics": get_instance_metrics,
+        "get_monthly_cost": get_monthly_cost,
+        "list_buckets": list_buckets,
+        "list_instances": list_instances,
+        "reboot_instance": reboot_instance,
+        "start_instance": start_instance,
+        "stop_instance": stop_instance,
+    }
+
+
+def _cloud_status_code(payload) -> int:
+    if isinstance(payload, dict) and payload.get("ok") is False:
+        return 500
+    return 200
+
+
+from server.skill_registry import SkillRegistry
+from server.skills.registry_entries.cloud_entries import register_cloud_skills
+from server.skills.registry_entries.help_entries import register_help_skill
+from server.skills.registry_entries.ops_entries import register_ops_skills
+
+# Legacy note: the original handle_command chain contained 81 elif branches before registry extraction.
+COMMAND_REGISTRY = SkillRegistry()
+register_cloud_skills(COMMAND_REGISTRY)
+register_help_skill(COMMAND_REGISTRY)
+register_ops_skills(
+    COMMAND_REGISTRY,
+    codex_handler=lambda args, ctx: _handle_codex_command(int((ctx or {}).get("chat_id", 0) or 0), args),
+    codex_swarm_handler=lambda args, ctx: _handle_codex_command(int((ctx or {}).get("chat_id", 0) or 0), args, swarm=True),
+    codex_status_handler=lambda args, ctx: _handle_codex_status_command(int((ctx or {}).get("chat_id", 0) or 0)),
+    codex_result_handler=lambda args, ctx: _handle_codex_result_command(int((ctx or {}).get("chat_id", 0) or 0), args),
+    wiki_handler=lambda args, ctx: _handle_wiki_command(int((ctx or {}).get("chat_id", 0) or 0), args),
+)
+
+
+_SPRINT45_HELP_LINES = """
+
+*Sprint 4 & 5 Komutlari:*
+  `/crew [gorev]` -> CrewAI repo/entegrasyon ozeti
+  `/openhands [gorev]` -> OpenHands gorev baslat
+  `/devika [gorev]` -> Devika repo/entegrasyon ozeti
+  `/aider [aciklama]` -> Aider pair-programming yardimi
+  `/cline [gorev]` -> Cline entegrasyon ozeti
+  `/route [model] [soru]` -> ClawRouter repo/route bilgisi
+  `/cli [komut]` -> CLI-Anything (admin)
+  `/claude_skills [kategori]` -> Claude skills listesi
+  `/catalog [arama]` -> Agent katalog arama
+  `/prompt [kategori]` -> Prompt katalog arama
+  `/spec [komut]` -> SpecKit specify/plan/tasks
+  `/sirket [komut]` -> Paperclip isletme runtime ozeti
+  `/ytunified [url]` -> Unified YouTube transcript
+  `/clawcode [gorev]` -> Claw Code repo ozeti
+  `/swarms [gorev]` -> Swarms framework gorevi
+  `/hooks [komut]` -> Claude hooks yonetimi (admin)
+  `/gemini [soru]` -> Gemini 2.0 Flash route
+  `/deepseek [soru]` -> DeepSeek route
+  `/codex [slot|auto] [gorev]` -> Codex job baslat
+  `/codex-swarm [gorev]` -> Coklu Codex slot dispatch
+  `/codex-durum` -> Codex slot ozeti
+  `/codex-kuyruk` -> Codex bekleyen isler
+  `/codex-saglik` -> Codex slot health ozeti
+  `/codex-baslat [role] [gorev]` -> Operator dispatch
+  `/codex-durdur` -> Tum aktif Codex islerini iptal et
+  `/codex-cooldown-temizle` -> Tum Codex cooldownlarini temizle
+  `/codex-sonuc [job_id]` -> Tek job cikti ozeti
+  `/wiki [konu]` -> Wiki sayfasi getir
+  `/wiki ekle [baslik] | [icerik]` -> Wiki sayfasi olustur
+""".rstrip()
+
+
+_ORIGINAL_HANDLE_COMMAND = handle_command
+
+
+def _handle_command_with_sprint_extensions(chat_id: int, cmd: str) -> str:
+    parts = str(cmd or "").split(" ", 1)
+    command = parts[0].lower()
+    args = parts[1] if len(parts) > 1 else ""
+
+    if command in ("/start", "/help"):
+        return _ORIGINAL_HANDLE_COMMAND(chat_id, cmd) + _SPRINT45_HELP_LINES
+    elif command == "/codex-durum":
+        return _handle_codex_slots_command(chat_id)
+    elif command == "/codex-kuyruk":
+        return _handle_codex_queue_command(chat_id)
+    elif command == "/codex-saglik":
+        return _handle_codex_health_command(chat_id)
+    elif command == "/codex-baslat":
+        return _handle_codex_start_command(chat_id, args)
+    elif command == "/codex-durdur":
+        return _handle_codex_stop_command(chat_id)
+    elif command == "/codex-cooldown-temizle":
+        return _handle_codex_clear_cooldowns_command(chat_id)
+    elif command.startswith("/cloud-") or command in {
+        "/yardim",
+        "/ec2-izle",
+        "/ec2-yeniden-baslat",
+        "/s3-url",
+        "/maliyet-uyari",
+        "/codex",
+        "/codex-swarm",
+        "/codex-status",
+        "/codex-sonuc",
+        "/wiki",
+    }:
+        return COMMAND_REGISTRY.dispatch(command, args, {"chat_id": chat_id, "command": command, "registry": COMMAND_REGISTRY})
+    elif command == "/crew":
+        return _handle_crewai_command(chat_id, args)
+    elif command == "/crewai":
+        return _handle_crewai_command(chat_id, args)
+    elif command == "/openhands":
+        return _handle_openhands_command(chat_id, args)
+    elif command == "/upondhand":
+        return _handle_upondhand_command(chat_id, args)
+    elif command == "/devika":
+        return _handle_devika_command(chat_id, args)
+    elif command == "/aider":
+        return _handle_aider_command(chat_id, args)
+    elif command == "/cline":
+        return _handle_cline_command(chat_id, args)
+    elif command == "/route":
+        return _handle_clawrouter_command(chat_id, args)
+    elif command == "/cli":
+        return _handle_cli_anything_command(chat_id, args)
+    elif command == "/claude_skills":
+        return _handle_claude_skills_command(chat_id, args)
+    elif command == "/catalog":
+        return _handle_agent_catalog_command(chat_id, args)
+    elif command == "/prompt":
+        return _handle_prompts_command(chat_id, args)
+    elif command == "/spec":
+        return _handle_speckit_command(chat_id, args)
+    elif command == "/sirket":
+        return _handle_paperclip_command(chat_id, args)
+    elif command == "/ytunified":
+        return _handle_youtube_unified_command(chat_id, args)
+    elif command == "/clawcode":
+        return _handle_claw_code_command(chat_id, args)
+    elif command == "/swarms":
+        return _handle_swarms_command(chat_id, args)
+    elif command == "/hooks":
+        return _handle_hooks_command(chat_id, args)
+    elif command == "/gemini":
+        return _handle_gemini_command(chat_id, args)
+    elif command == "/deepseek":
+        return _handle_deepseek_command(chat_id, args)
+    elif command in {"/codex-workspace", "/worktree-durum"}:
+        try:
+            from codex_workspace import WorkspaceManager
+        except Exception:
+            from server.codex_workspace import WorkspaceManager  # type: ignore
+        wm = WorkspaceManager()
+        st = wm.status()
+        lines = ["Worktree Durumu"]
+        for slot, exists in st.items():
+            icon = "✅" if exists else "❌"
+            lines.append(f"  {icon} {slot}")
+            if not exists:
+                lines.append(f"     Init: {wm.init_command(slot)}")
+        return "\n".join(lines)
+    elif command in {"/key-pool", "/key-durum", "/keys"}:
+        try:
+            from server.key_pool import pool_status
+            st = pool_status()
+            lines = ["🔑 Key Pool Durumu\n"]
+            for provider, info in st.items():
+                lines.append(f"▸ {provider.upper()}")
+                for k in info.get("keys", []):
+                    icon = "✅" if k["status"] == "active" else "⏳"
+                    lines.append(f"  {icon} {k['id']} — {k['status']} ({k['ready_at']})")
+            return "\n".join(lines)
+        except Exception as e:
+            return f"Key pool hatası: {e}"
+    # ── Antigravity Skills (Tab-3 entegrasyon) ──────────────────────────────
+    elif command == "/kod-incele":
+        try:
+            from skills.antigravity_skills import run_code_reviewer
+            return run_code_reviewer(args)
+        except Exception as e:
+            return f"kod-incele hatası: {e}"
+    elif command == "/github-issue":
+        try:
+            from skills.antigravity_skills import run_github_issue
+            return run_github_issue(args)
+        except Exception as e:
+            return f"github-issue hatası: {e}"
+    elif command == "/pazar-analiz":
+        try:
+            from skills.antigravity_skills import run_market_analysis
+            return run_market_analysis(args)
+        except Exception as e:
+            return f"pazar-analiz hatası: {e}"
+    elif command == "/seo-analiz":
+        try:
+            from skills.antigravity_skills import run_seo
+            return run_seo(args)
+        except Exception as e:
+            return f"seo-analiz hatası: {e}"
+    elif command == "/rakip-analiz":
+        try:
+            from skills.antigravity_skills import run_competitor
+            return run_competitor(args)
+        except Exception as e:
+            return f"rakip-analiz hatası: {e}"
+    elif command == "/icerik-uret":
+        try:
+            from skills.antigravity_skills import run_content_creator
+            return run_content_creator(args)
+        except Exception as e:
+            return f"icerik-uret hatası: {e}"
+    elif command == "/email-sira":
+        try:
+            from skills.antigravity_skills import run_email_sequence
+            return run_email_sequence(args)
+        except Exception as e:
+            return f"email-sira hatası: {e}"
+    elif command == "/pazarlama-psy":
+        try:
+            from skills.antigravity_skills import run_marketing_psychology
+            return run_marketing_psychology(args)
+        except Exception as e:
+            return f"pazarlama-psy hatası: {e}"
+    elif command == "/ajan-orkestra":
+        try:
+            from skills.antigravity_skills import run_agent_orchestrator
+            return run_agent_orchestrator(args)
+        except Exception as e:
+            return f"ajan-orkestra hatası: {e}"
+    elif command == "/anti-skills":
+        try:
+            from skills.antigravity_skills import handle_list_skills
+            return handle_list_skills(args)
+        except Exception as e:
+            return f"anti-skills hatası: {e}"
+    # ── /end Antigravity Skills ──────────────────────────────────────────────
+    return _ORIGINAL_HANDLE_COMMAND(chat_id, cmd)
+
+
+handle_command = _handle_command_with_sprint_extensions
+
+
+_ORIGINAL_HEALTH_ENDPOINT_HANDLER = WebHandler._handle_health_endpoint
+
+
+def _handle_health_endpoint_with_voice_state(self):
+    original_json = self._json
+
+    def _json_with_voice_state(data, code=200):
+        if isinstance(data, dict):
+            assistant_payload = get_desktop_assistant_payload()
+            assistant_runtime = assistant_payload.get("runtime", {}) if isinstance(assistant_payload.get("runtime"), dict) else {}
+            live_payload = data.get("live", {}) if isinstance(data.get("live"), dict) else {}
+            live_voice = live_payload.get("voice", {}) if isinstance(live_payload.get("voice"), dict) else {}
+            voice_state = str(
+                data.get("voice_state")
+                or assistant_payload.get("phase")
+                or live_voice.get("phase")
+                or "idle"
+            ).strip().upper() or "IDLE"
+            data["voice_state"] = voice_state
+            data.setdefault("voice_detail", str(assistant_runtime.get("detail") or live_voice.get("detail") or ""))
+        return original_json(data, code)
+
+    self._json = _json_with_voice_state
+    try:
+        return _ORIGINAL_HEALTH_ENDPOINT_HANDLER(self)
+    finally:
+        self._json = original_json
+
+
+WebHandler._handle_health_endpoint = _handle_health_endpoint_with_voice_state
+
 # ─────────────────────────── MAIN ─────────────────────────────────
-def start_web():
-    HTTPServer(("127.0.0.1", CONFIG["web_port"]), WebHandler).serve_forever()
+def build_web_server():
+    return HTTPServer(("127.0.0.1", CONFIG["web_port"]), WebHandler)
+
+
+def serve_web(server: HTTPServer):
+    try:
+        server.serve_forever()
+    except Exception:
+        log.exception("Web server stopped unexpectedly")
+        raise
 
 def main():
     validate_runtime_config(RUNTIME_CONFIG)
+    try:
+        from codex_health import CodexHealthWatcher
+    except Exception:
+        from server.codex_health import CodexHealthWatcher  # type: ignore
     log.info("=" * 55)
     log.info(f"  JARVIS MISSION CONTROL v2.3 — {CONFIG['runtime_label']}")
     log.info("=" * 55)
@@ -2692,11 +5187,44 @@ def main():
         log.error(f"Port {CONFIG['web_port']} zaten kullanimda. Ikinci bridge ornegi baslatilmayacak.")
         return
 
+    # ── 002: Research + Instagram schedulers ──────────────────────────
+    try:
+        import sys as _sys, os as _os
+        _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), "skills"))
+        _auth_chat = int(CONFIG.get("authorized_chat_id") or 0)
+
+        def _sched_telegram_send(msg):
+            try:
+                from telegram_webhook import send_telegram_message
+                send_telegram_message(_auth_chat, msg)
+            except Exception:
+                pass
+
+        from research_scheduler_skill import start_scheduler
+        from instagram_skill import start_instagram_scheduler
+        start_scheduler(_sched_telegram_send)
+        start_instagram_scheduler(_sched_telegram_send, interval_minutes=30)
+        log.info("Research + Instagram schedulers baslatildi")
+    except Exception as _sched_err:
+        log.warning(f"Research schedulers baslatılamadi: {_sched_err}")
+    # ── END 002 ───────────────────────────────────────────────────────
+
     heartbeat_stop = _start_watchdog_state()
+    _codex_health = CodexHealthWatcher(
+        interval_seconds=600,
+        notify_chat_id=int(CONFIG["authorized_chat_id"] or 0),
+    )
+    _codex_health.start()
+    web_server = None
 
     try:
-        threading.Thread(target=start_web, daemon=True).start()
-        time.sleep(1)
+        web_server = build_web_server()
+        threading.Thread(
+            target=serve_web,
+            args=(web_server,),
+            daemon=True,
+            name="bridge-http",
+        ).start()
         url = f"http://127.0.0.1:{CONFIG['web_port']}"
         log.info(f"Web dashboard: {url}")
         print(url, flush=True)
@@ -2716,6 +5244,15 @@ def main():
             except KeyboardInterrupt:
                 return
     finally:
+        if web_server is not None:
+            try:
+                web_server.shutdown()
+            except Exception:
+                pass
+            try:
+                web_server.server_close()
+            except Exception:
+                pass
         heartbeat_stop.set()
         _cleanup_watchdog_state()
 
