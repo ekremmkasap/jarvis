@@ -2723,6 +2723,107 @@ Son Model: `{last_sel}` | Fallback: `{fallback}`"""
                 return f"❌ Cache statistics failed: {e}"
         return "Telegram intelligence not initialized"
 
+    # ─── 002: AUTONOMOUS RESEARCH AGENT ──────────────────────────────
+    elif command == "/sabah-brief":
+        try:
+            import sys as _sys, os as _os
+            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), "skills"))
+            from research_scheduler_skill import run_morning_brief
+            _chat = chat_id
+            def _send(msg): pass  # bridge will return response string
+            result = run_morning_brief(_send)
+            if result.get("ok"):
+                return f"Brief gonderildi — {result['items_count']} kaynak taranadi"
+            return f"Brief gonderilemedi: {result.get('error', 'bilinmiyor')}"
+        except Exception as e:
+            return f"Hata: {str(e)[:200]}"
+
+    elif command == "/arastirma-durum":
+        try:
+            import sys as _sys, os as _os
+            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), "skills"))
+            from research_scheduler_skill import get_scheduler_status, load_today_brief
+            status = get_scheduler_status()
+            today_brief = load_today_brief()
+            running = "Calisiyor" if status.get("running") else "Durdurulmus"
+            jobs = status.get("jobs", [])
+            next_run = jobs[0].get("next_run", "bilinmiyor") if jobs else "job yok"
+            brief_info = "yok" if not today_brief else f"{today_brief['send_status']} ({today_brief.get('items_count', '?')} madde)"
+            return (f"Arastirma Durumu\nScheduler: {running}\nSonraki brief: {next_run}\nBugunku brief: {brief_info}")[:400]
+        except Exception as e:
+            return f"Durum alinamadi: {str(e)[:150]}"
+
+    elif command == "/instagram":
+        try:
+            import sys as _sys, os as _os
+            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), "skills"))
+            from instagram_skill import add_watched_account, list_watched_accounts, remove_watched_account
+            sub = args.strip()
+            if sub.startswith("takip "):
+                handle = sub[len("takip "):].strip()
+                result = add_watched_account(handle)
+                return result["message"]
+            elif sub == "listele":
+                accounts = list_watched_accounts()
+                if not accounts:
+                    return "Takip listesi bos. /instagram takip @hesap ile ekle."
+                lines = ["Takip Listesi"]
+                for acc in accounts[:20]:
+                    last = acc.get("last_checked_at", "")[:10] if acc.get("last_checked_at") else "hic"
+                    lines.append(f"@{acc['username']} (son kontrol: {last})")
+                return "\n".join(lines)[:400]
+            elif sub.startswith("cikar "):
+                handle = sub[len("cikar "):].strip()
+                result = remove_watched_account(handle)
+                return result["message"]
+            return "Kullanim: /instagram takip @hesap | /instagram listele | /instagram cikar @hesap"
+        except Exception as e:
+            return f"Instagram hatasi: {str(e)[:150]}"
+
+    elif command == "/crewai":
+        try:
+            import sys as _sys, os as _os
+            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), "skills"))
+            from external_agent_skill import run_agent_task, get_agent_status
+            task_text = args.strip()
+            if not task_text or task_text == "durum":
+                status = get_agent_status("crewai")
+                installed = "Kurulu" if status["installed"] else "Kurulu degil"
+                return f"CrewAI: {installed}\n{status.get('message', '')}"[:400]
+            result = run_agent_task("crewai", task_text, timeout_seconds=60)
+            return result["output"][:400]
+        except Exception as e:
+            return f"CrewAI hatasi: {str(e)[:150]}"
+
+    elif command == "/openhands":
+        try:
+            import sys as _sys, os as _os
+            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), "skills"))
+            from external_agent_skill import run_agent_task, get_agent_status
+            task_text = args.strip()
+            if not task_text or task_text == "durum":
+                status = get_agent_status("openhands")
+                installed = "Kurulu" if status["installed"] else "Kurulu degil"
+                return f"OpenHands: {installed}\n{status.get('message', '')}"[:400]
+            result = run_agent_task("openhands", task_text, timeout_seconds=60)
+            return result["output"][:400]
+        except Exception as e:
+            return f"OpenHands hatasi: {str(e)[:150]}"
+
+    elif command in ("/bugun-ne-var", "/bugun"):
+        try:
+            import sys as _sys, os as _os
+            _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), "skills"))
+            from research_scheduler_skill import load_today_brief
+            brief = load_today_brief()
+            if brief:
+                msg = brief.get("message_text", "")
+                return (msg[:350] + "...") if len(msg) > 350 else msg
+            return "Bugun henuz brief yok. /sabah-brief ile simdi olustur."
+        except Exception as e:
+            return f"Hata: {str(e)[:150]}"
+    # ─── END 002 ──────────────────────────────────────────────────────
+
     return f"Bilinmeyen komut: {command}\n/help yaz yardim icin."
 
 # ─────────────────────────── PROCESS MESSAGE ──────────────────────
@@ -4772,15 +4873,18 @@ def _handle_wiki_command(chat_id: int, args: str) -> str:
 
 
 def _load_cloud_modules():
-    from server.skills.aws_cost_skill import get_budget_alerts, get_monthly_cost
-    from server.skills.aws_ec2_skill import list_instances, start_instance, stop_instance
+    from server.skills.aws_cost_skill import get_budget_alerts, get_cost_trend, get_monthly_cost
+    from server.skills.aws_ec2_skill import get_instance_metrics, list_instances, reboot_instance, start_instance, stop_instance
     from server.skills.aws_s3_skill import list_buckets
 
     return {
         "get_budget_alerts": get_budget_alerts,
+        "get_cost_trend": get_cost_trend,
+        "get_instance_metrics": get_instance_metrics,
         "get_monthly_cost": get_monthly_cost,
         "list_buckets": list_buckets,
         "list_instances": list_instances,
+        "reboot_instance": reboot_instance,
         "start_instance": start_instance,
         "stop_instance": stop_instance,
     }
