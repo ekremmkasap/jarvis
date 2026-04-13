@@ -1,18 +1,20 @@
-# Agent Status Board
+# Agent Bus — Status
 
-_Her sekme buraya yazar. Başlamadan önce kontrol et._
+## Agent-1 (Claude-Main, Tab-1)
+- Görev: Boşta — Tab2 bekleniyor
+- Çalışan dosya: —
+- Son güncelleme: 2026-04-13
 
-| Agent | Sekme | Şu an ne yapıyor | Son güncelleme |
-|-------|-------|-----------------|----------------|
-| Claude-Main | Tab-1 (bu) | agent-bus kurulumu | 2026-04-13 |
-| Claude-Tab2 | Tab-2 | antigravity skill entegrasyonu | 2026-04-13 |
-| Antigravity | Anti | hologram animasyon | 2026-04-13 |
+## Agent-2 (Claude-Tab2)
+- Görev: antigravity skill entegrasyonu
+- Çalışan dosya: server/skills/antigravity_skills.py, server/bridge.py
+- Son güncelleme: 2026-04-13
+
+## Agent-3 (Antigravity/Anti)
+- Görev: hologram animasyon
+- Çalışan dosya: apps/desktop-hologram/
+- Son güncelleme: 2026-04-13
 
 ---
-
-## Güncelleme Kuralı
-Bir göreve başlarken bu satırı güncelle:
-`| Claude-Main | Tab-1 | <ne yapıyorum> | <tarih> |`
-
-Bitirince:
-`| Claude-Main | Tab-1 | BOŞ | <tarih> |`
+## Kural
+Göreve başlarken kendi satırını güncelle. Bitince "Boşta" yaz.

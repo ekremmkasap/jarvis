@@ -1,32 +1,18 @@
 # Dosya Kilitleri
 
-_Bir dosyaya dokunmadan önce buraya ekle. Bitince sil._
+## Şu an kilitli dosyalar
 
-## Aktif Kilitler
+| Dosya | Agent | Başlangıç |
+|-------|-------|-----------|
+| server/skills/antigravity_skills.py | Agent-2 (Tab2) | 2026-04-13 |
+| server/bridge.py | Agent-2 (Tab2) | 2026-04-13 |
+| apps/desktop-hologram/ | Agent-3 (Anti) | 2026-04-13 |
 
-| Dosya / Dizin | Agent | Başlangıç | Tahmini bitiş |
-|---------------|-------|-----------|---------------|
-| server/skills/antigravity_skills.py | Claude-Tab2 | 2026-04-13 | ~ |
-| server/bridge.py (antigravity section) | Claude-Tab2 | 2026-04-13 | ~ |
-| apps/desktop-hologram/ | Anti | 2026-04-13 | ~ |
+## Kural
+Bir dosyaya dokunmadan önce buraya yaz.
+Bitince kilidi kaldır.
 
-## Kilit Alma Kuralları
-
-1. Dosyayı düzenlemeden önce buraya ekle
-2. Başka agent kilitlemişse bekle veya farklı dosyaya geç
-3. Commit attıktan sonra kilidi kaldır
-4. `server/bridge.py` özeldir — sadece bir agent aynı anda yazabilir
-
-## Serbest Dosyalar (güvenli)
-
-- `server/skills/` altında YENİ dosyalar → her zaman güvenli
-- `state/` altındaki JSON'lar → her zaman güvenli  
-- `tests/` → her zaman güvenli
-- `apps/web-ui/` → Anti veya Tab2 değilse güvenli
-
----
-
-## Kuralın Özeti
-```
-LOCK al → düzenle → commit → LOCK bırak
-```
+## Güvenli dosyalar (kilit gerekmez)
+- server/skills/ altında YENİ dosyalar
+- state/ altındaki JSON'lar
+- tests/ altı
