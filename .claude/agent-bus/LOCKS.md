@@ -12,6 +12,7 @@
 Bir dosyaya dokunmadan önce buraya yaz.
 Bitince kilidi kaldır.
 
+
 ## Güvenli dosyalar (kilit gerekmez)
 - server/skills/ altında YENİ dosyalar
 - state/ altındaki JSON'lar

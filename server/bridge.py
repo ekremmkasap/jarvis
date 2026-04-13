@@ -3494,6 +3494,8 @@ refreshRuntimeStatus();
             self._handle_codex_result_endpoint(query)
         elif path == "/api/codex/status":
             self._handle_codex_status_endpoint()
+        elif path == "/api/persona/active":
+            self._handle_persona_active_endpoint()
         else:
             self.send_error(404)
 
@@ -3524,6 +3526,8 @@ refreshRuntimeStatus();
                 self._json({"error": str(e)}, 500)
         elif path == "/agent":
             self._handle_agent_endpoint()
+        elif path == "/api/persona/switch":
+            self._handle_persona_switch_endpoint()
         elif path == "/command":
             try:
                 length = int(self.headers.get("Content-Length", 0))
@@ -5052,6 +5056,68 @@ def _handle_command_with_sprint_extensions(chat_id: int, cmd: str) -> str:
             return "\n".join(lines)
         except Exception as e:
             return f"Key pool hatası: {e}"
+    # ── Antigravity Skills (Tab-3 entegrasyon) ──────────────────────────────
+    elif command == "/kod-incele":
+        try:
+            from skills.antigravity_skills import run_code_reviewer
+            return run_code_reviewer(args)
+        except Exception as e:
+            return f"kod-incele hatası: {e}"
+    elif command == "/github-issue":
+        try:
+            from skills.antigravity_skills import run_github_issue
+            return run_github_issue(args)
+        except Exception as e:
+            return f"github-issue hatası: {e}"
+    elif command == "/pazar-analiz":
+        try:
+            from skills.antigravity_skills import run_market_analysis
+            return run_market_analysis(args)
+        except Exception as e:
+            return f"pazar-analiz hatası: {e}"
+    elif command == "/seo-analiz":
+        try:
+            from skills.antigravity_skills import run_seo
+            return run_seo(args)
+        except Exception as e:
+            return f"seo-analiz hatası: {e}"
+    elif command == "/rakip-analiz":
+        try:
+            from skills.antigravity_skills import run_competitor
+            return run_competitor(args)
+        except Exception as e:
+            return f"rakip-analiz hatası: {e}"
+    elif command == "/icerik-uret":
+        try:
+            from skills.antigravity_skills import run_content_creator
+            return run_content_creator(args)
+        except Exception as e:
+            return f"icerik-uret hatası: {e}"
+    elif command == "/email-sira":
+        try:
+            from skills.antigravity_skills import run_email_sequence
+            return run_email_sequence(args)
+        except Exception as e:
+            return f"email-sira hatası: {e}"
+    elif command == "/pazarlama-psy":
+        try:
+            from skills.antigravity_skills import run_marketing_psychology
+            return run_marketing_psychology(args)
+        except Exception as e:
+            return f"pazarlama-psy hatası: {e}"
+    elif command == "/ajan-orkestra":
+        try:
+            from skills.antigravity_skills import run_agent_orchestrator
+            return run_agent_orchestrator(args)
+        except Exception as e:
+            return f"ajan-orkestra hatası: {e}"
+    elif command == "/anti-skills":
+        try:
+            from skills.antigravity_skills import handle_list_skills
+            return handle_list_skills(args)
+        except Exception as e:
+            return f"anti-skills hatası: {e}"
+    # ── /end Antigravity Skills ──────────────────────────────────────────────
     return _ORIGINAL_HANDLE_COMMAND(chat_id, cmd)
 
 
