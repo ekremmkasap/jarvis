@@ -5187,6 +5187,28 @@ def main():
         log.error(f"Port {CONFIG['web_port']} zaten kullanimda. Ikinci bridge ornegi baslatilmayacak.")
         return
 
+    # ── 002: Research + Instagram schedulers ──────────────────────────
+    try:
+        import sys as _sys, os as _os
+        _sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), "skills"))
+        _auth_chat = int(CONFIG.get("authorized_chat_id") or 0)
+
+        def _sched_telegram_send(msg):
+            try:
+                from telegram_webhook import send_telegram_message
+                send_telegram_message(_auth_chat, msg)
+            except Exception:
+                pass
+
+        from research_scheduler_skill import start_scheduler
+        from instagram_skill import start_instagram_scheduler
+        start_scheduler(_sched_telegram_send)
+        start_instagram_scheduler(_sched_telegram_send, interval_minutes=30)
+        log.info("Research + Instagram schedulers baslatildi")
+    except Exception as _sched_err:
+        log.warning(f"Research schedulers baslatılamadi: {_sched_err}")
+    # ── END 002 ───────────────────────────────────────────────────────
+
     heartbeat_stop = _start_watchdog_state()
     _codex_health = CodexHealthWatcher(
         interval_seconds=600,
