@@ -377,30 +377,64 @@ def get_user_context(user_id: str) -> str:
     return "\n".join(lines)
 
 
+_NAME_BLACKLIST = {
+    "bir", "iki", "şu", "bu", "o", "çok", "az", "ne", "nasıl", "kim",
+    "hatalı", "yorgun", "mutlu", "üzgün", "sinirli", "açım", "bitkin",
+    "iyi", "kötü", "burada", "evde", "işte", "burda",
+}
+
+_NAME_PREDICATE_SUFFIXES = (
+    "yim", "im", "um", "üm", "yum", "yüm",
+    "ciyim", "cıyım", "cuyum", "cüyüm", "çiyim", "çıyım",
+    "liyim", "lıyım", "luyum", "lüyüm",
+    "siyim", "sıyım", "suyum", "süyüm",
+)
+
+
 def _extract_facts(user_id: str, message: str):
     """Mesajdan otomatik bilgi cikar (basit kural tabanli)"""
-    patterns = [
-        (r"ben\s+(\w+)(?:yim|im|um|üm)", "isim"),
-        (r"ad[ıi]m\s+(\w+)", "isim"),
-        (r"(\w+)\s+(?:şehrinde|sehirde|ilinde)\s+(?:yaşıyorum|yasiyorum|oturuyorum)", "şehir"),
-        (r"(?:yaşım|yasim|yaşındayım|yasindayim)\s+(\d+)", "yaş"),
-        (r"(\d+)\s+yaşındayım", "yaş"),
-        (r"(?:işim|isim|mesleğim|meslegim|çalışıyorum|calisiyorum)\s+(?:olarak\s+)?(\w+)", "meslek"),
-        (r"e[- ]?ticaret\s+(?:yapıyorum|yapiyorum|satıyorum|satiyorum)", "ilgi_alani", "e-ticaret"),
+    capture_patterns = [
+        (r"benim\s+ad[ıi]m\s+([a-zçğıöşü]+)", "isim"),
+        (r"ad[ıi]m\s+([a-zçğıöşü]+)", "isim"),
+        (r"ben\s+([a-zçğıöşü]+)\s*[,\.!?]", "isim"),
+        (r"ben\s+([a-zçğıöşü]+)\s*$", "isim"),
+        (r"([a-zçğıöşü]+)\s+(?:şehrinde|sehrinde|sehirde|ilinde|ilçesinde)\s+(?:yaşıyorum|yasiyorum|oturuyorum|kalıyorum|kaliyorum)", "şehir"),
+        (r"([a-zçğıöşü]+)['’]?(?:da|de|ta|te)\s+(?:yaşıyorum|yasiyorum|oturuyorum|kalıyorum|kaliyorum)", "şehir"),
+        (r"(?:yaşım|yasim)\s+(\d+)", "yaş"),
+        (r"(\d+)\s+(?:yaşındayım|yasindayim)", "yaş"),
+        (r"(?:mesleğim|meslegim|işim|isim)\s+(?:olarak\s+)?([a-zçğıöşü]+)", "meslek"),
+        (r"([a-zçğıöşü]+)(?:cıyım|ciyim|cuyum|cüyüm|çıyım|çiyim)\b", "meslek"),
+    ]
+    static_patterns = [
+        (r"e[- ]?ticaret\s+(?:yapıyorum|yapiyorum|satıyorum|satiyorum|işi|isi)", "ilgi_alani", "e-ticaret"),
         (r"shopify\s+(?:mağazam|magazam|store)", "platform", "shopify"),
+        (r"(?:trendyol|hepsiburada|amazon|ebay|etsy)\s+(?:satıcıyım|saticiyim|mağazam|magazam)", "platform", "pazaryeri"),
+        (r"saas\s+(?:kurucusuyum|kuruyorum|yapıyorum|yapiyorum)", "ilgi_alani", "saas"),
+        (r"(?:startup|girişim|girisim)\s+(?:kurucusuyum|kuruyorum)", "rol", "kurucu"),
     ]
     msg_lower = (message or "").lower()
-    for pattern_data in patterns:
-        if len(pattern_data) == 3 and not pattern_data[1].startswith("("):
-            # Static fact
-            pattern, key, value = pattern_data
-            if re.search(pattern, msg_lower):
-                save_fact(user_id, key, value, source="auto")
-        elif len(pattern_data) == 2:
-            pattern, key = pattern_data
-            match = re.search(pattern, msg_lower)
-            if match:
-                save_fact(user_id, key, match.group(1), source="auto")
+
+    for pattern, key, value in static_patterns:
+        if re.search(pattern, msg_lower):
+            save_fact(user_id, key, value, source="auto")
+
+    locked_keys = set()
+    for pattern, key in capture_patterns:
+        if key in locked_keys:
+            continue
+        match = re.search(pattern, msg_lower)
+        if not match:
+            continue
+        captured = match.group(1).strip()
+        if not captured or len(captured) < 2:
+            continue
+        if key == "isim":
+            if captured in _NAME_BLACKLIST:
+                continue
+            if captured.endswith(_NAME_PREDICATE_SUFFIXES):
+                continue
+        save_fact(user_id, key, captured, source="auto")
+        locked_keys.add(key)
 
 
 # -------------------- GOREV TAKIBI --------------------

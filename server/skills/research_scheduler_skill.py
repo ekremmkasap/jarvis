@@ -22,6 +22,8 @@ SOUL_MD_PATH = Path("server/soul.md")
 MAX_HISTORY_DAYS = 30
 BRIEF_HOUR = int(os.getenv("BRIEF_HOUR", "8"))
 BRIEF_MINUTE = int(os.getenv("BRIEF_MINUTE", "0"))
+VAULT_ROOT = Path(os.getenv("JARVIS_BRAIN_VAULT", r"C:/Users/sergen/Desktop/JARVIS-Brain"))
+VAULT_DELTA_HOURS = int(os.getenv("VAULT_DELTA_HOURS", "24"))
 
 _scheduler = None  # Module-level BackgroundScheduler instance
 
@@ -162,6 +164,34 @@ def load_soul_context() -> dict:
         return default
 
 
+def fetch_vault_delta(hours: int = VAULT_DELTA_HOURS, max_items: int = 8) -> list:
+    """JARVIS-Brain vault'ta son `hours` saatte degisen .md dosyalarini ceker."""
+    if not VAULT_ROOT.exists():
+        return []
+    cutoff = datetime.now().timestamp() - (hours * 3600)
+    deltas = []
+    try:
+        for md in VAULT_ROOT.rglob("*.md"):
+            try:
+                mtime = md.stat().st_mtime
+            except OSError:
+                continue
+            if mtime < cutoff:
+                continue
+            rel = md.relative_to(VAULT_ROOT).as_posix()
+            deltas.append({
+                "source": "vault",
+                "title": rel,
+                "url": f"obsidian://open?vault=JARVIS-Brain&file={rel}",
+                "mtime": mtime,
+            })
+    except Exception as e:
+        logger.warning(f"Vault delta hatasi: {e}")
+        return []
+    deltas.sort(key=lambda d: d["mtime"], reverse=True)
+    return deltas[:max_items]
+
+
 def build_brief_message(items: list, soul_prefix: str = "") -> str:
     """
     Turkce Telegram mesaji olusturur.
@@ -174,20 +204,25 @@ def build_brief_message(items: list, soul_prefix: str = "") -> str:
         lines.append(soul_prefix)
     lines.append(f"*Sabah Briefingi — {today}*\n")
 
-    by_source = {"github": [], "reddit": [], "twitter": []}
+    by_source = {"github": [], "reddit": [], "twitter": [], "vault": []}
     for item in items:
         src = item.get("source", "other")
         if src in by_source:
             by_source[src].append(item)
 
-    source_labels = {"github": "GitHub Trending", "reddit": "Reddit", "twitter": "X/Twitter"}
+    source_labels = {
+        "github": "GitHub Trending",
+        "reddit": "Reddit",
+        "twitter": "X/Twitter",
+        "vault": "Vault Delta (son 24s)",
+    }
     for src, label in source_labels.items():
         src_items = by_source[src]
         if not src_items:
             continue
         lines.append(f"\n*{label}*")
-        for item in src_items[:3]:
-            title = item.get("title", "")[:60]
+        for item in src_items[:4 if src == "vault" else 3]:
+            title = item.get("title", "")[:72]
             url = item.get("url", "")
             lines.append(f"- {title}\n  {url}")
 
@@ -244,6 +279,7 @@ def run_morning_brief(telegram_send_fn: Callable) -> dict:
         items.extend(fetch_github_trending(max_items=5))
         items.extend(fetch_reddit_top(max_items=5))
         items.extend(fetch_twitter_nitter(max_items=5))
+        items.extend(fetch_vault_delta(max_items=6))
 
         message = build_brief_message(items, soul_prefix=soul_ctx.get("prefix", ""))
         send_status = "failed"
@@ -294,6 +330,9 @@ def start_scheduler(telegram_send_fn: Callable) -> bool:
         _scheduler.start()
         logger.info(f"Research scheduler basladi: her gun {BRIEF_HOUR:02d}:{BRIEF_MINUTE:02d}")
         return True
+    except ModuleNotFoundError as e:
+        logger.warning(f"Scheduler dependency eksik, scheduler devre disi: {e}")
+        return False
     except Exception as e:
         logger.error(f"Scheduler baslatma hatasi: {e}")
         return False

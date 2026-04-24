@@ -192,6 +192,9 @@ def start_instagram_scheduler(telegram_send_fn: Callable, interval_minutes: int 
         _instagram_scheduler.start()
         logger.info(f"Instagram scheduler basladi: her {interval_minutes} dakika")
         return True
+    except ModuleNotFoundError as e:
+        logger.warning(f"Scheduler dependency eksik, scheduler devre disi: {e}")
+        return False
     except Exception as e:
         logger.error(f"Instagram scheduler hatasi: {e}")
         return False

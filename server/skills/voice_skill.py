@@ -98,10 +98,71 @@ engine.runAndWait()
 print(out_path)
 """
 
+
+def _active_persona_voice() -> str:
+    """Resolve the edge-tts voice name for the currently active persona.
+
+    Falls back to tr-TR-AhmetNeural if persona state is unavailable.
+    """
+    try:
+        import sys as _sys
+        from pathlib import Path as _Path
+
+        _server_dir = _Path(__file__).resolve().parents[1]
+        if str(_server_dir) not in _sys.path:
+            _sys.path.insert(0, str(_server_dir))
+        from persona_manager import get_active_persona  # type: ignore
+
+        persona = get_active_persona() or {}
+        voice = str(persona.get("voice") or "").strip() or "AhmetNeural"
+    except Exception:
+        voice = "AhmetNeural"
+    if voice.lower().startswith("tr-tr-"):
+        return voice
+    return f"tr-TR-{voice}"
+
+
+def _text_to_speech_edge(text: str, out_path: str) -> bool:
+    """Synthesize via edge-tts with the active persona voice. Returns True on success."""
+    try:
+        import asyncio
+
+        import edge_tts  # type: ignore
+    except Exception:
+        return False
+
+    async def _run() -> bool:
+        communicate = edge_tts.Communicate(text, _active_persona_voice())
+        await communicate.save(out_path)
+        return os.path.exists(out_path) and os.path.getsize(out_path) > 0
+
+    try:
+        return asyncio.run(_run())
+    except Exception:
+        return False
+
+
 def text_to_speech(text: str) -> str:
-    """Metni MP3'e çevir, dosya yolunu döndür. Hata olursa None."""
+    """Metni ses dosyasına çevir. Edge-TTS varsa persona sesi ile MP3,
+    yoksa pyttsx3 fallback. Hata olursa None."""
     if not TTS_ENABLED:
         return None
+    clean = (text or "").strip()
+    if not clean:
+        return None
+    clean = clean[:500]
+
+    # 1) Edge-TTS (persona-aware, same backend as hey_jarvis.py)
+    edge_out = tempfile.mktemp(suffix=".mp3")
+    if _text_to_speech_edge(clean, edge_out):
+        return edge_out
+    try:
+        if os.path.exists(edge_out):
+            os.unlink(edge_out)
+    except Exception:
+        pass
+
+    # 2) pyttsx3 fallback (system voice)
     try:
         out_path = tempfile.mktemp(suffix=".mp3")
         tmp_script = tempfile.NamedTemporaryFile(suffix=".py", delete=False,
@@ -110,7 +171,7 @@ def text_to_speech(text: str) -> str:
         tmp_script.close()
 
         result = subprocess.run(
-            [PYTHON311, tmp_script.name, out_path, text[:500]],
+            [PYTHON311, tmp_script.name, out_path, clean],
             capture_output=True, text=True, timeout=30
         )
         os.unlink(tmp_script.name)
