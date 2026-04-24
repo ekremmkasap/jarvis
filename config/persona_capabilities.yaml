@@ -1,0 +1,123 @@
+##############################################################
+# Persona Capability Matrix
+# Policy gate uzerine ek kisitlayici katman.
+# Matrix SADECE baseline policy'i daha kisitlayici yapar,
+# hicbir zaman gevsetmez.
+#
+# Karar sozlesmesi:
+#   allow             -> baseline karari aynen gecerli
+#   require_approval  -> baseline allow ise approval'a yukselt
+#   deny              -> baseline ne olursa olsun denied
+#
+# Action class'lari:
+#   shell.safe, shell.full
+#   pc.low_risk, pc.medium_risk, pc.high_risk
+#   openclaw.helper, openclaw.deliver
+#   operator.high_risk
+##############################################################
+
+persona_capabilities:
+  default:
+    shell.safe: allow
+    shell.full: require_approval
+    pc.low_risk: allow
+    pc.medium_risk: require_approval
+    pc.high_risk: require_approval
+    openclaw.helper: require_approval
+    openclaw.deliver: require_approval
+    operator.high_risk: require_approval
+
+  # ----- Musteri-facing personalar: ops yetkisi YOK -----
+  sabri:
+    shell.safe: deny
+    shell.full: deny
+    pc.low_risk: deny
+    pc.medium_risk: deny
+    pc.high_risk: deny
+    openclaw.helper: deny
+    openclaw.deliver: deny
+    operator.high_risk: deny
+
+  buse:
+    shell.safe: deny
+    shell.full: deny
+    pc.low_risk: deny
+    pc.medium_risk: deny
+    pc.high_risk: deny
+    openclaw.helper: deny
+    openclaw.deliver: deny
+    operator.high_risk: deny
+
+  deniz:
+    shell.safe: deny
+    shell.full: deny
+    pc.low_risk: deny
+    pc.medium_risk: deny
+    pc.high_risk: deny
+    openclaw.helper: deny
+    openclaw.deliver: deny
+    operator.high_risk: deny
+
+  eren:
+    shell.safe: deny
+    shell.full: deny
+    pc.low_risk: deny
+    pc.medium_risk: deny
+    pc.high_risk: deny
+    openclaw.helper: deny
+    openclaw.deliver: deny
+    operator.high_risk: deny
+
+  mert:
+    shell.safe: deny
+    shell.full: deny
+    pc.low_risk: deny
+    pc.medium_risk: deny
+    pc.high_risk: deny
+    openclaw.helper: deny
+    openclaw.deliver: deny
+    operator.high_risk: deny
+
+  # ----- Luna: lab-only, hicbir canli aksiyon yok -----
+  luna:
+    shell.safe: deny
+    shell.full: deny
+    pc.low_risk: deny
+    pc.medium_risk: deny
+    pc.high_risk: deny
+    openclaw.helper: require_approval
+    openclaw.deliver: deny
+    operator.high_risk: deny
+
+  # ----- Zeynep: defensive audit, read-only -----
+  zeynep:
+    shell.safe: allow
+    shell.full: deny
+    pc.low_risk: allow
+    pc.medium_risk: deny
+    pc.high_risk: deny
+    openclaw.helper: deny
+    openclaw.deliver: deny
+    operator.high_risk: deny
+
+  # ----- Seda: ic dev ajan, kod seviyesi -----
+  seda:
+    shell.safe: allow
+    shell.full: require_approval
+    pc.low_risk: allow
+    pc.medium_risk: require_approval
+    pc.high_risk: deny
+    openclaw.helper: require_approval
+    openclaw.deliver: deny
+    operator.high_risk: deny
+
+  # ----- Sabrican: ops/altyapi, tam yetkili -----
+  sabrican:
+    shell.safe: allow
+    shell.full: require_approval
+    pc.low_risk: allow
+    pc.medium_risk: allow
+    pc.high_risk: require_approval
+    openclaw.helper: allow
+    openclaw.deliver: require_approval
+    operator.high_risk: require_approval
