@@ -2,8 +2,8 @@
   dry_run: true
   output_root: outputs
   llm:
-    provider: ollama
-    model: minimax-m2.7:cloud
+    provider: gemini
+    model: gemini/gemini-2.5-flash
     timeout_seconds: 90
   summary:
     daily_window: 1 day ago

@@ -36,6 +36,54 @@ providers:
     kind: gemini
     base_url: https://generativelanguage.googleapis.com/v1beta/openai/
     api_key_env: GEMINI_API_KEY
+
+  # Persona-specific Gemini pools. These are optional so Jarvis can boot before
+  # every key is present. Add the secrets only to local .env, never to git.
+  gemini_seda:
+    kind: gemini
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+    api_key_env: GEMINI_KEY_SEDA
+    optional: true
+  gemini_mert:
+    kind: gemini
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+    api_key_env: GEMINI_KEY_MERT
+    optional: true
+  gemini_buse:
+    kind: gemini
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+    api_key_env: GEMINI_KEY_BUSE
+    optional: true
+  gemini_eren:
+    kind: gemini
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+    api_key_env: GEMINI_KEY_EREN
+    optional: true
+  gemini_deniz:
+    kind: gemini
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+    api_key_env: GEMINI_KEY_DENIZ
+    optional: true
+  gemini_luna:
+    kind: gemini
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+    api_key_env: GEMINI_KEY_LUNA
+    optional: true
+  gemini_zeynep:
+    kind: gemini
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+    api_key_env: GEMINI_KEY_ZEYNEP
+    optional: true
+  gemini_sabrican:
+    kind: gemini
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+    api_key_env: GEMINI_KEY_SABRICAN
+    optional: true
+  gemini_sabri:
+    kind: gemini
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+    api_key_env: GEMINI_KEY_SABRI
+    optional: true
   # Cerebras: 1M token/gün ücretsiz, Llama 70B
   # API key: https://cloud.cerebras.ai/
   cerebras:
@@ -135,6 +183,33 @@ chains:
       model: stepfun/step-3.5-flash:free
     - provider: openai
       model: gpt-4o-mini
+
+  # ── Marketing: kampanya, sosyal medya, kısa form creative ──
+  marketing:
+    - provider: gemini
+      model: gemini-2.5-flash
+    - provider: groq
+      model: llama-3.3-70b-versatile
+    - provider: openrouter
+      model: stepfun/step-3.5-flash:free
+
+  # ── Data: analiz, raporlama, YouTube KPI, uzun cevaplar ───
+  data:
+    - provider: gemini
+      model: gemini-2.5-pro
+    - provider: gemini
+      model: gemini-2.5-flash
+    - provider: groq
+      model: qwen-qwq-32b
+
+  # ── System: ops, deploy, admin koordinasyonu ──────────────
+  system:
+    - provider: groq
+      model: llama-3.1-8b-instant
+    - provider: gemini
+      model: gemini-2.5-flash
+    - provider: ollama
+      model: gemma4:e2b
 
   # ── Reasoning ─────────────────────────────────────────────
   reasoning:

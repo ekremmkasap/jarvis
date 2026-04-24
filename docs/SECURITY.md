@@ -16,3 +16,6 @@ If a token is exposed in terminal/chat/source:
 - Use command allowlist.
 - Disable destructive shell operations by default.
 - Log all remote commands with run/event IDs.
+
+## Strategic Roadmap
+- NVIDIA odakli daha ileri guvenlik ve agent runtime plani icin bkz. [JARVIS_NVIDIA_CYBERSECURITY_AI_PLAN.md](JARVIS_NVIDIA_CYBERSECURITY_AI_PLAN.md).

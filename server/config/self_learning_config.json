@@ -34,7 +34,7 @@
   "auto_trainer": {
     "enabled": false,
     "training_mode": "lora",
-    "base_model": "minimax-m2.7:cloud",
+    "base_model": "gemini/gemini-2.5-flash",
     "training_interval_hours": 24,
     "min_examples": 100,
     "max_training_time_minutes": 60

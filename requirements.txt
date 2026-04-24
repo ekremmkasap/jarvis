@@ -15,3 +15,6 @@ instaloader>=4.10
 APScheduler>=3.10.4
 beautifulsoup4>=4.12.0
 apscheduler>=3.10.0
+yt-dlp>=2026.3.17
+slack-bolt>=1.21.0
+slack-sdk>=3.33.0
