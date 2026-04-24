@@ -89,6 +89,19 @@ interface CodexAuditPayload {
   entries: CodexAuditEntry[];
 }
 
+interface SlotRuntimePayload {
+  slot_id: string;
+  status: 'ok' | 'missing' | 'error';
+  exists: boolean;
+  path: string;
+  updated_at: string | null;
+  size_bytes: number | null;
+  line_count: number;
+  truncated: boolean;
+  content: string;
+  error: string | null;
+}
+
 function formatTimestamp(value: string | null | undefined): string {
   if (!value) return '-';
   const date = new Date(value);
@@ -111,11 +124,25 @@ function formatRemaining(seconds: number): string {
   return minutes > 0 ? `${minutes}m ${remainder}s` : `${remainder}s`;
 }
 
+function formatBytes(value?: number | null): string {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) return '-';
+  if (value < 1024) return `${value} B`;
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 function statusClass(status: SlotStatus): string {
   if (status === 'active') return 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300';
   if (status === 'cooldown') return 'border-orange-500/40 bg-orange-500/10 text-orange-300';
   if (status === 'disabled') return 'border-red-500/40 bg-red-500/10 text-red-300';
   return 'border-sky-500/40 bg-sky-500/10 text-sky-300';
+}
+
+function runtimeClass(status?: string): string {
+  if (status === 'ok') return 'border-cyan-500/30 bg-cyan-500/10 text-cyan-200';
+  if (status === 'missing') return 'border-amber-500/30 bg-amber-500/10 text-amber-200';
+  if (status === 'error') return 'border-red-500/30 bg-red-500/10 text-red-200';
+  return 'border-neutral-700 bg-neutral-900 text-neutral-300';
 }
 
 function healthClass(score: number): string {
@@ -132,6 +159,14 @@ async function fetchJson<T>(path: string): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+async function fetchAppJson<T>(path: string): Promise<T> {
+  const response = await fetch(path, { cache: 'no-store' });
+  if (!response.ok) {
+    throw new Error(`${path} failed`);
+  }
+  return response.json() as Promise<T>;
+}
+
 export default function CodexAccountsPage() {
   const [slots, setSlots] = useState<CodexSlotRecord[]>([]);
   const [queue, setQueue] = useState<CodexJobRecord[]>([]);
@@ -139,21 +174,26 @@ export default function CodexAccountsPage() {
   const [failedJobs, setFailedJobs] = useState<CodexJobRecord[]>([]);
   const [health, setHealth] = useState<CodexHealthPayload | null>(null);
   const [audit, setAudit] = useState<CodexAuditEntry[]>([]);
+  const [forgeRuntime, setForgeRuntime] = useState<SlotRuntimePayload | null>(null);
+  const [sparkRuntime, setSparkRuntime] = useState<SlotRuntimePayload | null>(null);
   const [message, setMessage] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [dispatchLoading, setDispatchLoading] = useState<boolean>(false);
   const [taskDescription, setTaskDescription] = useState<string>('');
   const [role, setRole] = useState<string>('backend');
   const [priority, setPriority] = useState<number>(5);
+  const [selectedSlot, setSelectedSlot] = useState<string>('forge');
 
   async function refresh() {
-    const [slotsPayload, queuePayload, healthPayload, runningPayload, failedPayload, auditPayload] = await Promise.all([
+    const [slotsPayload, queuePayload, healthPayload, runningPayload, failedPayload, auditPayload, forgeRuntimePayload, sparkRuntimePayload] = await Promise.all([
       fetchJson<CodexSlotsPayload>('/api/codex/slots'),
       fetchJson<CodexJobsPayload>('/api/codex/queue'),
       fetchJson<CodexHealthPayload>('/api/codex/health'),
       fetchJson<CodexJobsPayload>('/api/codex/jobs?status=running'),
       fetchJson<CodexJobsPayload>('/api/codex/jobs?status=failed'),
       fetchJson<CodexAuditPayload>('/api/codex/audit'),
+      fetchAppJson<SlotRuntimePayload>('/api/codex/forge-runtime'),
+      fetchAppJson<SlotRuntimePayload>('/api/codex/spark-runtime'),
     ]);
 
     setSlots(slotsPayload.slots || []);
@@ -162,6 +202,8 @@ export default function CodexAccountsPage() {
     setRunningJobs(runningPayload.jobs || []);
     setFailedJobs((failedPayload.jobs || []).slice(0, 10));
     setAudit((auditPayload.entries || []).slice(0, 10));
+    setForgeRuntime(forgeRuntimePayload);
+    setSparkRuntime(sparkRuntimePayload);
     setLoading(false);
   }
 
@@ -194,6 +236,56 @@ export default function CodexAccountsPage() {
     }
     return map;
   }, [health]);
+
+  useEffect(() => {
+    if (!slots.length) return;
+    if (!slots.some((slot) => slot.slot_id === selectedSlot)) {
+      setSelectedSlot(slots[0].slot_id);
+    }
+  }, [selectedSlot, slots]);
+
+  const selectedSlotRecord =
+    slots.find((slot) => slot.slot_id === selectedSlot) ?? slots[0] ?? null;
+  const selectedSlotId = selectedSlotRecord?.slot_id ?? selectedSlot;
+  const selectedSlotHealth = selectedSlotRecord ? healthBySlot.get(selectedSlotRecord.slot_id) : null;
+  const selectedSlotRunning = useMemo(
+    () => runningJobs.filter((job) => job.slot_id === selectedSlotId),
+    [runningJobs, selectedSlotId]
+  );
+  const selectedSlotQueue = useMemo(
+    () =>
+      queue.filter((job) => {
+        const resolvedSlot = job.selected_slots[0] || job.requested_slots[0] || job.slot_id;
+        return resolvedSlot === selectedSlotId;
+      }),
+    [queue, selectedSlotId]
+  );
+  const selectedSlotFailed = useMemo(
+    () => failedJobs.filter((job) => job.slot_id === selectedSlotId),
+    [failedJobs, selectedSlotId]
+  );
+  const selectedSlotAudit = useMemo(
+    () =>
+      audit.filter(
+        (entry) => entry.selected_slot === selectedSlotId || (entry.affinity_chain || []).includes(selectedSlotId)
+      ),
+    [audit, selectedSlotId]
+  );
+  const selectedRuntime =
+    selectedSlotId === 'forge' ? forgeRuntime : selectedSlotId === 'spark' ? sparkRuntime : null;
+  const showsRuntimeMaster = selectedSlotId === 'forge' || selectedSlotId === 'spark';
+  const runtimePanelTitle =
+    selectedSlotId === 'forge'
+      ? 'Forge Runtime Master'
+      : selectedSlotId === 'spark'
+        ? 'Spark Runtime Master'
+        : 'Slot Activity Lens';
+  const runtimePanelDescription =
+    selectedSlotId === 'forge'
+      ? 'Desktop TXT kaynagi bridge runtime referansi olarak okunur.'
+      : selectedSlotId === 'spark'
+        ? 'Desktop TXT kaynagi voice/hologram/media referansi olarak okunur.'
+        : 'Secili slot icin is, kuyruk ve audit ozeti.';
 
   async function control(action: string, slotId?: string, jobId?: string) {
     const response = await fetch(`${BRIDGE_API}/api/codex/control`, {
@@ -272,6 +364,217 @@ export default function CodexAccountsPage() {
               </div>
             );
           })}
+        </section>
+
+        <section className="grid gap-6 lg:grid-cols-[0.92fr_1.08fr]">
+          <div className="border border-neutral-800 bg-neutral-900 p-4 rounded-md">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-semibold text-white">Slot Detail</h2>
+                <p className="mt-1 text-xs text-neutral-500">Atlas, Forge, Nexus, Shield ve Spark icin tek panel.</p>
+              </div>
+              <div className="text-xs uppercase tracking-[0.18em] text-neutral-500">{selectedSlotId}</div>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              {(slots || []).map((slot) => (
+                <button
+                  key={slot.slot_id}
+                  onClick={() => setSelectedSlot(slot.slot_id)}
+                  className={`rounded-md border px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] transition ${
+                    slot.slot_id === selectedSlotId
+                      ? 'border-cyan-500/50 bg-cyan-500/10 text-cyan-200'
+                      : 'border-neutral-700 bg-neutral-950 text-neutral-400 hover:border-neutral-500 hover:text-neutral-200'
+                  }`}
+                >
+                  {slot.label}
+                </button>
+              ))}
+            </div>
+
+            {selectedSlotRecord ? (
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <div className="rounded-md border border-neutral-800 bg-neutral-950 p-3">
+                  <div className="text-xs uppercase tracking-[0.18em] text-neutral-500">Runtime</div>
+                  <div className="mt-2 flex items-center justify-between gap-3">
+                    <div className="text-lg font-semibold text-white">{selectedSlotRecord.label}</div>
+                    <span className={`rounded-md border px-2 py-1 text-[10px] uppercase tracking-[0.18em] ${statusClass(selectedSlotRecord.status)}`}>
+                      {selectedSlotRecord.status}
+                    </span>
+                  </div>
+                  <div className="mt-3 space-y-2 text-sm text-neutral-300">
+                    <div>role: {selectedSlotRecord.role}</div>
+                    <div>quota: {selectedSlotRecord.quota_estimate || '-'}</div>
+                    <div>last completion: {formatTimestamp(selectedSlotRecord.last_completion)}</div>
+                    <div>cooldown until: {formatTimestamp(selectedSlotRecord.cooldown_until)}</div>
+                  </div>
+                </div>
+
+                <div className="rounded-md border border-neutral-800 bg-neutral-950 p-3">
+                  <div className="text-xs uppercase tracking-[0.18em] text-neutral-500">Health + Queue</div>
+                  <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                    <div className="rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2">
+                      <div className="text-neutral-500">health</div>
+                      <div className="mt-1 text-white">{selectedSlotHealth?.health_score ?? 0}</div>
+                    </div>
+                    <div className="rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2">
+                      <div className="text-neutral-500">fail count</div>
+                      <div className="mt-1 text-white">{selectedSlotRecord.fail_count}</div>
+                    </div>
+                    <div className="rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2">
+                      <div className="text-neutral-500">running</div>
+                      <div className="mt-1 text-white">{selectedSlotRunning.length}</div>
+                    </div>
+                    <div className="rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2">
+                      <div className="text-neutral-500">queued</div>
+                      <div className="mt-1 text-white">{selectedSlotQueue.length}</div>
+                    </div>
+                  </div>
+                  <div className="mt-3 min-h-[3rem] rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-xs text-neutral-400">
+                    {selectedSlotRecord.current_job
+                      ? `${selectedSlotRecord.current_job.description} | ${formatDuration(selectedSlotRecord.current_job.duration_seconds)}`
+                      : 'current job yok'}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-4 rounded-md border border-neutral-800 bg-neutral-950 p-4 text-sm text-neutral-500">
+                Slot verisi henuz gelmedi.
+              </div>
+            )}
+          </div>
+
+          <div className="border border-neutral-800 bg-neutral-900 p-4 rounded-md">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-semibold text-white">{runtimePanelTitle}</h2>
+                <p className="mt-1 text-xs text-neutral-500">{runtimePanelDescription}</p>
+              </div>
+              <span className="rounded-md border border-neutral-700 px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-neutral-300">
+                {selectedSlotId}
+              </span>
+            </div>
+
+            {showsRuntimeMaster ? (
+              <div className="mt-4 space-y-4">
+                <div className={`rounded-md border p-3 text-sm ${runtimeClass(selectedRuntime?.status)}`}>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="font-medium">{selectedRuntime?.status || (loading ? 'loading' : 'unknown')}</div>
+                    <div className="text-xs">
+                      {selectedRuntime?.updated_at ? formatTimestamp(selectedRuntime.updated_at) : '-'}
+                    </div>
+                  </div>
+                  <div className="mt-2 break-all text-xs opacity-80">
+                    {selectedRuntime?.path || 'Path bekleniyor'}
+                  </div>
+                  {selectedRuntime?.error ? (
+                    <div className="mt-2 text-xs opacity-90">{selectedRuntime.error}</div>
+                  ) : null}
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-3">
+                  <div className="rounded-md border border-neutral-800 bg-neutral-950 px-3 py-3">
+                    <div className="text-xs uppercase tracking-[0.18em] text-neutral-500">size</div>
+                    <div className="mt-2 text-sm text-white">{formatBytes(selectedRuntime?.size_bytes)}</div>
+                  </div>
+                  <div className="rounded-md border border-neutral-800 bg-neutral-950 px-3 py-3">
+                    <div className="text-xs uppercase tracking-[0.18em] text-neutral-500">lines</div>
+                    <div className="mt-2 text-sm text-white">{selectedRuntime?.line_count ?? 0}</div>
+                  </div>
+                  <div className="rounded-md border border-neutral-800 bg-neutral-950 px-3 py-3">
+                    <div className="text-xs uppercase tracking-[0.18em] text-neutral-500">mode</div>
+                    <div className="mt-2 text-sm text-white">{selectedRuntime?.truncated ? 'preview' : 'full'}</div>
+                  </div>
+                </div>
+
+                <div className="rounded-md border border-neutral-800 bg-neutral-950">
+                  <div className="border-b border-neutral-800 px-3 py-2 text-xs uppercase tracking-[0.18em] text-neutral-500">
+                    Runtime Text
+                  </div>
+                  <pre className="max-h-[32rem] overflow-auto whitespace-pre-wrap break-words px-3 py-3 text-xs leading-6 text-neutral-200">
+                    {selectedRuntime?.content || 'Dosya icerigi bekleniyor.'}
+                  </pre>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-4 space-y-3">
+                <div className="grid gap-3 md:grid-cols-3">
+                  <div className="rounded-md border border-neutral-800 bg-neutral-950 px-3 py-3">
+                    <div className="text-xs uppercase tracking-[0.18em] text-neutral-500">running</div>
+                    <div className="mt-2 text-sm text-white">{selectedSlotRunning.length}</div>
+                  </div>
+                  <div className="rounded-md border border-neutral-800 bg-neutral-950 px-3 py-3">
+                    <div className="text-xs uppercase tracking-[0.18em] text-neutral-500">queued</div>
+                    <div className="mt-2 text-sm text-white">{selectedSlotQueue.length}</div>
+                  </div>
+                  <div className="rounded-md border border-neutral-800 bg-neutral-950 px-3 py-3">
+                    <div className="text-xs uppercase tracking-[0.18em] text-neutral-500">failed</div>
+                    <div className="mt-2 text-sm text-white">{selectedSlotFailed.length}</div>
+                  </div>
+                </div>
+
+                <div className="rounded-md border border-neutral-800 bg-neutral-950 p-3">
+                  <div className="text-xs uppercase tracking-[0.18em] text-neutral-500">Recent Activity</div>
+                  <div className="mt-3 space-y-3">
+                    {selectedSlotRunning.slice(0, 2).map((job) => (
+                      <div key={job.job_id} className="rounded-md border border-neutral-800 bg-neutral-900 p-3">
+                        <div className="flex items-center justify-between gap-3 text-xs text-neutral-500">
+                          <span>{job.job_id}</span>
+                          <span>{formatTimestamp(job.started_at)}</span>
+                        </div>
+                        <div className="mt-2 text-sm text-white">{job.task_description}</div>
+                      </div>
+                    ))}
+                    {!selectedSlotRunning.length && !selectedSlotQueue.length && !selectedSlotFailed.length ? (
+                      <div className="text-sm text-neutral-500">Secili slot icin aktif is kaydi yok.</div>
+                    ) : null}
+                    {!selectedSlotRunning.length && selectedSlotQueue.length ? (
+                      selectedSlotQueue.slice(0, 2).map((job) => (
+                        <div key={job.job_id} className="rounded-md border border-neutral-800 bg-neutral-900 p-3">
+                          <div className="flex items-center justify-between gap-3 text-xs text-neutral-500">
+                            <span>{job.job_id}</span>
+                            <span>p{job.priority}</span>
+                          </div>
+                          <div className="mt-2 text-sm text-white">{job.task_description}</div>
+                        </div>
+                      ))
+                    ) : null}
+                    {!selectedSlotRunning.length && !selectedSlotQueue.length && selectedSlotFailed.length ? (
+                      selectedSlotFailed.slice(0, 2).map((job) => (
+                        <div key={job.job_id} className="rounded-md border border-red-900/30 bg-red-950/10 p-3">
+                          <div className="flex items-center justify-between gap-3 text-xs text-red-300">
+                            <span>{job.job_id}</span>
+                            <span>failed</span>
+                          </div>
+                          <div className="mt-2 text-sm text-white">{job.task_description}</div>
+                          <div className="mt-1 text-xs text-red-300">{job.failure_reason || 'failure reason yok'}</div>
+                        </div>
+                      ))
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="rounded-md border border-neutral-800 bg-neutral-950 p-3">
+                  <div className="text-xs uppercase tracking-[0.18em] text-neutral-500">Dispatch Audit</div>
+                  <div className="mt-3 space-y-3">
+                    {selectedSlotAudit.length ? (
+                      selectedSlotAudit.slice(0, 3).map((entry) => (
+                        <div key={`${entry.ts}-${entry.job_id}`} className="rounded-md border border-neutral-800 bg-neutral-900 p-3">
+                          <div className="flex items-center justify-between gap-3 text-xs text-neutral-500">
+                            <span>{entry.job_id}</span>
+                            <span>{formatTimestamp(entry.ts)}</span>
+                          </div>
+                          <div className="mt-2 text-sm text-white">{entry.reason}</div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-sm text-neutral-500">Secili slot icin audit kaydi yok.</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </section>
 
         <section className="grid gap-6 lg:grid-cols-[1.25fr_0.95fr]">
