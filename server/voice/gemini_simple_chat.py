@@ -10,8 +10,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Optional
 
-from circuit_breaker import CircuitBreaker, CircuitBreakerConfig, CircuitBreakerOpenError
-from retry_strategy import RetryStrategy, RetryConfig
+try:
+    from .circuit_breaker import CircuitBreaker, CircuitBreakerConfig, CircuitBreakerOpenError
+    from .retry_strategy import RetryStrategy, RetryConfig
+except ImportError:
+    from circuit_breaker import CircuitBreaker, CircuitBreakerConfig, CircuitBreakerOpenError
+    from retry_strategy import RetryStrategy, RetryConfig
 
 DEFAULT_MODEL = "models/gemini-2.5-flash"
 DEFAULT_SESSION_SECONDS = 300

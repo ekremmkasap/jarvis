@@ -101,19 +101,21 @@ class GeminiSimpleChatTests(unittest.TestCase):
         with self.assertRaises(GeminiSessionTimeout):
             session.send_user_message("ikinci tur")
 
-    def test_upstream_errors_are_wrapped(self) -> None:
+    def test_upstream_errors_are_retried(self) -> None:
         clock = _FakeClock()
         client = _FakeClient(models=_FakeModels(fail_on=1))
         session = GeminiConversationSession(client=client, session_seconds=120, time_fn=clock.now)
-        with self.assertRaises(GeminiVoiceError):
-            session.send_user_message("hata testi")
+        reply = session.send_user_message("hata testi")
+        self.assertEqual(reply, "echo:hata testi")
+        self.assertEqual(client.models.calls, 2)
 
-    def test_empty_response_is_rejected(self) -> None:
+    def test_empty_response_is_retried(self) -> None:
         clock = _FakeClock()
         client = _FakeClient(models=_FakeModels(empty_on=1))
         session = GeminiConversationSession(client=client, session_seconds=120, time_fn=clock.now)
-        with self.assertRaises(GeminiVoiceError):
-            session.send_user_message("bos yanit testi")
+        reply = session.send_user_message("bos yanit testi")
+        self.assertEqual(reply, "echo:bos yanit testi")
+        self.assertEqual(client.models.calls, 2)
 
 
 if __name__ == "__main__":

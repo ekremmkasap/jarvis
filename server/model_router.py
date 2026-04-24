@@ -13,7 +13,20 @@ import yaml
 
 
 RETRYABLE_HTTP_CODES = {408, 409, 425, 429, 500, 502, 503, 504}
-RETRYABLE_ERROR_TOKENS = ("timeout", "timed out", "connection reset", "temporarily unavailable")
+RETRYABLE_ERROR_TOKENS = (
+    "timeout",
+    "timed out",
+    "connection reset",
+    "temporarily unavailable",
+)
+OPENAI_COMPATIBLE_PROVIDER_KINDS = {
+    "openai",
+    "openai-completions",
+    "groq",
+    "gemini",
+    "glm",
+    "cerebras",
+}
 
 
 def _as_bool(raw: str | None, default: bool) -> bool:
@@ -29,6 +42,7 @@ class ProviderConfig:
     base_url: str
     api_key: str
     timeout: int
+    optional: bool = False
     extra_headers: dict[str, str] = field(default_factory=dict)
 
 
@@ -37,6 +51,8 @@ class Candidate:
     provider: str
     model: str
     source: str
+    warning: str = ""
+    error: str = ""
 
 
 @dataclass
@@ -99,6 +115,7 @@ def _build_provider(
         api_key = os.environ.get(api_key_env, api_key).strip()
 
     timeout = int(raw.get("timeout", request_timeout))
+    optional = bool(raw.get("optional", False))
     extra_headers = raw.get("extra_headers", {}) or {}
     normalized_headers = {
         str(key): str(value)
@@ -111,12 +128,17 @@ def _build_provider(
         base_url=base_url.rstrip("/"),
         api_key=api_key,
         timeout=timeout,
+        optional=optional,
         extra_headers=normalized_headers,
     )
 
 
-def load_router_settings(root_dir: Path, default_ollama_url: str, request_timeout: int) -> RouterSettings:
-    config_path_raw = os.environ.get("JARVIS_MODEL_ROUTER_CONFIG", "config/model_router.yml").strip()
+def load_router_settings(
+    root_dir: Path, default_ollama_url: str, request_timeout: int
+) -> RouterSettings:
+    config_path_raw = os.environ.get(
+        "JARVIS_MODEL_ROUTER_CONFIG", "config/model_router.yml"
+    ).strip()
     config_path = Path(config_path_raw)
     if not config_path.is_absolute():
         config_path = root_dir / config_path
@@ -124,7 +146,9 @@ def load_router_settings(root_dir: Path, default_ollama_url: str, request_timeou
 
     enabled_default = bool(config_data.get("enabled", True))
     enabled = _as_bool(os.environ.get("JARVIS_MODEL_ROUTER_ENABLED"), enabled_default)
-    default_provider = str(config_data.get("default_provider", "ollama")).strip() or "ollama"
+    default_provider = (
+        str(config_data.get("default_provider", "ollama")).strip() or "ollama"
+    )
 
     retry_cfg = config_data.get("retry", {}) or {}
     retry_attempts = int(retry_cfg.get("attempts", 2))
@@ -180,14 +204,109 @@ class ModelRouter:
     def __init__(self, settings: RouterSettings):
         self.settings = settings
 
-    def _build_chain(self, primary_model: str, fallback_model: str | None, route_name: str | None) -> list[Candidate]:
-        chain: list[Candidate] = [
-            Candidate(provider=self.settings.default_provider, model=primary_model, source="route:primary")
-        ]
-        if fallback_model and fallback_model != primary_model:
-            chain.append(
-                Candidate(provider=self.settings.default_provider, model=fallback_model, source="route:fallback")
+    def inspect_model_ref(self, model_ref: str | None) -> dict[str, Any]:
+        raw_ref = str(model_ref or "").strip()
+        info: dict[str, Any] = {
+            "raw": raw_ref,
+            "provider": "",
+            "model": "",
+            "explicit_provider": False,
+            "valid": True,
+            "warning": "",
+            "error": "",
+        }
+        if not raw_ref:
+            info["valid"] = False
+            info["error"] = "Model referansi bos."
+            return info
+
+        if raw_ref.endswith(":cloud") or raw_ref.endswith("-cloud"):
+            info["valid"] = False
+            info["error"] = (
+                "Eski ':cloud' model alias'i artik desteklenmiyor. "
+                "provider/model formatini kullanin."
             )
+            return info
+
+        parsed = _parse_candidate(raw_ref, source="inspect:model_ref")
+        if parsed:
+            info["provider"] = parsed.provider
+            info["model"] = parsed.model
+            info["explicit_provider"] = True
+            if parsed.provider not in self.settings.providers:
+                info["valid"] = False
+                info["error"] = f"Provider tanimli degil: {parsed.provider}"
+            return info
+
+        if "/" in raw_ref:
+            provider_name, model_name = raw_ref.split("/", 1)
+            provider_name = provider_name.strip().lower()
+            model_name = model_name.strip()
+            if provider_name in self.settings.providers and model_name:
+                info["provider"] = provider_name
+                info["model"] = model_name
+                info["explicit_provider"] = True
+                return info
+
+            info["valid"] = False
+            info["error"] = (
+                f"Belirsiz model referansi: {raw_ref}. "
+                "Multi-provider modda provider/model veya provider::model kullanin."
+            )
+            return info
+
+        info["provider"] = self.settings.default_provider
+        info["model"] = raw_ref
+        return info
+
+    def _candidate_from_model_ref(
+        self,
+        model_ref: str | None,
+        *,
+        source: str,
+    ) -> Candidate | None:
+        inspected = self.inspect_model_ref(model_ref)
+        if not inspected["raw"]:
+            return None
+
+        return Candidate(
+            provider=str(inspected.get("provider", "")),
+            model=str(inspected.get("model", "")) or str(inspected["raw"]),
+            source=source,
+            warning=str(inspected.get("warning", "")),
+            error=str(inspected.get("error", "")),
+        )
+
+    def _build_chain(
+        self,
+        primary_model: str,
+        fallback_model: str | None,
+        route_name: str | None,
+        extra_fallback_models: list[str] | None = None,
+    ) -> list[Candidate]:
+        chain: list[Candidate] = []
+
+        primary_candidate = self._candidate_from_model_ref(
+            primary_model,
+            source="route:primary",
+        )
+        if primary_candidate:
+            chain.append(primary_candidate)
+
+        fallback_candidate = self._candidate_from_model_ref(
+            fallback_model,
+            source="route:fallback",
+        )
+        if fallback_candidate:
+            chain.append(fallback_candidate)
+
+        for model_name in extra_fallback_models or []:
+            extra_candidate = self._candidate_from_model_ref(
+                model_name,
+                source="route:extra_fallback",
+            )
+            if extra_candidate:
+                chain.append(extra_candidate)
 
         for key in (route_name or "", "default"):
             if not key:
@@ -210,7 +329,9 @@ class ModelRouter:
         lower = error_text.lower()
         return any(token in lower for token in RETRYABLE_ERROR_TOKENS)
 
-    def _open_json(self, url: str, payload: dict[str, Any], headers: dict[str, str], timeout: int) -> dict[str, Any]:
+    def _open_json(
+        self, url: str, payload: dict[str, Any], headers: dict[str, str], timeout: int
+    ) -> dict[str, Any]:
         data = json.dumps(payload).encode("utf-8")
         req = Request(url, data=data, headers=headers, method="POST")
         with urlopen(req, timeout=timeout) as response:
@@ -268,7 +389,9 @@ class ModelRouter:
             role = str(item.get("role", "user")).strip().lower()
             if role not in {"system", "user", "assistant", "tool"}:
                 role = "user"
-            wire_messages.append({"role": role, "content": str(item.get("content", ""))})
+            wire_messages.append(
+                {"role": role, "content": str(item.get("content", ""))}
+            )
 
         payload = {
             "model": model,
@@ -293,7 +416,9 @@ class ModelRouter:
         message = choices[0].get("message", {})
         content = message.get("content", "")
         if isinstance(content, list):
-            text_parts = [str(part.get("text", "")) for part in content if isinstance(part, dict)]
+            text_parts = [
+                str(part.get("text", "")) for part in content if isinstance(part, dict)
+            ]
             content = "".join(text_parts)
         if not content:
             raise RuntimeError("Provider bos yanit dondu.")
@@ -308,7 +433,7 @@ class ModelRouter:
         max_tokens: int,
         num_ctx: int,
     ) -> str:
-        if provider.kind == "openai":
+        if provider.kind in OPENAI_COMPATIBLE_PROVIDER_KINDS:
             return self._call_openai_compatible(
                 provider=provider,
                 model=model,
@@ -316,14 +441,16 @@ class ModelRouter:
                 system=system,
                 max_tokens=max_tokens,
             )
-        return self._call_ollama(
-            provider=provider,
-            model=model,
-            messages=messages,
-            system=system,
-            max_tokens=max_tokens,
-            num_ctx=num_ctx,
-        )
+        if provider.kind == "ollama":
+            return self._call_ollama(
+                provider=provider,
+                model=model,
+                messages=messages,
+                system=system,
+                max_tokens=max_tokens,
+                num_ctx=num_ctx,
+            )
+        raise RuntimeError(f"Unsupported provider kind: {provider.kind}")
 
     def chat(
         self,
@@ -331,6 +458,7 @@ class ModelRouter:
         route_name: str | None,
         primary_model: str,
         fallback_model: str | None,
+        extra_fallback_models: list[str] | None = None,
         messages: list[dict[str, Any]],
         system: str | None,
         max_tokens: int,
@@ -349,10 +477,29 @@ class ModelRouter:
             }
             return trace["error"], trace
 
-        candidates = self._build_chain(primary_model, fallback_model, route_name)
+        candidates = self._build_chain(
+            primary_model,
+            fallback_model,
+            route_name,
+            extra_fallback_models=extra_fallback_models,
+        )
         attempts: list[dict[str, Any]] = []
 
         for index, candidate in enumerate(candidates):
+            if candidate.error:
+                attempts.append(
+                    {
+                        "provider": candidate.provider,
+                        "model": candidate.model,
+                        "ok": False,
+                        "retryable": False,
+                        "error": candidate.error,
+                        "warning": candidate.warning,
+                        "source": candidate.source,
+                    }
+                )
+                continue
+
             provider = self.settings.providers.get(candidate.provider)
             if not provider:
                 attempts.append(
@@ -365,7 +512,7 @@ class ModelRouter:
                     }
                 )
                 continue
-            if provider.kind == "openai" and not provider.api_key:
+            if provider.kind in OPENAI_COMPATIBLE_PROVIDER_KINDS and not provider.api_key:
                 attempts.append(
                     {
                         "provider": candidate.provider,
@@ -404,6 +551,7 @@ class ModelRouter:
                             "model": candidate.model,
                             "ok": True,
                             "attempt": attempt,
+                            "warning": candidate.warning,
                             "source": candidate.source,
                         }
                     )
@@ -440,6 +588,7 @@ class ModelRouter:
                         "attempt": attempt,
                         "retryable": retryable,
                         "error": message[:300],
+                        "warning": candidate.warning,
                         "source": candidate.source,
                     }
                 )
@@ -465,8 +614,126 @@ class ModelRouter:
         }
         return final_error, trace
 
+    def build_health_snapshot(
+        self,
+        *,
+        route_map: dict[str, Any] | None = None,
+        ollama_models: list[str] | None = None,
+        last_trace: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        ollama_model_list = [
+            str(item).strip() for item in (ollama_models or []) if str(item).strip()
+        ]
+        providers: dict[str, dict[str, Any]] = {}
+        overall_status = "healthy" if self.settings.enabled else "disabled"
 
-def build_model_router(root_dir: Path, default_ollama_url: str, request_timeout: int) -> ModelRouter:
+        for name, provider in self.settings.providers.items():
+            issues: list[str] = []
+            status = "healthy"
+            label = "configured"
+
+            if not provider.base_url:
+                issues.append("base-url-missing")
+                status = "degraded"
+                label = "base-url-missing"
+            elif provider.kind == "ollama":
+                if ollama_model_list:
+                    label = f"ready ({len(ollama_model_list)} models)"
+                else:
+                    status = "degraded"
+                    label = "no-models"
+            elif provider.kind in OPENAI_COMPATIBLE_PROVIDER_KINDS and not provider.api_key:
+                issues.append("api-key-missing")
+                if provider.optional:
+                    label = "optional-api-key-missing"
+                else:
+                    status = "degraded"
+                    label = "api-key-missing"
+
+            providers[name] = {
+                "status": status,
+                "label": label,
+                "kind": provider.kind,
+                "base_url": provider.base_url,
+                "has_api_key": bool(provider.api_key),
+                "optional": bool(provider.optional),
+                "issues": issues,
+            }
+            if status == "degraded" and overall_status == "healthy":
+                overall_status = "degraded"
+
+        routes: dict[str, dict[str, Any]] = {}
+        for route_name, raw_route in (route_map or {}).items():
+            route = raw_route if isinstance(raw_route, dict) else {}
+            route_status = "healthy"
+            refs: list[dict[str, Any]] = []
+            issues: list[str] = []
+            raw_refs: list[tuple[str, str]] = []
+
+            primary_ref = str(route.get("model", "")).strip()
+            if primary_ref:
+                raw_refs.append(("primary", primary_ref))
+
+            fallback_ref = str(route.get("fallback", "")).strip()
+            if fallback_ref:
+                raw_refs.append(("fallback", fallback_ref))
+
+            second_fallback = route.get("second_fallback")
+            if isinstance(second_fallback, str) and second_fallback.strip():
+                raw_refs.append(("second_fallback", second_fallback.strip()))
+            elif isinstance(second_fallback, list):
+                for index, item in enumerate(second_fallback, start=1):
+                    item_ref = str(item).strip()
+                    if item_ref:
+                        raw_refs.append((f"extra_fallback_{index}", item_ref))
+
+            for slot, ref in raw_refs:
+                inspected = self.inspect_model_ref(ref)
+                provider_name = str(inspected.get("provider", "")).strip()
+                provider_status = providers.get(provider_name, {}).get("status", "")
+                entry = {
+                    "slot": slot,
+                    "raw": ref,
+                    "provider": provider_name,
+                    "model": str(inspected.get("model", "")).strip(),
+                    "valid": bool(inspected.get("valid", False)),
+                    "warning": str(inspected.get("warning", "")).strip(),
+                    "error": str(inspected.get("error", "")).strip(),
+                }
+                refs.append(entry)
+
+                if not entry["valid"]:
+                    route_status = "degraded"
+                    if entry["error"]:
+                        issues.append(f"{slot}: {entry['error']}")
+                    continue
+
+                if provider_status == "degraded":
+                    route_status = "degraded"
+                    issues.append(f"{slot}: provider degraded ({provider_name})")
+
+            routes[str(route_name)] = {
+                "status": route_status,
+                "refs": refs,
+                "issues": issues,
+            }
+            if route_status == "degraded" and overall_status == "healthy":
+                overall_status = "degraded"
+
+        active = last_trace if isinstance(last_trace, dict) else {}
+        return {
+            "enabled": self.settings.enabled,
+            "status": overall_status,
+            "default_provider": self.settings.default_provider,
+            "providers": providers,
+            "routes": routes,
+            "active": active,
+        }
+
+
+def build_model_router(
+    root_dir: Path, default_ollama_url: str, request_timeout: int
+) -> ModelRouter:
     settings = load_router_settings(
         root_dir=root_dir,
         default_ollama_url=default_ollama_url,

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from dataclasses import replace
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -89,6 +90,21 @@ def load_runtime_config(root_dir: Path, base_dir: Path) -> RuntimeConfig:
     )
 
 
+def apply_runtime_cli_overrides(
+    config: RuntimeConfig, argv: list[str]
+) -> RuntimeConfig:
+    args = [str(item).strip() for item in (argv or []) if str(item).strip()]
+    updated = config
+
+    if "--web-only" in args:
+        label = str(updated.runtime_label or "Standalone Service")
+        if "[web-only]" not in label.lower():
+            label = f"{label} [web-only]"
+        updated = replace(updated, enable_telegram=False, runtime_label=label)
+
+    return updated
+
+
 def validate_runtime_config(config: RuntimeConfig) -> None:
     errors: list[str] = []
 
@@ -97,7 +113,9 @@ def validate_runtime_config(config: RuntimeConfig) -> None:
 
     if config.enable_telegram:
         if not config.telegram_token:
-            errors.append("TELEGRAM_BOT_TOKEN is required when JARVIS_ENABLE_TELEGRAM=1.")
+            errors.append(
+                "TELEGRAM_BOT_TOKEN is required when JARVIS_ENABLE_TELEGRAM=1."
+            )
         if not config.authorized_chat_id:
             errors.append("TELEGRAM_CHAT_ID is required when JARVIS_ENABLE_TELEGRAM=1.")
 
