@@ -87,3 +87,60 @@ git checkout 008-swarm-skills-integration
 - [ ] `main` branch'i bu state'le güncellemek mi?
 - [ ] `Yeni klasör` (2.5GB) için harici çözüm (Google Drive / USB / GitHub LFS?)
 - [ ] PC migration tamamlandı mı?
+
+---
+
+## İkinci Tur (aynı gün, geri dönüş)
+
+> "tüm konuşmaları wikiye yada mdye kaydet bu arada bu dosyaları da aktar..."
+
+Desktop'taki ek klasörler git'e eklendi:
+
+### Mevcut repo (`008-swarm-skills-integration` — commit `73cdb8d`)
+`migration-stash/` altına kopyalandı:
+- `Executables/` (instagram_indir.bat, JARVIS.bat)
+- `el/` (hand_control.py + log)
+- `youtube/` (boş)
+- `README/` (Enough-Reborn klonu, eski Python denemeleri) — `.venv` ve `__pycache__` temizlendi
+- `Obsidian.lnk`
+
+### İkinci repo / branch (`jarvis-codex-swarm-hardening` → `008-swarm-hardening-codex`, push edildi)
+Ekrem'in Desktop'ta **paralel bir clone** tutuyor (aynı GitHub repo'sunun farklı branch'ı). 121 dosya / 45.400 satır push edildi:
+- `JARVIS-Brain/` (Obsidian vault — 79 not, mimari/persona/dev-log)
+- `JarvisProjects/` (Codex prompt'ları)
+- `Others/`
+- `config/autonomous_allowlist.yml`
+- `server/codex_auth_refresher.py`, `codex_autonomous_runner.py`, `codex_bus.py`, `multi_account_swarm.py`, `octogent_bridge.py`
+- 6 yeni test
+- `.gitignore` genişletildi: `*keyler*`, `state/`, `cookies`, log/temp paths
+
+### Atlanan
+- **`C:\Users\sergen\Desktop\Yeni klasör`** — **2.5 GB / 56K dosya**, GitHub'a sığmaz. USB veya external drive ile taşınacak.
+
+### Kritik müdahaleler
+- `JARVIS-Brain/Documents/keyler.txt` — gerçek API key dosyası, `.gitignore`'a eklenip push'tan hariç tutuldu (asla repo'ya girmedi)
+- `state/codex-accounts/` — runtime state, ignore'a eklendi
+
+---
+
+## Yeni PC Tam Kurulum (güncel)
+
+```bash
+# Ana repo + iki branch
+git clone https://github.com/ekremmkasap/jarvis.git
+cd jarvis
+
+# Skills branch (ana çalışma — 008-swarm-skills-integration)
+git checkout 008-swarm-skills-integration
+# migration-stash/ altında Desktop dosyaları hazır
+
+# Ya da hardening branch'ı
+git checkout 008-swarm-hardening-codex
+```
+
+**Hâlâ manuel taşıma gereken:**
+- `.env` (API keys, Telegram token)
+- `JARVIS-Brain/Documents/keyler.txt` (API key dump — güvenli kanalla)
+- `state/` (active_agent.json, agent_memory/, codex_cooldowns.json)
+- `Yeni klasör/` (2.5 GB)
+- `external-repos/` (3rd party clone'lar)
