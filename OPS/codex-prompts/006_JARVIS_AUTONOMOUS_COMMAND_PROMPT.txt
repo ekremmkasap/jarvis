@@ -1,0 +1,206 @@
+==============================================================
+JARVIS - CODEX HANDOFF - 006 AUTONOMOUS COMMAND
+Operator prompt id: 006
+Repo spec id: specs/005-jarvis-autonomous-command
+==============================================================
+
+CALISMA DIZINI:
+C:\Users\sergen\Desktop\jarvis-mission-control
+
+AMAC:
+Bu sekmenin gorevi, Jarvis Autonomous Command Layer yuzeyini repo gercegine
+gore dogrulamak, eksik veya regresyon varsa en dar patch ile kapatmak ve
+operatora net Turkce kapanis raporu vermektir.
+
+ONEMLI NUMARA NOTU:
+- Repo icinde autonomous command spec'i `specs/005-jarvis-autonomous-command`.
+- Bu dosya ise operator handoff/prompt sirasi icin `006` olarak adlandirildi.
+- `specs/006-jarvis-second-brain` ile karistirma; bu prompt second-brain isi degil.
+
+ONEMLI KURALLAR:
+- Repo dirty olabilir. Kullaniciya ait mevcut degisiklikleri revert etme.
+- Runtime kodunu gereksiz refactor etme. Ozellikle `server/bridge.py` append-only ve
+  backward-compatible kalmali.
+- Bir sey zaten tamamsa bozma; sadece spec/tasks/contract ile uyumsuz veya eksik
+  kisimlari kapat.
+- Secrets, `.env`, token, billing, protected branch, deploy, push/merge akislarina
+  dokunma.
+- Operator-facing metinlerde Turkceyi koru.
+- Gerekli degilse live Telegram, live desktop, live Jarvis veya gercek PC eylemi
+  calistirma; testlerde mock/smoke tercih et.
+
+ONCE OKU (sirayla):
+1. `AGENTS.md`
+2. `.claude/CLAUDE.md`
+3. `specs/005-jarvis-autonomous-command/spec.md`
+4. `specs/005-jarvis-autonomous-command/plan.md`
+5. `specs/005-jarvis-autonomous-command/tasks.md`
+6. `specs/005-jarvis-autonomous-command/handoff.md`
+7. `specs/005-jarvis-autonomous-command/contracts/telegram-commands.md`
+8. `specs/005-jarvis-autonomous-command/contracts/http-api.md`
+
+SONRA HEDEF YUZEYLERI OKU:
+- `server/bridge.py`
+- `server/skills/telegram_voice_handler.py`
+- `server/skills/telegram_tts_reply.py`
+- `server/skills/pc_control_gateway.py`
+- `server/skills/intent_persona_router.py`
+- `server/skills/obsidian_auto_writer.py`
+- `server/skills/wiki_auto_writer.py`
+- `server/skills/agent_memory_skill.py`
+- `server/autonomous_loop.py`
+- `config/pc_control_whitelist.yaml`
+- `config/agents.yaml`
+- `apps/web-ui/src/components/AgentMemoryPanel.tsx`
+- `apps/web-ui/src/components/MissionControlDashboard.tsx`
+- `apps/web-ui/src/app/api/agents/summary/route.ts`
+- `apps/web-ui/src/app/api/persona/[id]/memory/route.ts`
+- `apps/web-ui/src/app/api/pc/status/route.ts`
+
+MEVCUT DURUM IPUCU:
+`specs/005-jarvis-autonomous-command/handoff.md` onceki kapanista su sonucu
+kaydi gecmis olabilir:
+- Backend smoke: `48 passed`
+- Web UI typecheck: temiz
+- Web UI build: sandbox disinda basarili
+Bunu dogru kabul etme; mevcut worktree uzerinde hedefli dogrulama yap.
+
+GOREV:
+Autonomous Command Layer kapsaminda asagidaki 6 fazi dogrula.
+Eksik varsa dar patch uygula, test et ve raporla.
+
+FAZ 1 - TELEGRAM SES KANALI:
+- Telegram voice `.ogg` input 60 saniye ustunu reddetmeli.
+- Voice input STT yuzeyine aktarilmali.
+- TTS reply ses dosyasi uretebilmeli ve temizlemeli.
+- Live bot token veya dis network gerektirmeyen testler korunmali.
+
+Ilgili dosyalar:
+- `server/skills/telegram_voice_handler.py`
+- `server/skills/telegram_tts_reply.py`
+- `tests/test_telegram_voice.py`
+
+FAZ 2 - PC CONTROL GATEWAY:
+- PC komutlari whitelist disina cikmamali.
+- `/pc-durum` CPU/RAM/disk bilgisi dondurmeli.
+- Screenshot, app open, file send gibi riskli yuzeyler whitelist ve safe path ile
+  sinirli olmali.
+- Audit log davranisi bozulmamali.
+
+Ilgili dosyalar:
+- `server/skills/pc_control_gateway.py`
+- `config/pc_control_whitelist.yaml`
+- `tests/test_pc_control_gateway.py`
+
+FAZ 3 - INTENT -> PERSONA ROUTER:
+- Research -> Mert
+- Code -> Seda
+- Social -> Buse
+- AWS/infra -> Sabrican
+- YouTube/video -> Eren
+- Strategy -> Sabri
+- Security -> Luna
+- Confidence dusukse mevcut persona korunmali veya net fallback mesaji donmeli.
+
+Ilgili dosyalar:
+- `server/skills/intent_persona_router.py`
+- `server/bridge.py` intent hooklari
+- `tests/test_intent_persona_router.py`
+
+FAZ 4 - OBSIDIAN + WIKI AUTO WRITE:
+- Arastirma/eylem sonucu persona Obsidian notuna yazilabilmeli.
+- `wiki'ye ekle` intenti `wiki/` altinda sayfa olusturup `index.md`, `log.md`,
+  `hot.md` davranisini bozmamali.
+- Env/vault yoksa graceful fail olmali.
+
+Ilgili dosyalar:
+- `server/skills/obsidian_auto_writer.py`
+- `server/skills/wiki_auto_writer.py`
+- `tests/test_obsidian_auto_writer.py`
+- `tests/test_wiki_auto_writer.py`
+
+FAZ 5 - CODEX SLOT AUTO DISPATCH:
+- Aktif persona -> dogru Codex slot map korunmali.
+- Seda -> forge; Sabrican -> nexus gibi mappingler `config/agents.yaml` ile uyumlu
+  olmali.
+- Slot mesgulse queue/fallback mesaji net olmali.
+
+Ilgili dosyalar:
+- `config/agents.yaml`
+- `server/bridge.py` Codex dispatch/status yuzeyleri
+- `tests/test_codex_management.py`
+
+FAZ 6 - AGENT MEMORY PANEL + API:
+- `/hafiza <persona>` son kayitlari dondurmeli.
+- `/ajanlarin-ozeti` tum persona ozetini dondurmeli.
+- `GET /api/persona/{id}/memory`
+- `GET /api/agents/summary`
+- `GET /api/pc/status`
+- Web UI `AgentMemoryPanel` 3 saniyelik polling mantigiyla bu endpointleri
+  kullanmali.
+
+Ilgili dosyalar:
+- `server/skills/agent_memory_skill.py`
+- `server/bridge.py`
+- `apps/web-ui/src/components/AgentMemoryPanel.tsx`
+- `apps/web-ui/src/components/MissionControlDashboard.tsx`
+- `tests/test_agent_memory_skill.py`
+
+EK KONTROL - AUTONOMOUS LOOP:
+`server/autonomous_loop.py` repo icinde mevcut. Bu promptta amac loop'u bastan
+yazmak degil; sadece autonomous command layer ile karismayacak sekilde durumunu
+not et:
+- Worktree isolation var mi?
+- Status/stop/start CLI calisiyor mu?
+- OpenCode eksikse graceful hata veriyor mu?
+- Telegram raporu secrets sizdirmadan yaziliyor mu?
+
+UYGULAMA KURALLARI:
+- `server/bridge.py` icin buyuk router rewrite yapma.
+- Yeni helper gerekiyorsa `server/skills/` altinda dar fonksiyon ekle.
+- Testte live network, Telegram send, ekran kontrol veya gercek app acma yapma.
+- Windows path varsayimlarini koru.
+- Encoding bozma; yeni dosyalarda ASCII tercih et.
+- Kullanici degisikliklerine dokunma; sadece bu fazlarla ilgili dosyalar.
+
+DOGRULAMA KOMUTLARI:
+Oncelik sirasiyla:
+
+1. Python syntax:
+   `python -m py_compile server/bridge.py server/autonomous_loop.py server/skills/telegram_voice_handler.py server/skills/telegram_tts_reply.py server/skills/pc_control_gateway.py server/skills/intent_persona_router.py server/skills/obsidian_auto_writer.py server/skills/wiki_auto_writer.py server/skills/agent_memory_skill.py`
+
+2. Backend targeted suite:
+   `python -m pytest tests/test_telegram_voice.py tests/test_pc_control_gateway.py tests/test_intent_persona_router.py tests/test_obsidian_auto_writer.py tests/test_wiki_auto_writer.py tests/test_agent_memory_skill.py tests/test_codex_management.py -q`
+
+3. Autonomous loop smoke:
+   `python server/autonomous_loop.py --status`
+
+4. Web UI typecheck (eger Node deps hazirsa):
+   `cd apps/web-ui`
+   `node_modules/.bin/tsc.cmd --noEmit`
+
+5. Web UI build sadece gerekiyorsa:
+   `npm.cmd run build`
+   Not: Next build sandbox icinde EPERM verebilir; bu durumda sonucu risk olarak
+   raporla, gereksiz escalation isteme.
+
+EGER HER SEY ZATEN TAMAMSA:
+- Kod degisikligi yapma.
+- Hangi dosyalari okudugunu ve hangi testlerin gectigini raporla.
+- "No code change needed" ifadesini net kullan.
+
+TESLIM FORMATI:
+1. Degisiklik yaptigin dosyalar
+2. Kapatilan eksik veya dogrulanan yuzey
+3. Calistirilan testler ve sonuc
+4. Kalan riskler / env bagimliliklari
+5. Sonraki en dar adim
+
+KISA HANDOFF:
+- Hedef: Jarvis Autonomous Command Layer kapanis/dogrulama
+- Repo spec: `specs/005-jarvis-autonomous-command`
+- Kritik dosyalar: `server/bridge.py`, `server/skills/*autonomous-command yuzeyleri`,
+  `server/autonomous_loop.py`, `apps/web-ui/src/components/AgentMemoryPanel.tsx`
+- Ana risk: dirty worktree, bridge.py buyuk, live PC/Telegram eylemi yapmadan test etme
+- Sonraki adim: eksik varsa dar patch + targeted tests; eksik yoksa dogrulama raporu
+==============================================================

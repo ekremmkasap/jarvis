@@ -1,0 +1,65 @@
+{
+  "core": [
+    {
+      "id": "obsidian-sync",
+      "name": "Obsidian Wiki Sync",
+      "status": "planned",
+      "target": "server/skills/obsidian_sync_skill.py"
+    },
+    {
+      "id": "openrouter-layer",
+      "name": "OpenRouter Model Layer",
+      "status": "planned",
+      "target": "server/model_router.py"
+    },
+    {
+      "id": "opencli",
+      "name": "OpenCLI Web-to-CLI",
+      "status": "research",
+      "target": "server/skills/opencli_skill.py"
+    },
+    {
+      "id": "screen-recorder",
+      "name": "OpenScreen/Recordly",
+      "status": "research",
+      "target": "server/skills/screen_recording_skill.py"
+    }
+  ],
+  "research": [
+    {
+      "id": "ms-call-center",
+      "name": "Microsoft Call Center AI",
+      "status": "research"
+    },
+    {
+      "id": "agentfield",
+      "name": "Agentfield Deploy/Observe",
+      "status": "research"
+    },
+    {
+      "id": "roboclaw",
+      "name": "RoboClaw Hardware Control",
+      "status": "research"
+    }
+  ],
+  "restricted": [
+    {
+      "id": "stegg",
+      "name": "STE.GG Forensics",
+      "status": "restricted",
+      "note": "Dual-use risk, admin-only"
+    }
+  ],
+  "excluded": [
+    {
+      "id": "pixel-rpg",
+      "name": "Pixel RPG World",
+      "status": "excluded"
+    },
+    {
+      "id": "godmode",
+      "name": "Godmode",
+      "status": "excluded"
+    }
+  ]
+}

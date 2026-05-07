@@ -1,0 +1,76 @@
+==============================================================
+JARVIS — MERT LANE — Araştırma Otomasyonu & Web Search Executor
+Branch: 004-dijital-ajan-v3-persona-swarm
+==============================================================
+
+ÇALIŞMA DİZİNİ:
+C:\Users\sergen\Desktop\jarvis-mission-control
+
+ÖNCE OKU (sırayla):
+1. specs/004-dijital-ajan-v3-persona-swarm/plan.md
+2. config/agents.yaml  (mert persona bloğu — sub_agents, system_prompt)
+3. server/services/persona_swarm.py  (_exec_web_search fonksiyonu)
+4. server/bridge.py  (mevcut Telegram komut bloğu)
+5. server/persona_manager.py  (okuyabilirsin, değiştirme)
+
+ASLA DOKUNMA:
+- hey_jarvis.py
+- apps/desktop-hologram/
+- server/persona_manager.py
+
+==============================================================
+GÖREV — Mert Araştırma Skill Katmanı
+==============================================================
+
+A) server/skills/mert_research_skill.py oluştur:
+
+1. web_search_deep(query, max_results=5):
+   - DuckDuckGo Instant Answer API (mevcut _exec_web_search'ü geliştir)
+   - Sonuçları puanla: AbstractText > Answer > RelatedTopics
+   - Her sonuç: {"title", "snippet", "url", "relevance_score"}
+   - Max 5 sonuç, toplam 3000 char
+
+2. search_and_summarize(query):
+   - web_search_deep() çağır
+   - Sonuçları tek özet metne birleştir
+   - Obsidian'a kaydet: personas/mert/research/<tarih>_<query_slug>.md
+   - {"ok": True, "summary": str, "sources": list, "saved_to": path} döner
+
+3. competitor_analysis(product_name):
+   - 3 arama: "{product} reviews", "{product} alternatives", "{product} pricing"
+   - Paralel değil sıralı (rate limit)
+   - Sonuçları tek rapor olarak birleştir
+
+B) server/bridge.py içine Telegram komutları ekle (/obsidian-oku sonrasına):
+
+- /mert-ara <sorgu>         → search_and_summarize() çağır
+- /mert-rakip <ürün_adı>    → competitor_analysis() çağır
+
+C) tests/test_mert_research_skill.py oluştur:
+- search_and_summarize boş query → ok:False
+- Obsidian vault yoksa graceful fail (ok:True, saved_to:None)
+- competitor_analysis 3 arama yapıyor mu
+
+KRİTİK KURALLAR:
+1. Rate limit: aramalar arası min 2 sn
+2. Her arama server/logs/mert_research.jsonl'e loglanır
+3. bridge.py'ye sadece /mert-ara ve /mert-rakip ekle
+
+==============================================================
+TEST KOMUTU
+==============================================================
+
+python -m pytest tests/test_mert_research_skill.py -v --tb=short
+python -c "from server.skills.mert_research_skill import search_and_summarize; print('mert ok')"
+
+==============================================================
+TESLİM FORMATI
+==============================================================
+
+1. Oluşturulan dosyalar
+2. web_search_deep çalışıyor mu (network erişimi olmadan mock ile)
+3. Obsidian kaydı graceful fail ediyor mu
+4. Bridge komutları eklendi mi
+5. Test sonuçları
+
+Commit: feat: mert research skill — web_search_deep + /mert-ara + /mert-rakip

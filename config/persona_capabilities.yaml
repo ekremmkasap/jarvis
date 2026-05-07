@@ -14,6 +14,7 @@
 #   pc.low_risk, pc.medium_risk, pc.high_risk
 #   openclaw.helper, openclaw.deliver
 #   operator.high_risk
+#   dreams.snapshot, dreams.report
 ##############################################################
 
 persona_capabilities:
@@ -26,6 +27,8 @@ persona_capabilities:
     openclaw.helper: require_approval
     openclaw.deliver: require_approval
     operator.high_risk: require_approval
+    dreams.snapshot: require_approval
+    dreams.report: require_approval
 
   # ----- Musteri-facing personalar: ops yetkisi YOK -----
   sabri:
@@ -37,6 +40,8 @@ persona_capabilities:
     openclaw.helper: deny
     openclaw.deliver: deny
     operator.high_risk: deny
+    dreams.snapshot: deny
+    dreams.report: deny
 
   buse:
     shell.safe: deny
@@ -47,6 +52,8 @@ persona_capabilities:
     openclaw.helper: deny
     openclaw.deliver: deny
     operator.high_risk: deny
+    dreams.snapshot: deny
+    dreams.report: deny
 
   deniz:
     shell.safe: deny
@@ -57,6 +64,8 @@ persona_capabilities:
     openclaw.helper: deny
     openclaw.deliver: deny
     operator.high_risk: deny
+    dreams.snapshot: deny
+    dreams.report: deny
 
   eren:
     shell.safe: deny
@@ -67,6 +76,8 @@ persona_capabilities:
     openclaw.helper: deny
     openclaw.deliver: deny
     operator.high_risk: deny
+    dreams.snapshot: deny
+    dreams.report: deny
 
   mert:
     shell.safe: deny
@@ -77,6 +88,8 @@ persona_capabilities:
     openclaw.helper: deny
     openclaw.deliver: deny
     operator.high_risk: deny
+    dreams.snapshot: deny
+    dreams.report: deny
 
   # ----- Luna: lab-only, hicbir canli aksiyon yok -----
   luna:
@@ -88,6 +101,8 @@ persona_capabilities:
     openclaw.helper: require_approval
     openclaw.deliver: deny
     operator.high_risk: deny
+    dreams.snapshot: deny
+    dreams.report: deny
 
   # ----- Zeynep: defensive audit, read-only -----
   zeynep:
@@ -99,6 +114,8 @@ persona_capabilities:
     openclaw.helper: deny
     openclaw.deliver: deny
     operator.high_risk: deny
+    dreams.snapshot: deny
+    dreams.report: deny
 
   # ----- Seda: ic dev ajan, kod seviyesi -----
   seda:
@@ -110,6 +127,14 @@ persona_capabilities:
     openclaw.helper: require_approval
     openclaw.deliver: deny
     operator.high_risk: deny
+    dreams.snapshot: deny
+    dreams.report: require_approval
+
+  # ----- Jarvis: ana koordinator, dreams ops yetkili -----
+  # Diger kapasiteler default matrix'ten miras alinir.
+  jarvis:
+    dreams.snapshot: allow
+    dreams.report: allow
 
   # ----- Sabrican: ops/altyapi, tam yetkili -----
   sabrican:
@@ -121,3 +146,5 @@ persona_capabilities:
     openclaw.helper: allow
     openclaw.deliver: require_approval
     operator.high_risk: require_approval
+    dreams.snapshot: allow
+    dreams.report: allow

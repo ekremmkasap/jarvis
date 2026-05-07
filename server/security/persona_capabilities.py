@@ -20,6 +20,8 @@ ACTION_PC_HIGH = "pc.high_risk"
 ACTION_OPENCLAW_HELPER = "openclaw.helper"
 ACTION_OPENCLAW_DELIVER = "openclaw.deliver"
 ACTION_OPERATOR_HIGH = "operator.high_risk"
+ACTION_DREAMS_SNAPSHOT = "dreams.snapshot"
+ACTION_DREAMS_REPORT = "dreams.report"
 
 KNOWN_ACTION_CLASSES = frozenset(
     {
@@ -31,6 +33,8 @@ KNOWN_ACTION_CLASSES = frozenset(
         ACTION_OPENCLAW_HELPER,
         ACTION_OPENCLAW_DELIVER,
         ACTION_OPERATOR_HIGH,
+        ACTION_DREAMS_SNAPSHOT,
+        ACTION_DREAMS_REPORT,
     }
 )
 
@@ -46,6 +50,8 @@ DEFAULT_MATRIX: dict[str, dict[str, str]] = {
         ACTION_OPENCLAW_HELPER: "require_approval",
         ACTION_OPENCLAW_DELIVER: "require_approval",
         ACTION_OPERATOR_HIGH: "require_approval",
+        ACTION_DREAMS_SNAPSHOT: "require_approval",
+        ACTION_DREAMS_REPORT: "require_approval",
     }
 }
 
@@ -132,6 +138,8 @@ def resolve_capability(persona_id: str | None, action_class: str) -> str:
 
 
 __all__ = [
+    "ACTION_DREAMS_REPORT",
+    "ACTION_DREAMS_SNAPSHOT",
     "ACTION_OPENCLAW_DELIVER",
     "ACTION_OPENCLAW_HELPER",
     "ACTION_OPERATOR_HIGH",

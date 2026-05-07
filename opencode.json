@@ -1,0 +1,94 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "default_agent": "meta-ceo",
+  "watcher": {
+    "ignore": [
+      ".git/**",
+      "node_modules/**",
+      "apps/web-ui/.next/**",
+      "outputs/**",
+      "logs/**",
+      "tmp/**",
+      "blobs/**",
+      "manifests/**",
+      "__pycache__/**"
+    ]
+  },
+  "agent": {
+    "meta-ceo": {
+      "mode": "primary",
+      "color": "accent",
+      "permission": {
+        "task": {
+          "*": "deny",
+          "prompt-ceo": "allow",
+          "coder-ceo": "allow",
+          "research-ceo": "allow",
+          "security-ceo": "allow",
+          "qa-ceo": "allow",
+          "ops-ceo": "allow"
+        }
+      }
+    },
+    "prompt-ceo": {
+      "mode": "primary",
+      "color": "accent",
+      "permission": {
+        "task": {
+          "*": "deny",
+          "prompt-*": "allow"
+        }
+      }
+    },
+    "coder-ceo": {
+      "mode": "subagent",
+      "color": "#2563EB",
+      "permission": {
+        "task": {
+          "*": "deny",
+          "code-*": "allow"
+        }
+      }
+    },
+    "research-ceo": {
+      "mode": "subagent",
+      "color": "#EAB308",
+      "permission": {
+        "task": {
+          "*": "deny",
+          "research-*": "allow"
+        }
+      }
+    },
+    "security-ceo": {
+      "mode": "subagent",
+      "color": "#DC2626",
+      "permission": {
+        "task": {
+          "*": "deny",
+          "security-*": "allow"
+        }
+      }
+    },
+    "qa-ceo": {
+      "mode": "subagent",
+      "color": "#16A34A",
+      "permission": {
+        "task": {
+          "*": "deny",
+          "qa-*": "allow"
+        }
+      }
+    },
+    "ops-ceo": {
+      "mode": "subagent",
+      "color": "#0891B2",
+      "permission": {
+        "task": {
+          "*": "deny",
+          "ops-*": "allow"
+        }
+      }
+    }
+  }
+}

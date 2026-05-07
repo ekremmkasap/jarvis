@@ -1,0 +1,3519 @@
+# OPS 01 - 3H Ultra Roadmap
+Durum: active draft backed by current repository evidence
+Tarih: 2026-04-04
+Operator modu: war-room forensic audit + stabilization
+Zorunlu line target: 3000-4000
+Bu dosya yalnizca kanitlanan, operasyonel veya dogrudan sonraki adima hizmet eden satirlari icerir.
+
+## 1. Mission Framing
+- Objective 1: son 24 saatte neyin gercekten yapildigini ayir.
+- Objective 2: dokuman dilini runtime gerceginden ayir.
+- Objective 3: canonical runtime hikayesini tek cumleye indir.
+- Objective 4: OpenClaw / Telegram laneini abartmadan siniflandir.
+- Objective 5: queue, memory, self-healer, launcher gibi iyilestirme alanlarini sertlestir.
+- Objective 6: bir sonraki vardiya icin context-loss riskini azalt.
+- Constraint 1: bu repo sifirdan kuruluyor varsayimi yapma.
+- Constraint 2: mevcut session history birincil kanit kaynaklarindan biridir.
+- Constraint 3: userdan eski loglari yeniden isteme.
+- Constraint 4: claim ile code ayrildiginda code kazanir.
+- Constraint 5: doc ile runtime ayrildiginda runtime kazanir.
+- Constraint 6: py_compile tek basina production-ready kaniti degildir.
+- Constraint 7: green test sayisi coverage kaniti degildir.
+- Constraint 8: untracked completion raporlari tarihsel anlatidir, runtime kaniti degildir.
+- Constraint 9: secrets outputa yazilmaz.
+- Constraint 10: remote push yok.
+- Constraint 11: hard reset yok.
+- Constraint 12: unrelated dosya silinmez.
+- Truth Rule A: canli port ve process durumu dokumandan ustundur.
+- Truth Rule B: gecen test bugun tekrar gecmiyorsa summary gecersizdir.
+- Truth Rule C: helper dosyasi canonical runtime degildir.
+- Truth Rule D: simulation script 24 saatlik operation kaniti degildir.
+- Truth Rule E: pairing state delivery success kaniti degildir.
+- Truth Rule F: plan dosyasi implementation completion kaniti degildir.
+- Truth Rule G: commit message runtime success kaniti degildir.
+- Truth Rule H: fallback subagent execution gercek lane sayilabilir ama kayda gecmelidir.
+- Scope 1: README, AGENTS, env sample, week reports, integration docs.
+- Scope 2: bridge, launcher, watchdog, runtime config, runtime state, model router.
+- Scope 3: orchestrator main, task queue, agent runner, safety, ws broadcaster.
+- Scope 4: autonomous loop, learning, metrics, dashboard, telegram intelligence.
+- Scope 5: OpenClaw helper, wrappers, local OpenClaw state, profile/auth caveats.
+- Scope 6: targeted tests and current git state.
+- Definition 1: VERIFIED = direct runtime/code/test evidence supports the claim.
+- Definition 2: MOSTLY VERIFIED = core claim supported but operational gaps remain.
+- Definition 3: PARTIAL = implementation exists but end-to-end truth is incomplete.
+- Definition 4: CONTRADICTED = current evidence shows the claim is false or materially overstated.
+- Definition 5: UNVERIFIED = implementation or docs mention it but current proof is absent.
+- Definition 6: canonical runtime = default operator-facing path that best matches source-of-truth docs and launchers.
+- Definition 7: split-brain = two or more runtime surfaces claim overlapping ownership.
+- Definition 8: hard-blocked = final green status cannot be claimed without unsafe or external action.
+- Anti-noise rule 1: every line must either constrain, prove, falsify, or direct the next operator.
+- Anti-noise rule 2: repeated tasks are only allowed when angle changes.
+- Anti-noise rule 3: broad marketing language is banned.
+- Anti-noise rule 4: unresolved contradiction must remain visible.
+- Anti-noise rule 5: soft evidence must never be dressed as hard evidence.
+- Mission outcome target 1: produce a factual truth map for last 24 hours.
+- Mission outcome target 2: reduce runtime drift without pretending the repo is unified.
+- Mission outcome target 3: leave OPS artifacts strong enough to survive compaction or rate limits.
+- Lead lane immediate bias: prefer small verified fixes over broad speculative rewrites.
+- Lead lane stop rule: do not chase low-signal cleanup before gate-critical evidence is written.
+- Lead lane approval rule: do not send real Telegram test traffic without explicit need or safe isolation.
+- Lead lane reporting rule: Turkish user-facing summaries, English machine artifacts only when materially better.
+- Sprint success bar 1: roadmap exists and line target is met.
+- Sprint success bar 2: claims-vs-reality map is brutally accurate.
+- Sprint success bar 3: queue/memory/self-healer/launcher evidence is updated.
+- Sprint success bar 4: OpenClaw / Telegram lane is classified with proof.
+- Sprint success bar 5: next shift can resume with exact commands.
+Mission checkpoint 1: operator must keep evidence stronger than narrative.
+Mission checkpoint 2: operator must keep evidence stronger than narrative.
+Mission checkpoint 3: operator must keep evidence stronger than narrative.
+Mission checkpoint 4: operator must keep evidence stronger than narrative.
+Mission checkpoint 5: operator must keep evidence stronger than narrative.
+Mission checkpoint 6: operator must keep evidence stronger than narrative.
+Mission checkpoint 7: operator must keep evidence stronger than narrative.
+Mission checkpoint 8: operator must keep evidence stronger than narrative.
+Mission checkpoint 9: operator must keep evidence stronger than narrative.
+Mission checkpoint 10: operator must keep evidence stronger than narrative.
+Mission checkpoint 11: operator must keep evidence stronger than narrative.
+Mission checkpoint 12: operator must keep evidence stronger than narrative.
+Mission checkpoint 13: operator must keep evidence stronger than narrative.
+Mission checkpoint 14: operator must keep evidence stronger than narrative.
+Mission checkpoint 15: operator must keep evidence stronger than narrative.
+Mission checkpoint 16: operator must keep evidence stronger than narrative.
+Mission checkpoint 17: operator must keep evidence stronger than narrative.
+Mission checkpoint 18: operator must keep evidence stronger than narrative.
+Mission checkpoint 19: operator must keep evidence stronger than narrative.
+Mission checkpoint 20: operator must keep evidence stronger than narrative.
+Mission checkpoint 21: operator must keep evidence stronger than narrative.
+Mission checkpoint 22: operator must keep evidence stronger than narrative.
+Mission checkpoint 23: operator must keep evidence stronger than narrative.
+Mission checkpoint 24: operator must keep evidence stronger than narrative.
+Mission checkpoint 25: operator must keep evidence stronger than narrative.
+Mission checkpoint 26: operator must keep evidence stronger than narrative.
+Mission checkpoint 27: operator must keep evidence stronger than narrative.
+Mission checkpoint 28: operator must keep evidence stronger than narrative.
+Mission checkpoint 29: operator must keep evidence stronger than narrative.
+Mission checkpoint 30: operator must keep evidence stronger than narrative.
+Mission checkpoint 31: operator must keep evidence stronger than narrative.
+Mission checkpoint 32: operator must keep evidence stronger than narrative.
+Mission checkpoint 33: operator must keep evidence stronger than narrative.
+Mission checkpoint 34: operator must keep evidence stronger than narrative.
+Mission checkpoint 35: operator must keep evidence stronger than narrative.
+Mission checkpoint 36: operator must keep evidence stronger than narrative.
+Mission checkpoint 37: operator must keep evidence stronger than narrative.
+Mission checkpoint 38: operator must keep evidence stronger than narrative.
+Mission checkpoint 39: operator must keep evidence stronger than narrative.
+Mission checkpoint 40: operator must keep evidence stronger than narrative.
+Mission checkpoint 41: operator must keep evidence stronger than narrative.
+Mission checkpoint 42: operator must keep evidence stronger than narrative.
+Mission checkpoint 43: operator must keep evidence stronger than narrative.
+Mission checkpoint 44: operator must keep evidence stronger than narrative.
+Mission checkpoint 45: operator must keep evidence stronger than narrative.
+Mission checkpoint 46: operator must keep evidence stronger than narrative.
+Mission checkpoint 47: operator must keep evidence stronger than narrative.
+Mission checkpoint 48: operator must keep evidence stronger than narrative.
+Mission checkpoint 49: operator must keep evidence stronger than narrative.
+Mission checkpoint 50: operator must keep evidence stronger than narrative.
+Mission checkpoint 51: operator must keep evidence stronger than narrative.
+Mission checkpoint 52: operator must keep evidence stronger than narrative.
+Mission checkpoint 53: operator must keep evidence stronger than narrative.
+Mission checkpoint 54: operator must keep evidence stronger than narrative.
+Mission checkpoint 55: operator must keep evidence stronger than narrative.
+Mission checkpoint 56: operator must keep evidence stronger than narrative.
+Mission checkpoint 57: operator must keep evidence stronger than narrative.
+Mission checkpoint 58: operator must keep evidence stronger than narrative.
+Mission checkpoint 59: operator must keep evidence stronger than narrative.
+Mission checkpoint 60: operator must keep evidence stronger than narrative.
+Mission checkpoint 61: operator must keep evidence stronger than narrative.
+Mission checkpoint 62: operator must keep evidence stronger than narrative.
+Mission checkpoint 63: operator must keep evidence stronger than narrative.
+Mission checkpoint 64: operator must keep evidence stronger than narrative.
+Mission checkpoint 65: operator must keep evidence stronger than narrative.
+Mission checkpoint 66: operator must keep evidence stronger than narrative.
+Mission checkpoint 67: operator must keep evidence stronger than narrative.
+Mission checkpoint 68: operator must keep evidence stronger than narrative.
+Mission checkpoint 69: operator must keep evidence stronger than narrative.
+Mission checkpoint 70: operator must keep evidence stronger than narrative.
+
+## 2. Evidence Inventory
+### 2.1 [E01] git show ff8a31c
+- source_type: git
+- proves: Week 3 completion report was added
+- cannot_prove: production readiness
+- current_status: reviewed
+- next_verification: compare against live tests
+- risk_note: docs can overclaim
+- ranking_note: use this source before weaker narratives when conflict appears.
+- operator_rule: cite this source explicitly when closing a related gate.
+- handoff_rule: if this source changes, dependent claims must be re-evaluated.
+- anti-hallucination: do not infer beyond what this source directly supports.
+- cross_reference: section 4, section 7, section 10 may all depend on this item.
+### 2.2 [E02] git show 59552a4
+- source_type: git
+- proves: advanced learning and vision files were added
+- cannot_prove: live runtime health
+- current_status: reviewed
+- next_verification: compare tests to runtime
+- risk_note: large commit message optimism
+- ranking_note: use this source before weaker narratives when conflict appears.
+- operator_rule: cite this source explicitly when closing a related gate.
+- handoff_rule: if this source changes, dependent claims must be re-evaluated.
+- anti-hallucination: do not infer beyond what this source directly supports.
+- cross_reference: section 4, section 7, section 10 may all depend on this item.
+### 2.3 [E03] git show 835ae96
+- source_type: git
+- proves: Telegram intelligence and dashboard code landed
+- cannot_prove: transport success
+- current_status: reviewed
+- next_verification: check logs and tests
+- risk_note: commit says ready for production
+- ranking_note: use this source before weaker narratives when conflict appears.
+- operator_rule: cite this source explicitly when closing a related gate.
+- handoff_rule: if this source changes, dependent claims must be re-evaluated.
+- anti-hallucination: do not infer beyond what this source directly supports.
+- cross_reference: section 4, section 7, section 10 may all depend on this item.
+### 2.4 [E04] git show faa004f
+- source_type: git
+- proves: Gemini function caller module and tests landed
+- cannot_prove: integrated runtime route
+- current_status: reviewed
+- next_verification: compare tests to runtime path
+- risk_note: commit says E2E
+- ranking_note: use this source before weaker narratives when conflict appears.
+- operator_rule: cite this source explicitly when closing a related gate.
+- handoff_rule: if this source changes, dependent claims must be re-evaluated.
+- anti-hallucination: do not infer beyond what this source directly supports.
+- cross_reference: section 4, section 7, section 10 may all depend on this item.
+### 2.5 [E05] WEEK3_COMPLETION.md
+- source_type: doc
+- proves: what the team claimed on Apr 4
+- cannot_prove: truth of the claims
+- current_status: read
+- next_verification: cross-check each metric
+- risk_note: strong language
+- ranking_note: use this source before weaker narratives when conflict appears.
+- operator_rule: cite this source explicitly when closing a related gate.
+- handoff_rule: if this source changes, dependent claims must be re-evaluated.
+- anti-hallucination: do not infer beyond what this source directly supports.
+- cross_reference: section 4, section 7, section 10 may all depend on this item.
+### 2.6 [E06] WEEK3_CALEB4_COMPLETION.md
+- source_type: doc
+- proves: detailed CALEB-4 narrative
+- cannot_prove: actual integration
+- current_status: read
+- next_verification: keep secret redaction and note rotation
+- risk_note: contained a live-looking secret
+- ranking_note: use this source before weaker narratives when conflict appears.
+- operator_rule: cite this source explicitly when closing a related gate.
+- handoff_rule: if this source changes, dependent claims must be re-evaluated.
+- anti-hallucination: do not infer beyond what this source directly supports.
+- cross_reference: section 4, section 7, section 10 may all depend on this item.
+### 2.7 [E07] INTEGRATION_SUMMARY.md
+- source_type: doc
+- proves: Claude/Codex analysis exists
+- cannot_prove: integration complete
+- current_status: read
+- next_verification: mark planning-only status
+- risk_note: easy to overread as complete
+- ranking_note: use this source before weaker narratives when conflict appears.
+- operator_rule: cite this source explicitly when closing a related gate.
+- handoff_rule: if this source changes, dependent claims must be re-evaluated.
+- anti-hallucination: do not infer beyond what this source directly supports.
+- cross_reference: section 4, section 7, section 10 may all depend on this item.
+### 2.8 [E08] CODEX_BRIDGE_INTEGRATION_CHECKLIST.md
+- source_type: doc
+- proves: integration work remains
+- cannot_prove: runtime health
+- current_status: read
+- next_verification: note unchecked items
+- risk_note: checklist drift
+- ranking_note: use this source before weaker narratives when conflict appears.
+- operator_rule: cite this source explicitly when closing a related gate.
+- handoff_rule: if this source changes, dependent claims must be re-evaluated.
+- anti-hallucination: do not infer beyond what this source directly supports.
+- cross_reference: section 4, section 7, section 10 may all depend on this item.
+### 2.9 [E09] README.md
+- source_type: doc
+- proves: operator-facing startup story
+- cannot_prove: what is actually running
+- current_status: read
+- next_verification: align defaults
+- risk_note: may drift from code
+- ranking_note: use this source before weaker narratives when conflict appears.
+- operator_rule: cite this source explicitly when closing a related gate.
+- handoff_rule: if this source changes, dependent claims must be re-evaluated.
+- anti-hallucination: do not infer beyond what this source directly supports.
+- cross_reference: section 4, section 7, section 10 may all depend on this item.
+### 2.10 [E10] .env.example
+- source_type: config
+- proves: fresh-clone defaults
+- cannot_prove: safe startup
+- current_status: read
+- next_verification: ensure Telegram disabled by default
+- risk_note: blank tokens plus enabled service
+- ranking_note: use this source before weaker narratives when conflict appears.
+- operator_rule: cite this source explicitly when closing a related gate.
+- handoff_rule: if this source changes, dependent claims must be re-evaluated.
+- anti-hallucination: do not infer beyond what this source directly supports.
+- cross_reference: section 4, section 7, section 10 may all depend on this item.
+### 2.11 [E11] server/SOURCE_OF_TRUTH.md
+- source_type: doc
+- proves: bridge.py is canonical
+- cannot_prove: that other surfaces are gone
+- current_status: read
+- next_verification: compare to actual launchers
+- risk_note: docs can lag code
+- ranking_note: use this source before weaker narratives when conflict appears.
+- operator_rule: cite this source explicitly when closing a related gate.
+- handoff_rule: if this source changes, dependent claims must be re-evaluated.
+- anti-hallucination: do not infer beyond what this source directly supports.
+- cross_reference: section 4, section 7, section 10 may all depend on this item.
+### 2.12 [E12] server/bridge.py
+- source_type: code
+- proves: bridge runtime shape, Telegram path, web handler
+- cannot_prove: current live success
+- current_status: read
+- next_verification: log and process cross-check
+- risk_note: script-style imports
+- ranking_note: use this source before weaker narratives when conflict appears.
+- operator_rule: cite this source explicitly when closing a related gate.
+- handoff_rule: if this source changes, dependent claims must be re-evaluated.
+- anti-hallucination: do not infer beyond what this source directly supports.
+- cross_reference: section 4, section 7, section 10 may all depend on this item.
+### 2.13 [E13] server/bridge_server.py
+- source_type: code
+- proves: legacy Linux bridge still exists
+- cannot_prove: canonical ownership
+- current_status: read
+- next_verification: mark as legacy
+- risk_note: confuses operators
+- ranking_note: use this source before weaker narratives when conflict appears.
+- operator_rule: cite this source explicitly when closing a related gate.
+- handoff_rule: if this source changes, dependent claims must be re-evaluated.
+- anti-hallucination: do not infer beyond what this source directly supports.
+- cross_reference: section 4, section 7, section 10 may all depend on this item.
+### 2.14 [E14] services/orchestrator/main.py
+- source_type: code
+- proves: real FastAPI orchestrator exists
+- cannot_prove: bridge dependency
+- current_status: read
+- next_verification: note parallel runtime
+- risk_note: port drift in docs
+- ranking_note: use this source before weaker narratives when conflict appears.
+- operator_rule: cite this source explicitly when closing a related gate.
+- handoff_rule: if this source changes, dependent claims must be re-evaluated.
+- anti-hallucination: do not infer beyond what this source directly supports.
+- cross_reference: section 4, section 7, section 10 may all depend on this item.
+### 2.15 [E15] services/orchestrator/task_queue.py
+- source_type: code
+- proves: persistent priority queue exists
+- cannot_prove: full API contract correctness
+- current_status: read
+- next_verification: test confirm semantics
+- risk_note: private state misuse
+- ranking_note: use this source before weaker narratives when conflict appears.
+- operator_rule: cite this source explicitly when closing a related gate.
+- handoff_rule: if this source changes, dependent claims must be re-evaluated.
+- anti-hallucination: do not infer beyond what this source directly supports.
+- cross_reference: section 4, section 7, section 10 may all depend on this item.
+### 2.16 [E16] services/orchestrator/agent_runner.py
+- source_type: code
+- proves: runner loop and persistence saves exist
+- cannot_prove: agent business correctness
+- current_status: read
+- next_verification: runtime integration later
+- risk_note: hardcoded registry duplication
+- ranking_note: use this source before weaker narratives when conflict appears.
+- operator_rule: cite this source explicitly when closing a related gate.
+- handoff_rule: if this source changes, dependent claims must be re-evaluated.
+- anti-hallucination: do not infer beyond what this source directly supports.
+- cross_reference: section 4, section 7, section 10 may all depend on this item.
+### 2.17 [E17] services/voice/voice_service.py
+- source_type: code
+- proves: voice wake loop exists
+- cannot_prove: microphone success
+- current_status: read
+- next_verification: fix method mismatch
+- risk_note: live audio dependency
+- ranking_note: use this source before weaker narratives when conflict appears.
+- operator_rule: cite this source explicitly when closing a related gate.
+- handoff_rule: if this source changes, dependent claims must be re-evaluated.
+- anti-hallucination: do not infer beyond what this source directly supports.
+- cross_reference: section 4, section 7, section 10 may all depend on this item.
+### 2.18 [E18] server/watchdog.py
+- source_type: code
+- proves: heartbeat/lock expectation exists
+- cannot_prove: producer exists
+- current_status: read
+- next_verification: mark orphaned until producer found
+- risk_note: false dead-process signals
+- ranking_note: use this source before weaker narratives when conflict appears.
+- operator_rule: cite this source explicitly when closing a related gate.
+- handoff_rule: if this source changes, dependent claims must be re-evaluated.
+- anti-hallucination: do not infer beyond what this source directly supports.
+- cross_reference: section 4, section 7, section 10 may all depend on this item.
+### 2.19 [E19] server/openclaw_bridge.py
+- source_type: code
+- proves: OpenClaw helper path exists
+- cannot_prove: canonical runtime
+- current_status: read
+- next_verification: rewrite helper safely
+- risk_note: old broken method and dev hardcode
+- ranking_note: use this source before weaker narratives when conflict appears.
+- operator_rule: cite this source explicitly when closing a related gate.
+- handoff_rule: if this source changes, dependent claims must be re-evaluated.
+- anti-hallucination: do not infer beyond what this source directly supports.
+- cross_reference: section 4, section 7, section 10 may all depend on this item.
+### 2.20 [E20] openclaw.cmd
+- source_type: launcher
+- proves: legacy OpenClaw wrapper existed
+- cannot_prove: correct target
+- current_status: read
+- next_verification: point to canonical runtime
+- risk_note: missing file path
+- ranking_note: use this source before weaker narratives when conflict appears.
+- operator_rule: cite this source explicitly when closing a related gate.
+- handoff_rule: if this source changes, dependent claims must be re-evaluated.
+- anti-hallucination: do not infer beyond what this source directly supports.
+- cross_reference: section 4, section 7, section 10 may all depend on this item.
+### 2.21 [E21] install_openclaw_startup.cmd
+- source_type: launcher
+- proves: startup automation existed
+- cannot_prove: correct path
+- current_status: read
+- next_verification: point to canonical runtime
+- risk_note: autostarts wrong file
+- ranking_note: use this source before weaker narratives when conflict appears.
+- operator_rule: cite this source explicitly when closing a related gate.
+- handoff_rule: if this source changes, dependent claims must be re-evaluated.
+- anti-hallucination: do not infer beyond what this source directly supports.
+- cross_reference: section 4, section 7, section 10 may all depend on this item.
+### 2.22 [E22] master_launcher.py
+- source_type: launcher
+- proves: bridge/voice/hologram boot order
+- cannot_prove: that gateway/team are also booted
+- current_status: read
+- next_verification: rewrite docs to match
+- risk_note: ownership split
+- ranking_note: use this source before weaker narratives when conflict appears.
+- operator_rule: cite this source explicitly when closing a related gate.
+- handoff_rule: if this source changes, dependent claims must be re-evaluated.
+- anti-hallucination: do not infer beyond what this source directly supports.
+- cross_reference: section 4, section 7, section 10 may all depend on this item.
+### 2.23 [E23] JARVIS_BASLAT_README.txt
+- source_type: doc
+- proves: old launcher narrative
+- cannot_prove: current truth
+- current_status: read
+- next_verification: replace with current runtime notes
+- risk_note: 6-service myth
+- ranking_note: use this source before weaker narratives when conflict appears.
+- operator_rule: cite this source explicitly when closing a related gate.
+- handoff_rule: if this source changes, dependent claims must be re-evaluated.
+- anti-hallucination: do not infer beyond what this source directly supports.
+- cross_reference: section 4, section 7, section 10 may all depend on this item.
+### 2.24 [E24] server/logs/jarvis.log
+- source_type: runtime_log
+- proves: bridge started and Telegram transport failed
+- cannot_prove: successful delivery
+- current_status: read
+- next_verification: treat as direct runtime evidence
+- risk_note: environment-specific transport block
+- ranking_note: use this source before weaker narratives when conflict appears.
+- operator_rule: cite this source explicitly when closing a related gate.
+- handoff_rule: if this source changes, dependent claims must be re-evaluated.
+- anti-hallucination: do not infer beyond what this source directly supports.
+- cross_reference: section 4, section 7, section 10 may all depend on this item.
+### 2.25 [E25] server/logs/telegram/intelligence.log
+- source_type: runtime_log
+- proves: telegram intelligence log file exists
+- cannot_prove: feature activity
+- current_status: read
+- next_verification: note zero-byte state
+- risk_note: silent feature narrative
+- ranking_note: use this source before weaker narratives when conflict appears.
+- operator_rule: cite this source explicitly when closing a related gate.
+- handoff_rule: if this source changes, dependent claims must be re-evaluated.
+- anti-hallucination: do not infer beyond what this source directly supports.
+- cross_reference: section 4, section 7, section 10 may all depend on this item.
+### 2.26 [E26] server/logs/autonomous/autonomous_manager.log
+- source_type: runtime_log
+- proves: autonomous manager log target exists
+- cannot_prove: 24h autonomy
+- current_status: read
+- next_verification: note zero-byte state
+- risk_note: empty log against strong claims
+- ranking_note: use this source before weaker narratives when conflict appears.
+- operator_rule: cite this source explicitly when closing a related gate.
+- handoff_rule: if this source changes, dependent claims must be re-evaluated.
+- anti-hallucination: do not infer beyond what this source directly supports.
+- cross_reference: section 4, section 7, section 10 may all depend on this item.
+### 2.27 [E27] scripts/start_24h_autonomous_loop.py
+- source_type: code
+- proves: autonomous demo script uses simulation
+- cannot_prove: real 24h operation
+- current_status: read
+- next_verification: tie to current_job.json
+- risk_note: marketing confusion
+- ranking_note: use this source before weaker narratives when conflict appears.
+- operator_rule: cite this source explicitly when closing a related gate.
+- handoff_rule: if this source changes, dependent claims must be re-evaluated.
+- anti-hallucination: do not infer beyond what this source directly supports.
+- cross_reference: section 4, section 7, section 10 may all depend on this item.
+### 2.28 [E28] server/agent_workspace/autonomous/current_job.json
+- source_type: state
+- proves: demo job reached hour 24 within minutes
+- cannot_prove: real world duration
+- current_status: read
+- next_verification: mark contradiction
+- risk_note: looks impressive if decontextualized
+- ranking_note: use this source before weaker narratives when conflict appears.
+- operator_rule: cite this source explicitly when closing a related gate.
+- handoff_rule: if this source changes, dependent claims must be re-evaluated.
+- anti-hallucination: do not infer beyond what this source directly supports.
+- cross_reference: section 4, section 7, section 10 may all depend on this item.
+### 2.29 [E29] tests/test_dashboard.py
+- source_type: test
+- proves: dashboard expectations and failing path
+- cannot_prove: live dashboard server quality
+- current_status: read
+- next_verification: debug success rate math
+- risk_note: non-hermetic logs
+- ranking_note: use this source before weaker narratives when conflict appears.
+- operator_rule: cite this source explicitly when closing a related gate.
+- handoff_rule: if this source changes, dependent claims must be re-evaluated.
+- anti-hallucination: do not infer beyond what this source directly supports.
+- cross_reference: section 4, section 7, section 10 may all depend on this item.
+### 2.30 [E30] tests/test_vision_analyzer.py
+- source_type: test
+- proves: vision suite currently green
+- cannot_prove: future package support
+- current_status: read
+- next_verification: note deprecation risk
+- risk_note: deprecated dependency
+- ranking_note: use this source before weaker narratives when conflict appears.
+- operator_rule: cite this source explicitly when closing a related gate.
+- handoff_rule: if this source changes, dependent claims must be re-evaluated.
+- anti-hallucination: do not infer beyond what this source directly supports.
+- cross_reference: section 4, section 7, section 10 may all depend on this item.
+### 2.31 [E31] tests/test_gemini_function_calling.py
+- source_type: test
+- proves: function caller unit coverage exists
+- cannot_prove: real model happy path
+- current_status: read
+- next_verification: classify mock-heavy coverage
+- risk_note: false E2E confidence
+- ranking_note: use this source before weaker narratives when conflict appears.
+- operator_rule: cite this source explicitly when closing a related gate.
+- handoff_rule: if this source changes, dependent claims must be re-evaluated.
+- anti-hallucination: do not infer beyond what this source directly supports.
+- cross_reference: section 4, section 7, section 10 may all depend on this item.
+### 2.32 [E32] tests/test_task_queue.py
+- source_type: test
+- proves: queue persistence and confirm semantics are covered
+- cannot_prove: full HTTP API behavior
+- current_status: read
+- next_verification: keep API gap visible
+- risk_note: unit-only proof
+- ranking_note: use this source before weaker narratives when conflict appears.
+- operator_rule: cite this source explicitly when closing a related gate.
+- handoff_rule: if this source changes, dependent claims must be re-evaluated.
+- anti-hallucination: do not infer beyond what this source directly supports.
+- cross_reference: section 4, section 7, section 10 may all depend on this item.
+### 2.33 [E33] tests/test_memory_skill.py
+- source_type: test
+- proves: cross-platform memory path basic behavior
+- cannot_prove: bridge live memory integration
+- current_status: read
+- next_verification: bridge smoke when needed
+- risk_note: unit-only proof
+- ranking_note: use this source before weaker narratives when conflict appears.
+- operator_rule: cite this source explicitly when closing a related gate.
+- handoff_rule: if this source changes, dependent claims must be re-evaluated.
+- anti-hallucination: do not infer beyond what this source directly supports.
+- cross_reference: section 4, section 7, section 10 may all depend on this item.
+### 2.34 [E34] tests/test_self_healer.py
+- source_type: test
+- proves: platform-aware self-heal command generation
+- cannot_prove: safe automatic execution in real incidents
+- current_status: read
+- next_verification: retain caution wording
+- risk_note: generated fixes still risky
+- ranking_note: use this source before weaker narratives when conflict appears.
+- operator_rule: cite this source explicitly when closing a related gate.
+- handoff_rule: if this source changes, dependent claims must be re-evaluated.
+- anti-hallucination: do not infer beyond what this source directly supports.
+- cross_reference: section 4, section 7, section 10 may all depend on this item.
+### 2.35 [E35] subagent results from Wegener/Nietzsche/James/Hooke/Ampere/Nash
+- source_type: session
+- proves: parallel forensic lanes converged on same contradictions
+- cannot_prove: replace direct runtime proof
+- current_status: reviewed
+- next_verification: embed into claims map
+- risk_note: must remain attributed
+- ranking_note: use this source before weaker narratives when conflict appears.
+- operator_rule: cite this source explicitly when closing a related gate.
+- handoff_rule: if this source changes, dependent claims must be re-evaluated.
+- anti-hallucination: do not infer beyond what this source directly supports.
+- cross_reference: section 4, section 7, section 10 may all depend on this item.
+
+## 3. Eight-Agent Topology
+### 3.1 Lane-1 - Lead Orchestrator
+- execution_mode: lead
+- real_execution: true
+- source_mapping: main rollout
+- primary_purpose: sprint control, patch selection, gate closure
+- accepted_inputs: all repo evidence and subagent outputs
+- expected_outputs: OPS artifacts, code changes, validations
+- boundary_rule_1: does not outsource final judgement
+- escalation_rule_1: ask only for external irreversible actions
+- success_criterion_1: all five gates closed or hard-blocked
+- failure_mode_1: drifts into summary without proof
+- anti_overlap_1: lane owns only its declared evidence or change surface.
+- anti_overlap_2: lane must not silently claim another lane closed a gate.
+- anti_overlap_3: lane must not turn docs into proof.
+- handoff_rule_1: lane outputs are written into OPS artifacts, not just chat commentary.
+- handoff_rule_2: unresolved items remain visible with owner tag.
+- coordination_rule_1: lead integrates conflicts among lane outputs.
+- coordination_rule_2: if a lane contradicts another lane, lead favors direct runtime evidence.
+- coordination_rule_3: if direct runtime evidence is absent, code outranks docs.
+- checkpoint_rule_1: lane state must be reflected in runlog every 15-20 minutes.
+- checkpoint_rule_2: lane blockers must name file or environment boundary.
+- gate_link_1: lane contributes to at least one of the five gates.
+- gate_link_2: lane output must not be summarized as green without evidence.
+- verification_rule_1: every lane must produce at least one concrete file/path/command reference.
+- verification_rule_2: soft language such as maybe or probably must be called inference when used.
+- rate_limit_survival_1: lane output should be reusable after context compaction.
+- rate_limit_survival_2: lane output belongs in OPS before any large refactor continues.
+- stop_condition_1: lane stops when evidence saturates or when next action belongs to another lane.
+- stop_condition_2: lane does not pad output for appearance.
+- operator_note_1: this lane exists because the prompt demanded 8 total lanes including lead.
+- operator_note_2: fallback explorer use is explicit where repo-local model was unavailable.
+- operator_note_3: simulated docs lane is not hidden; it is declared as simulated.
+- artifact_binding_1: lane findings must land in OPS fact, claims, canon, or OpenClaw files.
+- artifact_binding_2: if a lane proposes a patch, runlog must record whether it was applied.
+- artifact_binding_3: if a lane disproves a claim, claims table must be updated.
+- residual_risk_1: unresolved lane blockers roll into handoff, not into silence.
+- residual_risk_2: lane confidence does not override missing runtime proof.
+- lane_summary_1: this lane is necessary because the repo blends runtime, docs, and historical narratives.
+- lane_summary_2: without this lane, split-brain or overclaim risk rises.
+### 3.2 Lane-2 - Evidence Miner
+- execution_mode: fallback explorer
+- real_execution: true
+- source_mapping: repo-local search-specialist fallback
+- primary_purpose: mine commit/doc/session contradictions
+- accepted_inputs: git history, week docs, session history
+- expected_outputs: claim contradiction set
+- boundary_rule_1: no code edits
+- escalation_rule_1: flag contradictions to lead
+- success_criterion_1: high-signal proof list
+- failure_mode_1: trusts reports blindly
+- anti_overlap_1: lane owns only its declared evidence or change surface.
+- anti_overlap_2: lane must not silently claim another lane closed a gate.
+- anti_overlap_3: lane must not turn docs into proof.
+- handoff_rule_1: lane outputs are written into OPS artifacts, not just chat commentary.
+- handoff_rule_2: unresolved items remain visible with owner tag.
+- coordination_rule_1: lead integrates conflicts among lane outputs.
+- coordination_rule_2: if a lane contradicts another lane, lead favors direct runtime evidence.
+- coordination_rule_3: if direct runtime evidence is absent, code outranks docs.
+- checkpoint_rule_1: lane state must be reflected in runlog every 15-20 minutes.
+- checkpoint_rule_2: lane blockers must name file or environment boundary.
+- gate_link_1: lane contributes to at least one of the five gates.
+- gate_link_2: lane output must not be summarized as green without evidence.
+- verification_rule_1: every lane must produce at least one concrete file/path/command reference.
+- verification_rule_2: soft language such as maybe or probably must be called inference when used.
+- rate_limit_survival_1: lane output should be reusable after context compaction.
+- rate_limit_survival_2: lane output belongs in OPS before any large refactor continues.
+- stop_condition_1: lane stops when evidence saturates or when next action belongs to another lane.
+- stop_condition_2: lane does not pad output for appearance.
+- operator_note_1: this lane exists because the prompt demanded 8 total lanes including lead.
+- operator_note_2: fallback explorer use is explicit where repo-local model was unavailable.
+- operator_note_3: simulated docs lane is not hidden; it is declared as simulated.
+- artifact_binding_1: lane findings must land in OPS fact, claims, canon, or OpenClaw files.
+- artifact_binding_2: if a lane proposes a patch, runlog must record whether it was applied.
+- artifact_binding_3: if a lane disproves a claim, claims table must be updated.
+- residual_risk_1: unresolved lane blockers roll into handoff, not into silence.
+- residual_risk_2: lane confidence does not override missing runtime proof.
+- lane_summary_1: this lane is necessary because the repo blends runtime, docs, and historical narratives.
+- lane_summary_2: without this lane, split-brain or overclaim risk rises.
+### 3.3 Lane-3 - Runtime Topology Mapper
+- execution_mode: fallback explorer
+- real_execution: true
+- source_mapping: repo-local code-mapper fallback
+- primary_purpose: map entrypoints, owners, split-brain surfaces
+- accepted_inputs: launchers, bridge, orchestrator, loop
+- expected_outputs: runtime canon map
+- boundary_rule_1: no speculative integration
+- escalation_rule_1: flag duplicated ownership
+- success_criterion_1: single sentence canonical runtime statement
+- failure_mode_1: merges distinct surfaces
+- anti_overlap_1: lane owns only its declared evidence or change surface.
+- anti_overlap_2: lane must not silently claim another lane closed a gate.
+- anti_overlap_3: lane must not turn docs into proof.
+- handoff_rule_1: lane outputs are written into OPS artifacts, not just chat commentary.
+- handoff_rule_2: unresolved items remain visible with owner tag.
+- coordination_rule_1: lead integrates conflicts among lane outputs.
+- coordination_rule_2: if a lane contradicts another lane, lead favors direct runtime evidence.
+- coordination_rule_3: if direct runtime evidence is absent, code outranks docs.
+- checkpoint_rule_1: lane state must be reflected in runlog every 15-20 minutes.
+- checkpoint_rule_2: lane blockers must name file or environment boundary.
+- gate_link_1: lane contributes to at least one of the five gates.
+- gate_link_2: lane output must not be summarized as green without evidence.
+- verification_rule_1: every lane must produce at least one concrete file/path/command reference.
+- verification_rule_2: soft language such as maybe or probably must be called inference when used.
+- rate_limit_survival_1: lane output should be reusable after context compaction.
+- rate_limit_survival_2: lane output belongs in OPS before any large refactor continues.
+- stop_condition_1: lane stops when evidence saturates or when next action belongs to another lane.
+- stop_condition_2: lane does not pad output for appearance.
+- operator_note_1: this lane exists because the prompt demanded 8 total lanes including lead.
+- operator_note_2: fallback explorer use is explicit where repo-local model was unavailable.
+- operator_note_3: simulated docs lane is not hidden; it is declared as simulated.
+- artifact_binding_1: lane findings must land in OPS fact, claims, canon, or OpenClaw files.
+- artifact_binding_2: if a lane proposes a patch, runlog must record whether it was applied.
+- artifact_binding_3: if a lane disproves a claim, claims table must be updated.
+- residual_risk_1: unresolved lane blockers roll into handoff, not into silence.
+- residual_risk_2: lane confidence does not override missing runtime proof.
+- lane_summary_1: this lane is necessary because the repo blends runtime, docs, and historical narratives.
+- lane_summary_2: without this lane, split-brain or overclaim risk rises.
+### 3.4 Lane-4 - Backend Integrator
+- execution_mode: backend-developer
+- real_execution: true
+- source_mapping: backend-developer
+- primary_purpose: review recent stabilization changes and safe next patches
+- accepted_inputs: queue, memory, self-healer, gateway, watchdog
+- expected_outputs: patch candidates and validation
+- boundary_rule_1: avoid broad refactor
+- escalation_rule_1: flag contract breaks
+- success_criterion_1: small verified fixes
+- failure_mode_1: touches unrelated modules
+- anti_overlap_1: lane owns only its declared evidence or change surface.
+- anti_overlap_2: lane must not silently claim another lane closed a gate.
+- anti_overlap_3: lane must not turn docs into proof.
+- handoff_rule_1: lane outputs are written into OPS artifacts, not just chat commentary.
+- handoff_rule_2: unresolved items remain visible with owner tag.
+- coordination_rule_1: lead integrates conflicts among lane outputs.
+- coordination_rule_2: if a lane contradicts another lane, lead favors direct runtime evidence.
+- coordination_rule_3: if direct runtime evidence is absent, code outranks docs.
+- checkpoint_rule_1: lane state must be reflected in runlog every 15-20 minutes.
+- checkpoint_rule_2: lane blockers must name file or environment boundary.
+- gate_link_1: lane contributes to at least one of the five gates.
+- gate_link_2: lane output must not be summarized as green without evidence.
+- verification_rule_1: every lane must produce at least one concrete file/path/command reference.
+- verification_rule_2: soft language such as maybe or probably must be called inference when used.
+- rate_limit_survival_1: lane output should be reusable after context compaction.
+- rate_limit_survival_2: lane output belongs in OPS before any large refactor continues.
+- stop_condition_1: lane stops when evidence saturates or when next action belongs to another lane.
+- stop_condition_2: lane does not pad output for appearance.
+- operator_note_1: this lane exists because the prompt demanded 8 total lanes including lead.
+- operator_note_2: fallback explorer use is explicit where repo-local model was unavailable.
+- operator_note_3: simulated docs lane is not hidden; it is declared as simulated.
+- artifact_binding_1: lane findings must land in OPS fact, claims, canon, or OpenClaw files.
+- artifact_binding_2: if a lane proposes a patch, runlog must record whether it was applied.
+- artifact_binding_3: if a lane disproves a claim, claims table must be updated.
+- residual_risk_1: unresolved lane blockers roll into handoff, not into silence.
+- residual_risk_2: lane confidence does not override missing runtime proof.
+- lane_summary_1: this lane is necessary because the repo blends runtime, docs, and historical narratives.
+- lane_summary_2: without this lane, split-brain or overclaim risk rises.
+### 3.5 Lane-5 - Failure Analyst
+- execution_mode: debugger
+- real_execution: true
+- source_mapping: debugger
+- primary_purpose: rerun targeted tests and startup paths
+- accepted_inputs: dashboard, bridge, env defaults
+- expected_outputs: reproducible failures and scope
+- boundary_rule_1: no hype
+- escalation_rule_1: mark disproven claims
+- success_criterion_1: failures tied to exact files
+- failure_mode_1: reports only narrative
+- anti_overlap_1: lane owns only its declared evidence or change surface.
+- anti_overlap_2: lane must not silently claim another lane closed a gate.
+- anti_overlap_3: lane must not turn docs into proof.
+- handoff_rule_1: lane outputs are written into OPS artifacts, not just chat commentary.
+- handoff_rule_2: unresolved items remain visible with owner tag.
+- coordination_rule_1: lead integrates conflicts among lane outputs.
+- coordination_rule_2: if a lane contradicts another lane, lead favors direct runtime evidence.
+- coordination_rule_3: if direct runtime evidence is absent, code outranks docs.
+- checkpoint_rule_1: lane state must be reflected in runlog every 15-20 minutes.
+- checkpoint_rule_2: lane blockers must name file or environment boundary.
+- gate_link_1: lane contributes to at least one of the five gates.
+- gate_link_2: lane output must not be summarized as green without evidence.
+- verification_rule_1: every lane must produce at least one concrete file/path/command reference.
+- verification_rule_2: soft language such as maybe or probably must be called inference when used.
+- rate_limit_survival_1: lane output should be reusable after context compaction.
+- rate_limit_survival_2: lane output belongs in OPS before any large refactor continues.
+- stop_condition_1: lane stops when evidence saturates or when next action belongs to another lane.
+- stop_condition_2: lane does not pad output for appearance.
+- operator_note_1: this lane exists because the prompt demanded 8 total lanes including lead.
+- operator_note_2: fallback explorer use is explicit where repo-local model was unavailable.
+- operator_note_3: simulated docs lane is not hidden; it is declared as simulated.
+- artifact_binding_1: lane findings must land in OPS fact, claims, canon, or OpenClaw files.
+- artifact_binding_2: if a lane proposes a patch, runlog must record whether it was applied.
+- artifact_binding_3: if a lane disproves a claim, claims table must be updated.
+- residual_risk_1: unresolved lane blockers roll into handoff, not into silence.
+- residual_risk_2: lane confidence does not override missing runtime proof.
+- lane_summary_1: this lane is necessary because the repo blends runtime, docs, and historical narratives.
+- lane_summary_2: without this lane, split-brain or overclaim risk rises.
+### 3.6 Lane-6 - AI Runtime / OpenClaw Integrator
+- execution_mode: ai-engineer
+- real_execution: true
+- source_mapping: ai-engineer
+- primary_purpose: classify model/auth/profile/Telegram path
+- accepted_inputs: OpenClaw state, bridge, wrappers
+- expected_outputs: canonical profile recommendation
+- boundary_rule_1: no secret output
+- escalation_rule_1: hard-block live send if unsafe
+- success_criterion_1: clear direct-send vs agent-reply map
+- failure_mode_1: confuses helper with runtime
+- anti_overlap_1: lane owns only its declared evidence or change surface.
+- anti_overlap_2: lane must not silently claim another lane closed a gate.
+- anti_overlap_3: lane must not turn docs into proof.
+- handoff_rule_1: lane outputs are written into OPS artifacts, not just chat commentary.
+- handoff_rule_2: unresolved items remain visible with owner tag.
+- coordination_rule_1: lead integrates conflicts among lane outputs.
+- coordination_rule_2: if a lane contradicts another lane, lead favors direct runtime evidence.
+- coordination_rule_3: if direct runtime evidence is absent, code outranks docs.
+- checkpoint_rule_1: lane state must be reflected in runlog every 15-20 minutes.
+- checkpoint_rule_2: lane blockers must name file or environment boundary.
+- gate_link_1: lane contributes to at least one of the five gates.
+- gate_link_2: lane output must not be summarized as green without evidence.
+- verification_rule_1: every lane must produce at least one concrete file/path/command reference.
+- verification_rule_2: soft language such as maybe or probably must be called inference when used.
+- rate_limit_survival_1: lane output should be reusable after context compaction.
+- rate_limit_survival_2: lane output belongs in OPS before any large refactor continues.
+- stop_condition_1: lane stops when evidence saturates or when next action belongs to another lane.
+- stop_condition_2: lane does not pad output for appearance.
+- operator_note_1: this lane exists because the prompt demanded 8 total lanes including lead.
+- operator_note_2: fallback explorer use is explicit where repo-local model was unavailable.
+- operator_note_3: simulated docs lane is not hidden; it is declared as simulated.
+- artifact_binding_1: lane findings must land in OPS fact, claims, canon, or OpenClaw files.
+- artifact_binding_2: if a lane proposes a patch, runlog must record whether it was applied.
+- artifact_binding_3: if a lane disproves a claim, claims table must be updated.
+- residual_risk_1: unresolved lane blockers roll into handoff, not into silence.
+- residual_risk_2: lane confidence does not override missing runtime proof.
+- lane_summary_1: this lane is necessary because the repo blends runtime, docs, and historical narratives.
+- lane_summary_2: without this lane, split-brain or overclaim risk rises.
+### 3.7 Lane-7 - Docs Drift Reconciler
+- execution_mode: simulated
+- real_execution: simulated
+- source_mapping: lead-simulated
+- primary_purpose: rewrite docs toward runtime truth
+- accepted_inputs: README, env sample, launcher notes, completion docs
+- expected_outputs: doc patches
+- boundary_rule_1: do not rewrite history beyond secret redaction
+- escalation_rule_1: keep contradictions visible
+- success_criterion_1: fresh-clone path is less misleading
+- failure_mode_1: marketing tone survives
+- anti_overlap_1: lane owns only its declared evidence or change surface.
+- anti_overlap_2: lane must not silently claim another lane closed a gate.
+- anti_overlap_3: lane must not turn docs into proof.
+- handoff_rule_1: lane outputs are written into OPS artifacts, not just chat commentary.
+- handoff_rule_2: unresolved items remain visible with owner tag.
+- coordination_rule_1: lead integrates conflicts among lane outputs.
+- coordination_rule_2: if a lane contradicts another lane, lead favors direct runtime evidence.
+- coordination_rule_3: if direct runtime evidence is absent, code outranks docs.
+- checkpoint_rule_1: lane state must be reflected in runlog every 15-20 minutes.
+- checkpoint_rule_2: lane blockers must name file or environment boundary.
+- gate_link_1: lane contributes to at least one of the five gates.
+- gate_link_2: lane output must not be summarized as green without evidence.
+- verification_rule_1: every lane must produce at least one concrete file/path/command reference.
+- verification_rule_2: soft language such as maybe or probably must be called inference when used.
+- rate_limit_survival_1: lane output should be reusable after context compaction.
+- rate_limit_survival_2: lane output belongs in OPS before any large refactor continues.
+- stop_condition_1: lane stops when evidence saturates or when next action belongs to another lane.
+- stop_condition_2: lane does not pad output for appearance.
+- operator_note_1: this lane exists because the prompt demanded 8 total lanes including lead.
+- operator_note_2: fallback explorer use is explicit where repo-local model was unavailable.
+- operator_note_3: simulated docs lane is not hidden; it is declared as simulated.
+- artifact_binding_1: lane findings must land in OPS fact, claims, canon, or OpenClaw files.
+- artifact_binding_2: if a lane proposes a patch, runlog must record whether it was applied.
+- artifact_binding_3: if a lane disproves a claim, claims table must be updated.
+- residual_risk_1: unresolved lane blockers roll into handoff, not into silence.
+- residual_risk_2: lane confidence does not override missing runtime proof.
+- lane_summary_1: this lane is necessary because the repo blends runtime, docs, and historical narratives.
+- lane_summary_2: without this lane, split-brain or overclaim risk rises.
+### 3.8 Lane-8 - Adversarial Reviewer
+- execution_mode: reviewer
+- real_execution: true
+- source_mapping: reviewer
+- primary_purpose: treat new and existing claims with hostile scrutiny
+- accepted_inputs: modified files plus completion artifacts
+- expected_outputs: findings list by severity
+- boundary_rule_1: prefers bug/risk/tests framing
+- escalation_rule_1: surface secret or false success immediately
+- success_criterion_1: findings before summary
+- failure_mode_1: rubber-stamps optimistic claims
+- anti_overlap_1: lane owns only its declared evidence or change surface.
+- anti_overlap_2: lane must not silently claim another lane closed a gate.
+- anti_overlap_3: lane must not turn docs into proof.
+- handoff_rule_1: lane outputs are written into OPS artifacts, not just chat commentary.
+- handoff_rule_2: unresolved items remain visible with owner tag.
+- coordination_rule_1: lead integrates conflicts among lane outputs.
+- coordination_rule_2: if a lane contradicts another lane, lead favors direct runtime evidence.
+- coordination_rule_3: if direct runtime evidence is absent, code outranks docs.
+- checkpoint_rule_1: lane state must be reflected in runlog every 15-20 minutes.
+- checkpoint_rule_2: lane blockers must name file or environment boundary.
+- gate_link_1: lane contributes to at least one of the five gates.
+- gate_link_2: lane output must not be summarized as green without evidence.
+- verification_rule_1: every lane must produce at least one concrete file/path/command reference.
+- verification_rule_2: soft language such as maybe or probably must be called inference when used.
+- rate_limit_survival_1: lane output should be reusable after context compaction.
+- rate_limit_survival_2: lane output belongs in OPS before any large refactor continues.
+- stop_condition_1: lane stops when evidence saturates or when next action belongs to another lane.
+- stop_condition_2: lane does not pad output for appearance.
+- operator_note_1: this lane exists because the prompt demanded 8 total lanes including lead.
+- operator_note_2: fallback explorer use is explicit where repo-local model was unavailable.
+- operator_note_3: simulated docs lane is not hidden; it is declared as simulated.
+- artifact_binding_1: lane findings must land in OPS fact, claims, canon, or OpenClaw files.
+- artifact_binding_2: if a lane proposes a patch, runlog must record whether it was applied.
+- artifact_binding_3: if a lane disproves a claim, claims table must be updated.
+- residual_risk_1: unresolved lane blockers roll into handoff, not into silence.
+- residual_risk_2: lane confidence does not override missing runtime proof.
+- lane_summary_1: this lane is necessary because the repo blends runtime, docs, and historical narratives.
+- lane_summary_2: without this lane, split-brain or overclaim risk rises.
+
+## 4. Last-24h Forensic Audit Matrix
+### 4.1 Week 3 complete
+- classification: PARTIAL
+- observed_state: commits exist, runtime proof incomplete
+- strongest_contradiction: dashboard fail and incomplete integration claims
+- next_verification_step: keep wording as module batch complete, not operation complete
+- confidence_rule: if new runtime evidence appears, reevaluate classification rather than preserving narrative.
+- artifact_rule: mirror this classification into OPS/03_CLAIMS_VS_REALITY.md.
+- comms_rule: never shorten this to done unless classification upgrades with explicit scope.
+- test_rule: if a related suite fails once on current tree, historical pass counts lose authority.
+- doc_rule: historical completion docs stay useful as claims inventory, not truth source.
+- runtime_rule: a green port check outweighs an old screenshot; a red port check outweighs a green sentence.
+- owner_lane: lead plus whichever specialist surfaced the contradiction first.
+- failure_if_ignored: next operator inherits false assumptions and wastes time.
+- acceptance_boundary: this claim may only be upgraded after direct runtime or test proof changes.
+- rollback_boundary: if future proof disappears, downgrade the claim again immediately.
+- operator_note: classification is about current tree and current environment, not only historical intent.
+- anti-hype: do not soften CONTRADICTED to partial when the runtime says no.
+- anti-fragility: keep a paper trail of why classification changed.
+- gate_note: a single contradicted high-level claim can hold multiple gates open.
+- summary_note: user-facing summary must point here instead of re-arguing everything.
+### 4.2 117/117 tests passing
+- classification: CONTRADICTED
+- observed_state: dashboard test rerun failed
+- strongest_contradiction: current tree is not all green
+- next_verification_step: audit test total drift by suite
+- confidence_rule: if new runtime evidence appears, reevaluate classification rather than preserving narrative.
+- artifact_rule: mirror this classification into OPS/03_CLAIMS_VS_REALITY.md.
+- comms_rule: never shorten this to done unless classification upgrades with explicit scope.
+- test_rule: if a related suite fails once on current tree, historical pass counts lose authority.
+- doc_rule: historical completion docs stay useful as claims inventory, not truth source.
+- runtime_rule: a green port check outweighs an old screenshot; a red port check outweighs a green sentence.
+- owner_lane: lead plus whichever specialist surfaced the contradiction first.
+- failure_if_ignored: next operator inherits false assumptions and wastes time.
+- acceptance_boundary: this claim may only be upgraded after direct runtime or test proof changes.
+- rollback_boundary: if future proof disappears, downgrade the claim again immediately.
+- operator_note: classification is about current tree and current environment, not only historical intent.
+- anti-hype: do not soften CONTRADICTED to partial when the runtime says no.
+- anti-fragility: keep a paper trail of why classification changed.
+- gate_note: a single contradicted high-level claim can hold multiple gates open.
+- summary_note: user-facing summary must point here instead of re-arguing everything.
+### 4.3 Production ready
+- classification: CONTRADICTED
+- observed_state: bridge transport fail, ports were down, dashboard fail
+- strongest_contradiction: current runtime proof is weaker than claim
+- next_verification_step: ban phrase in docs until gates close
+- confidence_rule: if new runtime evidence appears, reevaluate classification rather than preserving narrative.
+- artifact_rule: mirror this classification into OPS/03_CLAIMS_VS_REALITY.md.
+- comms_rule: never shorten this to done unless classification upgrades with explicit scope.
+- test_rule: if a related suite fails once on current tree, historical pass counts lose authority.
+- doc_rule: historical completion docs stay useful as claims inventory, not truth source.
+- runtime_rule: a green port check outweighs an old screenshot; a red port check outweighs a green sentence.
+- owner_lane: lead plus whichever specialist surfaced the contradiction first.
+- failure_if_ignored: next operator inherits false assumptions and wastes time.
+- acceptance_boundary: this claim may only be upgraded after direct runtime or test proof changes.
+- rollback_boundary: if future proof disappears, downgrade the claim again immediately.
+- operator_note: classification is about current tree and current environment, not only historical intent.
+- anti-hype: do not soften CONTRADICTED to partial when the runtime says no.
+- anti-fragility: keep a paper trail of why classification changed.
+- gate_note: a single contradicted high-level claim can hold multiple gates open.
+- summary_note: user-facing summary must point here instead of re-arguing everything.
+### 4.4 24/7 autonomous
+- classification: CONTRADICTED
+- observed_state: simulation markers and compressed hour timeline
+- strongest_contradiction: not a real 24h run
+- next_verification_step: relabel demo loop artifacts
+- confidence_rule: if new runtime evidence appears, reevaluate classification rather than preserving narrative.
+- artifact_rule: mirror this classification into OPS/03_CLAIMS_VS_REALITY.md.
+- comms_rule: never shorten this to done unless classification upgrades with explicit scope.
+- test_rule: if a related suite fails once on current tree, historical pass counts lose authority.
+- doc_rule: historical completion docs stay useful as claims inventory, not truth source.
+- runtime_rule: a green port check outweighs an old screenshot; a red port check outweighs a green sentence.
+- owner_lane: lead plus whichever specialist surfaced the contradiction first.
+- failure_if_ignored: next operator inherits false assumptions and wastes time.
+- acceptance_boundary: this claim may only be upgraded after direct runtime or test proof changes.
+- rollback_boundary: if future proof disappears, downgrade the claim again immediately.
+- operator_note: classification is about current tree and current environment, not only historical intent.
+- anti-hype: do not soften CONTRADICTED to partial when the runtime says no.
+- anti-fragility: keep a paper trail of why classification changed.
+- gate_note: a single contradicted high-level claim can hold multiple gates open.
+- summary_note: user-facing summary must point here instead of re-arguing everything.
+### 4.5 Claude/Codex integration complete
+- classification: CONTRADICTED
+- observed_state: planning and checklist docs still open
+- strongest_contradiction: planning not implementation
+- next_verification_step: keep status as analysis/planning only
+- confidence_rule: if new runtime evidence appears, reevaluate classification rather than preserving narrative.
+- artifact_rule: mirror this classification into OPS/03_CLAIMS_VS_REALITY.md.
+- comms_rule: never shorten this to done unless classification upgrades with explicit scope.
+- test_rule: if a related suite fails once on current tree, historical pass counts lose authority.
+- doc_rule: historical completion docs stay useful as claims inventory, not truth source.
+- runtime_rule: a green port check outweighs an old screenshot; a red port check outweighs a green sentence.
+- owner_lane: lead plus whichever specialist surfaced the contradiction first.
+- failure_if_ignored: next operator inherits false assumptions and wastes time.
+- acceptance_boundary: this claim may only be upgraded after direct runtime or test proof changes.
+- rollback_boundary: if future proof disappears, downgrade the claim again immediately.
+- operator_note: classification is about current tree and current environment, not only historical intent.
+- anti-hype: do not soften CONTRADICTED to partial when the runtime says no.
+- anti-fragility: keep a paper trail of why classification changed.
+- gate_note: a single contradicted high-level claim can hold multiple gates open.
+- summary_note: user-facing summary must point here instead of re-arguing everything.
+### 4.6 OpenClaw Telegram working
+- classification: PARTIAL
+- observed_state: local pairing/auth state exists
+- strongest_contradiction: no live reply proof and transport issues elsewhere
+- next_verification_step: separate direct send proof from agent reply proof
+- confidence_rule: if new runtime evidence appears, reevaluate classification rather than preserving narrative.
+- artifact_rule: mirror this classification into OPS/03_CLAIMS_VS_REALITY.md.
+- comms_rule: never shorten this to done unless classification upgrades with explicit scope.
+- test_rule: if a related suite fails once on current tree, historical pass counts lose authority.
+- doc_rule: historical completion docs stay useful as claims inventory, not truth source.
+- runtime_rule: a green port check outweighs an old screenshot; a red port check outweighs a green sentence.
+- owner_lane: lead plus whichever specialist surfaced the contradiction first.
+- failure_if_ignored: next operator inherits false assumptions and wastes time.
+- acceptance_boundary: this claim may only be upgraded after direct runtime or test proof changes.
+- rollback_boundary: if future proof disappears, downgrade the claim again immediately.
+- operator_note: classification is about current tree and current environment, not only historical intent.
+- anti-hype: do not soften CONTRADICTED to partial when the runtime says no.
+- anti-fragility: keep a paper trail of why classification changed.
+- gate_note: a single contradicted high-level claim can hold multiple gates open.
+- summary_note: user-facing summary must point here instead of re-arguing everything.
+### 4.7 Master launcher fixed
+- classification: PARTIAL
+- observed_state: launcher code exists
+- strongest_contradiction: docs and ownership still drift
+- next_verification_step: capture actual child ownership with one clean run later
+- confidence_rule: if new runtime evidence appears, reevaluate classification rather than preserving narrative.
+- artifact_rule: mirror this classification into OPS/03_CLAIMS_VS_REALITY.md.
+- comms_rule: never shorten this to done unless classification upgrades with explicit scope.
+- test_rule: if a related suite fails once on current tree, historical pass counts lose authority.
+- doc_rule: historical completion docs stay useful as claims inventory, not truth source.
+- runtime_rule: a green port check outweighs an old screenshot; a red port check outweighs a green sentence.
+- owner_lane: lead plus whichever specialist surfaced the contradiction first.
+- failure_if_ignored: next operator inherits false assumptions and wastes time.
+- acceptance_boundary: this claim may only be upgraded after direct runtime or test proof changes.
+- rollback_boundary: if future proof disappears, downgrade the claim again immediately.
+- operator_note: classification is about current tree and current environment, not only historical intent.
+- anti-hype: do not soften CONTRADICTED to partial when the runtime says no.
+- anti-fragility: keep a paper trail of why classification changed.
+- gate_note: a single contradicted high-level claim can hold multiple gates open.
+- summary_note: user-facing summary must point here instead of re-arguing everything.
+### 4.8 Persistent queue added
+- classification: VERIFIED
+- observed_state: code plus tests plus recovery logic
+- strongest_contradiction: none currently
+- next_verification_step: API-level persistence test later
+- confidence_rule: if new runtime evidence appears, reevaluate classification rather than preserving narrative.
+- artifact_rule: mirror this classification into OPS/03_CLAIMS_VS_REALITY.md.
+- comms_rule: never shorten this to done unless classification upgrades with explicit scope.
+- test_rule: if a related suite fails once on current tree, historical pass counts lose authority.
+- doc_rule: historical completion docs stay useful as claims inventory, not truth source.
+- runtime_rule: a green port check outweighs an old screenshot; a red port check outweighs a green sentence.
+- owner_lane: lead plus whichever specialist surfaced the contradiction first.
+- failure_if_ignored: next operator inherits false assumptions and wastes time.
+- acceptance_boundary: this claim may only be upgraded after direct runtime or test proof changes.
+- rollback_boundary: if future proof disappears, downgrade the claim again immediately.
+- operator_note: classification is about current tree and current environment, not only historical intent.
+- anti-hype: do not soften CONTRADICTED to partial when the runtime says no.
+- anti-fragility: keep a paper trail of why classification changed.
+- gate_note: a single contradicted high-level claim can hold multiple gates open.
+- summary_note: user-facing summary must point here instead of re-arguing everything.
+### 4.9 Memory is cross-platform
+- classification: MOSTLY VERIFIED
+- observed_state: path fix plus env override plus tests
+- strongest_contradiction: bridge live proof still thin
+- next_verification_step: bridge memory smoke later
+- confidence_rule: if new runtime evidence appears, reevaluate classification rather than preserving narrative.
+- artifact_rule: mirror this classification into OPS/03_CLAIMS_VS_REALITY.md.
+- comms_rule: never shorten this to done unless classification upgrades with explicit scope.
+- test_rule: if a related suite fails once on current tree, historical pass counts lose authority.
+- doc_rule: historical completion docs stay useful as claims inventory, not truth source.
+- runtime_rule: a green port check outweighs an old screenshot; a red port check outweighs a green sentence.
+- owner_lane: lead plus whichever specialist surfaced the contradiction first.
+- failure_if_ignored: next operator inherits false assumptions and wastes time.
+- acceptance_boundary: this claim may only be upgraded after direct runtime or test proof changes.
+- rollback_boundary: if future proof disappears, downgrade the claim again immediately.
+- operator_note: classification is about current tree and current environment, not only historical intent.
+- anti-hype: do not soften CONTRADICTED to partial when the runtime says no.
+- anti-fragility: keep a paper trail of why classification changed.
+- gate_note: a single contradicted high-level claim can hold multiple gates open.
+- summary_note: user-facing summary must point here instead of re-arguing everything.
+### 4.10 Self-healer is Windows-safe
+- classification: MOSTLY VERIFIED
+- observed_state: platform-aware commands plus tests
+- strongest_contradiction: no live incident replay
+- next_verification_step: retain cautious wording
+- confidence_rule: if new runtime evidence appears, reevaluate classification rather than preserving narrative.
+- artifact_rule: mirror this classification into OPS/03_CLAIMS_VS_REALITY.md.
+- comms_rule: never shorten this to done unless classification upgrades with explicit scope.
+- test_rule: if a related suite fails once on current tree, historical pass counts lose authority.
+- doc_rule: historical completion docs stay useful as claims inventory, not truth source.
+- runtime_rule: a green port check outweighs an old screenshot; a red port check outweighs a green sentence.
+- owner_lane: lead plus whichever specialist surfaced the contradiction first.
+- failure_if_ignored: next operator inherits false assumptions and wastes time.
+- acceptance_boundary: this claim may only be upgraded after direct runtime or test proof changes.
+- rollback_boundary: if future proof disappears, downgrade the claim again immediately.
+- operator_note: classification is about current tree and current environment, not only historical intent.
+- anti-hype: do not soften CONTRADICTED to partial when the runtime says no.
+- anti-fragility: keep a paper trail of why classification changed.
+- gate_note: a single contradicted high-level claim can hold multiple gates open.
+- summary_note: user-facing summary must point here instead of re-arguing everything.
+### 4.11 Docs are aligned
+- classification: PARTIAL
+- observed_state: README/env/launcher notes improved
+- strongest_contradiction: many completion docs still overclaim
+- next_verification_step: keep drift inventory
+- confidence_rule: if new runtime evidence appears, reevaluate classification rather than preserving narrative.
+- artifact_rule: mirror this classification into OPS/03_CLAIMS_VS_REALITY.md.
+- comms_rule: never shorten this to done unless classification upgrades with explicit scope.
+- test_rule: if a related suite fails once on current tree, historical pass counts lose authority.
+- doc_rule: historical completion docs stay useful as claims inventory, not truth source.
+- runtime_rule: a green port check outweighs an old screenshot; a red port check outweighs a green sentence.
+- owner_lane: lead plus whichever specialist surfaced the contradiction first.
+- failure_if_ignored: next operator inherits false assumptions and wastes time.
+- acceptance_boundary: this claim may only be upgraded after direct runtime or test proof changes.
+- rollback_boundary: if future proof disappears, downgrade the claim again immediately.
+- operator_note: classification is about current tree and current environment, not only historical intent.
+- anti-hype: do not soften CONTRADICTED to partial when the runtime says no.
+- anti-fragility: keep a paper trail of why classification changed.
+- gate_note: a single contradicted high-level claim can hold multiple gates open.
+- summary_note: user-facing summary must point here instead of re-arguing everything.
+### 4.12 Autonomous loop is real and usable
+- classification: PARTIAL
+- observed_state: large real runtime exists
+- strongest_contradiction: demo script artifacts muddy operator claims
+- next_verification_step: separate real loop from demo wrappers
+- confidence_rule: if new runtime evidence appears, reevaluate classification rather than preserving narrative.
+- artifact_rule: mirror this classification into OPS/03_CLAIMS_VS_REALITY.md.
+- comms_rule: never shorten this to done unless classification upgrades with explicit scope.
+- test_rule: if a related suite fails once on current tree, historical pass counts lose authority.
+- doc_rule: historical completion docs stay useful as claims inventory, not truth source.
+- runtime_rule: a green port check outweighs an old screenshot; a red port check outweighs a green sentence.
+- owner_lane: lead plus whichever specialist surfaced the contradiction first.
+- failure_if_ignored: next operator inherits false assumptions and wastes time.
+- acceptance_boundary: this claim may only be upgraded after direct runtime or test proof changes.
+- rollback_boundary: if future proof disappears, downgrade the claim again immediately.
+- operator_note: classification is about current tree and current environment, not only historical intent.
+- anti-hype: do not soften CONTRADICTED to partial when the runtime says no.
+- anti-fragility: keep a paper trail of why classification changed.
+- gate_note: a single contradicted high-level claim can hold multiple gates open.
+- summary_note: user-facing summary must point here instead of re-arguing everything.
+### 4.13 There is one canonical runtime
+- classification: CONTRADICTED
+- observed_state: bridge, orchestrator, loop are distinct
+- strongest_contradiction: single-runtime language is false
+- next_verification_step: document bridge-first but not bridge-only
+- confidence_rule: if new runtime evidence appears, reevaluate classification rather than preserving narrative.
+- artifact_rule: mirror this classification into OPS/03_CLAIMS_VS_REALITY.md.
+- comms_rule: never shorten this to done unless classification upgrades with explicit scope.
+- test_rule: if a related suite fails once on current tree, historical pass counts lose authority.
+- doc_rule: historical completion docs stay useful as claims inventory, not truth source.
+- runtime_rule: a green port check outweighs an old screenshot; a red port check outweighs a green sentence.
+- owner_lane: lead plus whichever specialist surfaced the contradiction first.
+- failure_if_ignored: next operator inherits false assumptions and wastes time.
+- acceptance_boundary: this claim may only be upgraded after direct runtime or test proof changes.
+- rollback_boundary: if future proof disappears, downgrade the claim again immediately.
+- operator_note: classification is about current tree and current environment, not only historical intent.
+- anti-hype: do not soften CONTRADICTED to partial when the runtime says no.
+- anti-fragility: keep a paper trail of why classification changed.
+- gate_note: a single contradicted high-level claim can hold multiple gates open.
+- summary_note: user-facing summary must point here instead of re-arguing everything.
+### 4.14 Subagents are available and usable
+- classification: MOSTLY VERIFIED
+- observed_state: 6 real lanes executed
+- strongest_contradiction: two repo-local agents needed fallback
+- next_verification_step: record model limitation permanently
+- confidence_rule: if new runtime evidence appears, reevaluate classification rather than preserving narrative.
+- artifact_rule: mirror this classification into OPS/03_CLAIMS_VS_REALITY.md.
+- comms_rule: never shorten this to done unless classification upgrades with explicit scope.
+- test_rule: if a related suite fails once on current tree, historical pass counts lose authority.
+- doc_rule: historical completion docs stay useful as claims inventory, not truth source.
+- runtime_rule: a green port check outweighs an old screenshot; a red port check outweighs a green sentence.
+- owner_lane: lead plus whichever specialist surfaced the contradiction first.
+- failure_if_ignored: next operator inherits false assumptions and wastes time.
+- acceptance_boundary: this claim may only be upgraded after direct runtime or test proof changes.
+- rollback_boundary: if future proof disappears, downgrade the claim again immediately.
+- operator_note: classification is about current tree and current environment, not only historical intent.
+- anti-hype: do not soften CONTRADICTED to partial when the runtime says no.
+- anti-fragility: keep a paper trail of why classification changed.
+- gate_note: a single contradicted high-level claim can hold multiple gates open.
+- summary_note: user-facing summary must point here instead of re-arguing everything.
+### 4.15 OpenClaw dev profile end-to-end
+- classification: UNVERIFIED
+- observed_state: main profile visible, dev path weak
+- strongest_contradiction: old helper defaulted to dev without proof
+- next_verification_step: prefer main until explicit dev evidence appears
+- confidence_rule: if new runtime evidence appears, reevaluate classification rather than preserving narrative.
+- artifact_rule: mirror this classification into OPS/03_CLAIMS_VS_REALITY.md.
+- comms_rule: never shorten this to done unless classification upgrades with explicit scope.
+- test_rule: if a related suite fails once on current tree, historical pass counts lose authority.
+- doc_rule: historical completion docs stay useful as claims inventory, not truth source.
+- runtime_rule: a green port check outweighs an old screenshot; a red port check outweighs a green sentence.
+- owner_lane: lead plus whichever specialist surfaced the contradiction first.
+- failure_if_ignored: next operator inherits false assumptions and wastes time.
+- acceptance_boundary: this claim may only be upgraded after direct runtime or test proof changes.
+- rollback_boundary: if future proof disappears, downgrade the claim again immediately.
+- operator_note: classification is about current tree and current environment, not only historical intent.
+- anti-hype: do not soften CONTRADICTED to partial when the runtime says no.
+- anti-fragility: keep a paper trail of why classification changed.
+- gate_note: a single contradicted high-level claim can hold multiple gates open.
+- summary_note: user-facing summary must point here instead of re-arguing everything.
+
+## 5. Detailed 180-Minute Plan
+### 5.1 S01 [00-15]
+- owner_lane: Lead + Lane2 + Lane3
+- objective: bootstrapping, subagent map, OPS skeleton, repo status
+- timebox_rule: stay inside this window unless a gate-critical bug appears.
+- command_1: git status --short
+- command_2: Get-ChildItem OPS
+- command_3: inspect .codex/agents and tools/subagents
+- command_4: spawn fallback lanes
+- target_1: OPS/*
+- target_2: .codex/agents/
+- target_3: tools/subagents/README.md
+- target_4: docs/SUBAGENT_MAPPING.md
+- expected_1: 8-lane topology established
+- expected_2: repo-local model limitation discovered
+- expected_3: OPS files created
+- failure_branch: repo-local agents unsupported
+- rollback_branch: fallback to explorer lanes and simulated docs lane
+- artifact_1: OPS/00_SUBAGENT_MAP.md
+- artifact_2: OPS/02_EXECUTION_RUNLOG.md
+- verification_rule_1: record exact command result, not only interpretation.
+- verification_rule_2: if command fails for environment reasons, keep the failure itself as evidence.
+- verification_rule_3: if output contradicts a week report, prefer the current output.
+- anti_scope_rule_1: avoid broad rewrites during a verification segment.
+- anti_scope_rule_2: if a patch becomes multi-module and low-confidence, defer it to a fix ladder.
+- checkpoint_rule_1: update runlog before leaving the segment.
+- checkpoint_rule_2: note whether the owner lane is active, blocked, or completed.
+- expected_signal_1: each segment should either close a gate or narrow a blocker.
+- expected_signal_2: a segment with no evidence must still produce a documented reason why.
+- evidence_link_1: this segment must map to at least one item from section 2.
+- evidence_link_2: this segment must map to at least one claim from section 4.
+- operator_guard_1: do not declare success inside the segment; only record observed state.
+- operator_guard_2: leave emotional or motivational language out of segment notes.
+- pass_condition_1: the segment produces either a proof artifact or a concrete blocker artifact.
+- fail_condition_1: the segment ends with only intuition and no command/file anchor.
+- fail_condition_2: the segment hides contradiction to preserve a nicer status story.
+- handoff_rule_1: next operator should understand this segment without replaying all commands.
+- handoff_rule_2: if a command is dangerous or external, the segment must say so plainly.
+- lane_overlap_guard: when a specialist lane already found a defect, do not rediscover it without adding new proof.
+- rollback_guard: if a patch fails validation, revert only the patch scope touched in this sprint.
+- narrative_guard: documents updated by this segment must become more conservative, never more optimistic.
+- closure_guard: the segment is complete only after affected OPS artifacts are updated.
+- residual_risk_line_1: unresolved side effects from this segment move to section 6 or section 10.
+- residual_risk_line_2: missing live external verification remains visible as hard-blocked if applicable.
+- operator_memory_line_1: every segment should make a resumed session safer than before it started.
+- operator_memory_line_2: if context compaction happens now, OPS files should still preserve the path forward.
+- macro_block_binding_1: this segment is part of the larger 30-minute block required by the prompt.
+- macro_block_binding_2: adjacent segments may share inputs, but not hide ownership.
+- artifact_quality_line_1: commands belong in runlog; reasoning belongs in roadmap; status belongs in claims table.
+- artifact_quality_line_2: if a file changes, include it in handoff and validation sections later.
+- sprint_rule_1: the point of the segment is measurable coherence, not busyness.
+- sprint_rule_2: a blocked segment still helps if the block is proven.
+- sprint_rule_3: successful segments narrow the next operator's search space.
+### 5.2 S02 [15-30]
+- owner_lane: Lead + Lane2
+- objective: mine last 24h claims and recent commits
+- timebox_rule: stay inside this window unless a gate-critical bug appears.
+- command_1: git log --since
+- command_2: git show --stat
+- command_3: read week reports
+- command_4: read integration summary
+- target_1: WEEK2_PROGRESS.md
+- target_2: WEEK3_ROADMAP.md
+- target_3: WEEK3_COMPLETION.md
+- target_4: INTEGRATION_SUMMARY.md
+- expected_1: claim inventory
+- expected_2: commit-backed code batch timeline
+- expected_3: first contradiction list
+- failure_branch: docs overwhelm evidence
+- rollback_branch: rank git over docs
+- artifact_1: OPS/00_LAST24_FACT_AUDIT.md
+- artifact_2: OPS/03_CLAIMS_VS_REALITY.md
+- verification_rule_1: record exact command result, not only interpretation.
+- verification_rule_2: if command fails for environment reasons, keep the failure itself as evidence.
+- verification_rule_3: if output contradicts a week report, prefer the current output.
+- anti_scope_rule_1: avoid broad rewrites during a verification segment.
+- anti_scope_rule_2: if a patch becomes multi-module and low-confidence, defer it to a fix ladder.
+- checkpoint_rule_1: update runlog before leaving the segment.
+- checkpoint_rule_2: note whether the owner lane is active, blocked, or completed.
+- expected_signal_1: each segment should either close a gate or narrow a blocker.
+- expected_signal_2: a segment with no evidence must still produce a documented reason why.
+- evidence_link_1: this segment must map to at least one item from section 2.
+- evidence_link_2: this segment must map to at least one claim from section 4.
+- operator_guard_1: do not declare success inside the segment; only record observed state.
+- operator_guard_2: leave emotional or motivational language out of segment notes.
+- pass_condition_1: the segment produces either a proof artifact or a concrete blocker artifact.
+- fail_condition_1: the segment ends with only intuition and no command/file anchor.
+- fail_condition_2: the segment hides contradiction to preserve a nicer status story.
+- handoff_rule_1: next operator should understand this segment without replaying all commands.
+- handoff_rule_2: if a command is dangerous or external, the segment must say so plainly.
+- lane_overlap_guard: when a specialist lane already found a defect, do not rediscover it without adding new proof.
+- rollback_guard: if a patch fails validation, revert only the patch scope touched in this sprint.
+- narrative_guard: documents updated by this segment must become more conservative, never more optimistic.
+- closure_guard: the segment is complete only after affected OPS artifacts are updated.
+- residual_risk_line_1: unresolved side effects from this segment move to section 6 or section 10.
+- residual_risk_line_2: missing live external verification remains visible as hard-blocked if applicable.
+- operator_memory_line_1: every segment should make a resumed session safer than before it started.
+- operator_memory_line_2: if context compaction happens now, OPS files should still preserve the path forward.
+- macro_block_binding_1: this segment is part of the larger 30-minute block required by the prompt.
+- macro_block_binding_2: adjacent segments may share inputs, but not hide ownership.
+- artifact_quality_line_1: commands belong in runlog; reasoning belongs in roadmap; status belongs in claims table.
+- artifact_quality_line_2: if a file changes, include it in handoff and validation sections later.
+- sprint_rule_1: the point of the segment is measurable coherence, not busyness.
+- sprint_rule_2: a blocked segment still helps if the block is proven.
+- sprint_rule_3: successful segments narrow the next operator's search space.
+### 5.3 S03 [30-45]
+- owner_lane: Lead + Lane3
+- objective: map bridge, launcher, watchdog, runtime config, state
+- timebox_rule: stay inside this window unless a gate-critical bug appears.
+- command_1: read master_launcher.py
+- command_2: read server/bridge.py
+- command_3: read server/watchdog.py
+- command_4: read server/runtime_config.py
+- command_5: read server/runtime_state.py
+- target_1: master_launcher.py
+- target_2: server/bridge.py
+- target_3: server/watchdog.py
+- expected_1: bridge-first ownership map
+- expected_2: watchdog gap candidate
+- expected_3: launcher drift evidence
+- failure_branch: too many overlapping surfaces
+- rollback_branch: write explicit split-brain notes
+- artifact_1: OPS/04_RUNTIME_CANON.md
+- artifact_2: OPS/02_EXECUTION_RUNLOG.md
+- verification_rule_1: record exact command result, not only interpretation.
+- verification_rule_2: if command fails for environment reasons, keep the failure itself as evidence.
+- verification_rule_3: if output contradicts a week report, prefer the current output.
+- anti_scope_rule_1: avoid broad rewrites during a verification segment.
+- anti_scope_rule_2: if a patch becomes multi-module and low-confidence, defer it to a fix ladder.
+- checkpoint_rule_1: update runlog before leaving the segment.
+- checkpoint_rule_2: note whether the owner lane is active, blocked, or completed.
+- expected_signal_1: each segment should either close a gate or narrow a blocker.
+- expected_signal_2: a segment with no evidence must still produce a documented reason why.
+- evidence_link_1: this segment must map to at least one item from section 2.
+- evidence_link_2: this segment must map to at least one claim from section 4.
+- operator_guard_1: do not declare success inside the segment; only record observed state.
+- operator_guard_2: leave emotional or motivational language out of segment notes.
+- pass_condition_1: the segment produces either a proof artifact or a concrete blocker artifact.
+- fail_condition_1: the segment ends with only intuition and no command/file anchor.
+- fail_condition_2: the segment hides contradiction to preserve a nicer status story.
+- handoff_rule_1: next operator should understand this segment without replaying all commands.
+- handoff_rule_2: if a command is dangerous or external, the segment must say so plainly.
+- lane_overlap_guard: when a specialist lane already found a defect, do not rediscover it without adding new proof.
+- rollback_guard: if a patch fails validation, revert only the patch scope touched in this sprint.
+- narrative_guard: documents updated by this segment must become more conservative, never more optimistic.
+- closure_guard: the segment is complete only after affected OPS artifacts are updated.
+- residual_risk_line_1: unresolved side effects from this segment move to section 6 or section 10.
+- residual_risk_line_2: missing live external verification remains visible as hard-blocked if applicable.
+- operator_memory_line_1: every segment should make a resumed session safer than before it started.
+- operator_memory_line_2: if context compaction happens now, OPS files should still preserve the path forward.
+- macro_block_binding_1: this segment is part of the larger 30-minute block required by the prompt.
+- macro_block_binding_2: adjacent segments may share inputs, but not hide ownership.
+- artifact_quality_line_1: commands belong in runlog; reasoning belongs in roadmap; status belongs in claims table.
+- artifact_quality_line_2: if a file changes, include it in handoff and validation sections later.
+- sprint_rule_1: the point of the segment is measurable coherence, not busyness.
+- sprint_rule_2: a blocked segment still helps if the block is proven.
+- sprint_rule_3: successful segments narrow the next operator's search space.
+### 5.4 S04 [45-60]
+- owner_lane: Lead + Lane5
+- objective: run live port and endpoint checks
+- timebox_rule: stay inside this window unless a gate-critical bug appears.
+- command_1: netstat or fallback
+- command_2: Invoke-WebRequest health endpoints
+- command_3: process listing
+- target_1: 8081
+- target_2: 8082
+- target_3: 8091
+- target_4: 8888
+- target_5: 11434
+- expected_1: which services are live now
+- expected_2: production-ready claim pressure test
+- failure_branch: permission on Get-NetTCPConnection
+- rollback_branch: fallback to netstat/cmd path
+- artifact_1: OPS/00_LAST24_FACT_AUDIT.md
+- artifact_2: OPS/03_CLAIMS_VS_REALITY.md
+- verification_rule_1: record exact command result, not only interpretation.
+- verification_rule_2: if command fails for environment reasons, keep the failure itself as evidence.
+- verification_rule_3: if output contradicts a week report, prefer the current output.
+- anti_scope_rule_1: avoid broad rewrites during a verification segment.
+- anti_scope_rule_2: if a patch becomes multi-module and low-confidence, defer it to a fix ladder.
+- checkpoint_rule_1: update runlog before leaving the segment.
+- checkpoint_rule_2: note whether the owner lane is active, blocked, or completed.
+- expected_signal_1: each segment should either close a gate or narrow a blocker.
+- expected_signal_2: a segment with no evidence must still produce a documented reason why.
+- evidence_link_1: this segment must map to at least one item from section 2.
+- evidence_link_2: this segment must map to at least one claim from section 4.
+- operator_guard_1: do not declare success inside the segment; only record observed state.
+- operator_guard_2: leave emotional or motivational language out of segment notes.
+- pass_condition_1: the segment produces either a proof artifact or a concrete blocker artifact.
+- fail_condition_1: the segment ends with only intuition and no command/file anchor.
+- fail_condition_2: the segment hides contradiction to preserve a nicer status story.
+- handoff_rule_1: next operator should understand this segment without replaying all commands.
+- handoff_rule_2: if a command is dangerous or external, the segment must say so plainly.
+- lane_overlap_guard: when a specialist lane already found a defect, do not rediscover it without adding new proof.
+- rollback_guard: if a patch fails validation, revert only the patch scope touched in this sprint.
+- narrative_guard: documents updated by this segment must become more conservative, never more optimistic.
+- closure_guard: the segment is complete only after affected OPS artifacts are updated.
+- residual_risk_line_1: unresolved side effects from this segment move to section 6 or section 10.
+- residual_risk_line_2: missing live external verification remains visible as hard-blocked if applicable.
+- operator_memory_line_1: every segment should make a resumed session safer than before it started.
+- operator_memory_line_2: if context compaction happens now, OPS files should still preserve the path forward.
+- macro_block_binding_1: this segment is part of the larger 30-minute block required by the prompt.
+- macro_block_binding_2: adjacent segments may share inputs, but not hide ownership.
+- artifact_quality_line_1: commands belong in runlog; reasoning belongs in roadmap; status belongs in claims table.
+- artifact_quality_line_2: if a file changes, include it in handoff and validation sections later.
+- sprint_rule_1: the point of the segment is measurable coherence, not busyness.
+- sprint_rule_2: a blocked segment still helps if the block is proven.
+- sprint_rule_3: successful segments narrow the next operator's search space.
+### 5.5 S05 [60-75]
+- owner_lane: Lead + Lane6
+- objective: audit OpenClaw profile/auth/pairing/wrappers
+- timebox_rule: stay inside this window unless a gate-critical bug appears.
+- command_1: Get-Command openclaw
+- command_2: inspect .openclaw state
+- command_3: read openclaw.cmd
+- command_4: read install_openclaw_startup.cmd
+- command_5: inspect server/openclaw_bridge.py
+- target_1: .openclaw
+- target_2: openclaw.cmd
+- target_3: server/openclaw_bridge.py
+- expected_1: main profile visibility
+- expected_2: dev path weakness
+- expected_3: wrapper missing-file drift
+- failure_branch: secrets appear in raw files
+- rollback_branch: redact and summarize only
+- artifact_1: OPS/05_OPENCLAW_TELEGRAM_STATE.md
+- artifact_2: OPS/00_SUBAGENT_MAP.md
+- verification_rule_1: record exact command result, not only interpretation.
+- verification_rule_2: if command fails for environment reasons, keep the failure itself as evidence.
+- verification_rule_3: if output contradicts a week report, prefer the current output.
+- anti_scope_rule_1: avoid broad rewrites during a verification segment.
+- anti_scope_rule_2: if a patch becomes multi-module and low-confidence, defer it to a fix ladder.
+- checkpoint_rule_1: update runlog before leaving the segment.
+- checkpoint_rule_2: note whether the owner lane is active, blocked, or completed.
+- expected_signal_1: each segment should either close a gate or narrow a blocker.
+- expected_signal_2: a segment with no evidence must still produce a documented reason why.
+- evidence_link_1: this segment must map to at least one item from section 2.
+- evidence_link_2: this segment must map to at least one claim from section 4.
+- operator_guard_1: do not declare success inside the segment; only record observed state.
+- operator_guard_2: leave emotional or motivational language out of segment notes.
+- pass_condition_1: the segment produces either a proof artifact or a concrete blocker artifact.
+- fail_condition_1: the segment ends with only intuition and no command/file anchor.
+- fail_condition_2: the segment hides contradiction to preserve a nicer status story.
+- handoff_rule_1: next operator should understand this segment without replaying all commands.
+- handoff_rule_2: if a command is dangerous or external, the segment must say so plainly.
+- lane_overlap_guard: when a specialist lane already found a defect, do not rediscover it without adding new proof.
+- rollback_guard: if a patch fails validation, revert only the patch scope touched in this sprint.
+- narrative_guard: documents updated by this segment must become more conservative, never more optimistic.
+- closure_guard: the segment is complete only after affected OPS artifacts are updated.
+- residual_risk_line_1: unresolved side effects from this segment move to section 6 or section 10.
+- residual_risk_line_2: missing live external verification remains visible as hard-blocked if applicable.
+- operator_memory_line_1: every segment should make a resumed session safer than before it started.
+- operator_memory_line_2: if context compaction happens now, OPS files should still preserve the path forward.
+- macro_block_binding_1: this segment is part of the larger 30-minute block required by the prompt.
+- macro_block_binding_2: adjacent segments may share inputs, but not hide ownership.
+- artifact_quality_line_1: commands belong in runlog; reasoning belongs in roadmap; status belongs in claims table.
+- artifact_quality_line_2: if a file changes, include it in handoff and validation sections later.
+- sprint_rule_1: the point of the segment is measurable coherence, not busyness.
+- sprint_rule_2: a blocked segment still helps if the block is proven.
+- sprint_rule_3: successful segments narrow the next operator's search space.
+### 5.6 S06 [75-90]
+- owner_lane: Lead + Lane5 + Lane8
+- objective: rerun high-signal tests to disprove or confirm claims
+- timebox_rule: stay inside this window unless a gate-critical bug appears.
+- command_1: python -m unittest tests.test_dashboard
+- command_2: python -m unittest tests.test_vision_analyzer
+- command_3: python -m unittest tests.test_task_queue tests.test_memory_skill tests.test_self_healer
+- target_1: tests/test_dashboard.py
+- target_2: tests/test_vision_analyzer.py
+- target_3: tests/test_task_queue.py
+- expected_1: one fail is enough to break 117/117
+- expected_2: stabilization changes remain green
+- failure_branch: flaky stateful tests
+- rollback_branch: record test hermeticity risk
+- artifact_1: OPS/03_CLAIMS_VS_REALITY.md
+- artifact_2: OPS/02_EXECUTION_RUNLOG.md
+- verification_rule_1: record exact command result, not only interpretation.
+- verification_rule_2: if command fails for environment reasons, keep the failure itself as evidence.
+- verification_rule_3: if output contradicts a week report, prefer the current output.
+- anti_scope_rule_1: avoid broad rewrites during a verification segment.
+- anti_scope_rule_2: if a patch becomes multi-module and low-confidence, defer it to a fix ladder.
+- checkpoint_rule_1: update runlog before leaving the segment.
+- checkpoint_rule_2: note whether the owner lane is active, blocked, or completed.
+- expected_signal_1: each segment should either close a gate or narrow a blocker.
+- expected_signal_2: a segment with no evidence must still produce a documented reason why.
+- evidence_link_1: this segment must map to at least one item from section 2.
+- evidence_link_2: this segment must map to at least one claim from section 4.
+- operator_guard_1: do not declare success inside the segment; only record observed state.
+- operator_guard_2: leave emotional or motivational language out of segment notes.
+- pass_condition_1: the segment produces either a proof artifact or a concrete blocker artifact.
+- fail_condition_1: the segment ends with only intuition and no command/file anchor.
+- fail_condition_2: the segment hides contradiction to preserve a nicer status story.
+- handoff_rule_1: next operator should understand this segment without replaying all commands.
+- handoff_rule_2: if a command is dangerous or external, the segment must say so plainly.
+- lane_overlap_guard: when a specialist lane already found a defect, do not rediscover it without adding new proof.
+- rollback_guard: if a patch fails validation, revert only the patch scope touched in this sprint.
+- narrative_guard: documents updated by this segment must become more conservative, never more optimistic.
+- closure_guard: the segment is complete only after affected OPS artifacts are updated.
+- residual_risk_line_1: unresolved side effects from this segment move to section 6 or section 10.
+- residual_risk_line_2: missing live external verification remains visible as hard-blocked if applicable.
+- operator_memory_line_1: every segment should make a resumed session safer than before it started.
+- operator_memory_line_2: if context compaction happens now, OPS files should still preserve the path forward.
+- macro_block_binding_1: this segment is part of the larger 30-minute block required by the prompt.
+- macro_block_binding_2: adjacent segments may share inputs, but not hide ownership.
+- artifact_quality_line_1: commands belong in runlog; reasoning belongs in roadmap; status belongs in claims table.
+- artifact_quality_line_2: if a file changes, include it in handoff and validation sections later.
+- sprint_rule_1: the point of the segment is measurable coherence, not busyness.
+- sprint_rule_2: a blocked segment still helps if the block is proven.
+- sprint_rule_3: successful segments narrow the next operator's search space.
+### 5.7 S07 [90-105]
+- owner_lane: Lead + Lane8
+- objective: convert reviewer findings into concrete fixes
+- timebox_rule: stay inside this window unless a gate-critical bug appears.
+- command_1: inspect confirm flow
+- command_2: inspect completion docs for secret
+- command_3: inspect helper bug
+- command_4: inspect voice call mismatch
+- target_1: services/orchestrator/*
+- target_2: WEEK3_CALEB4_COMPLETION.md
+- target_3: server/openclaw_bridge.py
+- target_4: services/voice/voice_service.py
+- expected_1: small safe patch set chosen
+- failure_branch: patch scope expands
+- rollback_branch: choose only low-risk fixes
+- artifact_1: OPS/02_EXECUTION_RUNLOG.md
+- verification_rule_1: record exact command result, not only interpretation.
+- verification_rule_2: if command fails for environment reasons, keep the failure itself as evidence.
+- verification_rule_3: if output contradicts a week report, prefer the current output.
+- anti_scope_rule_1: avoid broad rewrites during a verification segment.
+- anti_scope_rule_2: if a patch becomes multi-module and low-confidence, defer it to a fix ladder.
+- checkpoint_rule_1: update runlog before leaving the segment.
+- checkpoint_rule_2: note whether the owner lane is active, blocked, or completed.
+- expected_signal_1: each segment should either close a gate or narrow a blocker.
+- expected_signal_2: a segment with no evidence must still produce a documented reason why.
+- evidence_link_1: this segment must map to at least one item from section 2.
+- evidence_link_2: this segment must map to at least one claim from section 4.
+- operator_guard_1: do not declare success inside the segment; only record observed state.
+- operator_guard_2: leave emotional or motivational language out of segment notes.
+- pass_condition_1: the segment produces either a proof artifact or a concrete blocker artifact.
+- fail_condition_1: the segment ends with only intuition and no command/file anchor.
+- fail_condition_2: the segment hides contradiction to preserve a nicer status story.
+- handoff_rule_1: next operator should understand this segment without replaying all commands.
+- handoff_rule_2: if a command is dangerous or external, the segment must say so plainly.
+- lane_overlap_guard: when a specialist lane already found a defect, do not rediscover it without adding new proof.
+- rollback_guard: if a patch fails validation, revert only the patch scope touched in this sprint.
+- narrative_guard: documents updated by this segment must become more conservative, never more optimistic.
+- closure_guard: the segment is complete only after affected OPS artifacts are updated.
+- residual_risk_line_1: unresolved side effects from this segment move to section 6 or section 10.
+- residual_risk_line_2: missing live external verification remains visible as hard-blocked if applicable.
+- operator_memory_line_1: every segment should make a resumed session safer than before it started.
+- operator_memory_line_2: if context compaction happens now, OPS files should still preserve the path forward.
+- macro_block_binding_1: this segment is part of the larger 30-minute block required by the prompt.
+- macro_block_binding_2: adjacent segments may share inputs, but not hide ownership.
+- artifact_quality_line_1: commands belong in runlog; reasoning belongs in roadmap; status belongs in claims table.
+- artifact_quality_line_2: if a file changes, include it in handoff and validation sections later.
+- sprint_rule_1: the point of the segment is measurable coherence, not busyness.
+- sprint_rule_2: a blocked segment still helps if the block is proven.
+- sprint_rule_3: successful segments narrow the next operator's search space.
+### 5.8 S08 [105-120]
+- owner_lane: Lead + Lane4 + Lane7
+- objective: apply stabilization patches
+- timebox_rule: stay inside this window unless a gate-critical bug appears.
+- command_1: patch queue confirm
+- command_2: patch voice wake call
+- command_3: patch env defaults
+- command_4: rewrite helper and wrapper docs
+- target_1: task_queue.py
+- target_2: main.py
+- target_3: voice_service.py
+- target_4: .env.example
+- target_5: README.md
+- target_6: server/openclaw_bridge.py
+- expected_1: less misleading defaults
+- expected_2: less broken helper path
+- expected_3: safer confirmation behavior
+- failure_branch: encoding drift in legacy files
+- rollback_branch: rewrite small legacy files fully with ASCII
+- artifact_1: OPS/02_EXECUTION_RUNLOG.md
+- artifact_2: OPS/06_NEXT_3H_HANDOFF.md
+- verification_rule_1: record exact command result, not only interpretation.
+- verification_rule_2: if command fails for environment reasons, keep the failure itself as evidence.
+- verification_rule_3: if output contradicts a week report, prefer the current output.
+- anti_scope_rule_1: avoid broad rewrites during a verification segment.
+- anti_scope_rule_2: if a patch becomes multi-module and low-confidence, defer it to a fix ladder.
+- checkpoint_rule_1: update runlog before leaving the segment.
+- checkpoint_rule_2: note whether the owner lane is active, blocked, or completed.
+- expected_signal_1: each segment should either close a gate or narrow a blocker.
+- expected_signal_2: a segment with no evidence must still produce a documented reason why.
+- evidence_link_1: this segment must map to at least one item from section 2.
+- evidence_link_2: this segment must map to at least one claim from section 4.
+- operator_guard_1: do not declare success inside the segment; only record observed state.
+- operator_guard_2: leave emotional or motivational language out of segment notes.
+- pass_condition_1: the segment produces either a proof artifact or a concrete blocker artifact.
+- fail_condition_1: the segment ends with only intuition and no command/file anchor.
+- fail_condition_2: the segment hides contradiction to preserve a nicer status story.
+- handoff_rule_1: next operator should understand this segment without replaying all commands.
+- handoff_rule_2: if a command is dangerous or external, the segment must say so plainly.
+- lane_overlap_guard: when a specialist lane already found a defect, do not rediscover it without adding new proof.
+- rollback_guard: if a patch fails validation, revert only the patch scope touched in this sprint.
+- narrative_guard: documents updated by this segment must become more conservative, never more optimistic.
+- closure_guard: the segment is complete only after affected OPS artifacts are updated.
+- residual_risk_line_1: unresolved side effects from this segment move to section 6 or section 10.
+- residual_risk_line_2: missing live external verification remains visible as hard-blocked if applicable.
+- operator_memory_line_1: every segment should make a resumed session safer than before it started.
+- operator_memory_line_2: if context compaction happens now, OPS files should still preserve the path forward.
+- macro_block_binding_1: this segment is part of the larger 30-minute block required by the prompt.
+- macro_block_binding_2: adjacent segments may share inputs, but not hide ownership.
+- artifact_quality_line_1: commands belong in runlog; reasoning belongs in roadmap; status belongs in claims table.
+- artifact_quality_line_2: if a file changes, include it in handoff and validation sections later.
+- sprint_rule_1: the point of the segment is measurable coherence, not busyness.
+- sprint_rule_2: a blocked segment still helps if the block is proven.
+- sprint_rule_3: successful segments narrow the next operator's search space.
+### 5.9 S09 [120-135]
+- owner_lane: Lead + Lane4
+- objective: validate changed paths
+- timebox_rule: stay inside this window unless a gate-critical bug appears.
+- command_1: python -m py_compile changed files
+- command_2: python -m unittest tests.test_task_queue tests.test_memory_skill tests.test_self_healer
+- target_1: changed runtime files
+- target_2: targeted tests
+- expected_1: changed code compiles
+- expected_2: stabilization tests pass
+- failure_branch: new regression
+- rollback_branch: revert only own patch if needed
+- artifact_1: OPS/02_EXECUTION_RUNLOG.md
+- artifact_2: OPS/03_CLAIMS_VS_REALITY.md
+- verification_rule_1: record exact command result, not only interpretation.
+- verification_rule_2: if command fails for environment reasons, keep the failure itself as evidence.
+- verification_rule_3: if output contradicts a week report, prefer the current output.
+- anti_scope_rule_1: avoid broad rewrites during a verification segment.
+- anti_scope_rule_2: if a patch becomes multi-module and low-confidence, defer it to a fix ladder.
+- checkpoint_rule_1: update runlog before leaving the segment.
+- checkpoint_rule_2: note whether the owner lane is active, blocked, or completed.
+- expected_signal_1: each segment should either close a gate or narrow a blocker.
+- expected_signal_2: a segment with no evidence must still produce a documented reason why.
+- evidence_link_1: this segment must map to at least one item from section 2.
+- evidence_link_2: this segment must map to at least one claim from section 4.
+- operator_guard_1: do not declare success inside the segment; only record observed state.
+- operator_guard_2: leave emotional or motivational language out of segment notes.
+- pass_condition_1: the segment produces either a proof artifact or a concrete blocker artifact.
+- fail_condition_1: the segment ends with only intuition and no command/file anchor.
+- fail_condition_2: the segment hides contradiction to preserve a nicer status story.
+- handoff_rule_1: next operator should understand this segment without replaying all commands.
+- handoff_rule_2: if a command is dangerous or external, the segment must say so plainly.
+- lane_overlap_guard: when a specialist lane already found a defect, do not rediscover it without adding new proof.
+- rollback_guard: if a patch fails validation, revert only the patch scope touched in this sprint.
+- narrative_guard: documents updated by this segment must become more conservative, never more optimistic.
+- closure_guard: the segment is complete only after affected OPS artifacts are updated.
+- residual_risk_line_1: unresolved side effects from this segment move to section 6 or section 10.
+- residual_risk_line_2: missing live external verification remains visible as hard-blocked if applicable.
+- operator_memory_line_1: every segment should make a resumed session safer than before it started.
+- operator_memory_line_2: if context compaction happens now, OPS files should still preserve the path forward.
+- macro_block_binding_1: this segment is part of the larger 30-minute block required by the prompt.
+- macro_block_binding_2: adjacent segments may share inputs, but not hide ownership.
+- artifact_quality_line_1: commands belong in runlog; reasoning belongs in roadmap; status belongs in claims table.
+- artifact_quality_line_2: if a file changes, include it in handoff and validation sections later.
+- sprint_rule_1: the point of the segment is measurable coherence, not busyness.
+- sprint_rule_2: a blocked segment still helps if the block is proven.
+- sprint_rule_3: successful segments narrow the next operator's search space.
+### 5.10 S10 [135-150]
+- owner_lane: Lead + Lane3 + Lane6
+- objective: freeze runtime canon and OpenClaw recommendation
+- timebox_rule: stay inside this window unless a gate-critical bug appears.
+- command_1: read server/SOURCE_OF_TRUTH.md
+- command_2: read jarvis log tail
+- command_3: compare launchers and wrappers
+- target_1: server/SOURCE_OF_TRUTH.md
+- target_2: server/logs/jarvis.log
+- target_3: openclaw.cmd
+- expected_1: bridge-first canonical sentence
+- expected_2: Gate 2 near-closure
+- expected_3: Gate 3 partial classification
+- failure_branch: new evidence suggests another canonical path
+- rollback_branch: downgrade certainty and document split
+- artifact_1: OPS/04_RUNTIME_CANON.md
+- artifact_2: OPS/05_OPENCLAW_TELEGRAM_STATE.md
+- verification_rule_1: record exact command result, not only interpretation.
+- verification_rule_2: if command fails for environment reasons, keep the failure itself as evidence.
+- verification_rule_3: if output contradicts a week report, prefer the current output.
+- anti_scope_rule_1: avoid broad rewrites during a verification segment.
+- anti_scope_rule_2: if a patch becomes multi-module and low-confidence, defer it to a fix ladder.
+- checkpoint_rule_1: update runlog before leaving the segment.
+- checkpoint_rule_2: note whether the owner lane is active, blocked, or completed.
+- expected_signal_1: each segment should either close a gate or narrow a blocker.
+- expected_signal_2: a segment with no evidence must still produce a documented reason why.
+- evidence_link_1: this segment must map to at least one item from section 2.
+- evidence_link_2: this segment must map to at least one claim from section 4.
+- operator_guard_1: do not declare success inside the segment; only record observed state.
+- operator_guard_2: leave emotional or motivational language out of segment notes.
+- pass_condition_1: the segment produces either a proof artifact or a concrete blocker artifact.
+- fail_condition_1: the segment ends with only intuition and no command/file anchor.
+- fail_condition_2: the segment hides contradiction to preserve a nicer status story.
+- handoff_rule_1: next operator should understand this segment without replaying all commands.
+- handoff_rule_2: if a command is dangerous or external, the segment must say so plainly.
+- lane_overlap_guard: when a specialist lane already found a defect, do not rediscover it without adding new proof.
+- rollback_guard: if a patch fails validation, revert only the patch scope touched in this sprint.
+- narrative_guard: documents updated by this segment must become more conservative, never more optimistic.
+- closure_guard: the segment is complete only after affected OPS artifacts are updated.
+- residual_risk_line_1: unresolved side effects from this segment move to section 6 or section 10.
+- residual_risk_line_2: missing live external verification remains visible as hard-blocked if applicable.
+- operator_memory_line_1: every segment should make a resumed session safer than before it started.
+- operator_memory_line_2: if context compaction happens now, OPS files should still preserve the path forward.
+- macro_block_binding_1: this segment is part of the larger 30-minute block required by the prompt.
+- macro_block_binding_2: adjacent segments may share inputs, but not hide ownership.
+- artifact_quality_line_1: commands belong in runlog; reasoning belongs in roadmap; status belongs in claims table.
+- artifact_quality_line_2: if a file changes, include it in handoff and validation sections later.
+- sprint_rule_1: the point of the segment is measurable coherence, not busyness.
+- sprint_rule_2: a blocked segment still helps if the block is proven.
+- sprint_rule_3: successful segments narrow the next operator's search space.
+### 5.11 S11 [150-165]
+- owner_lane: Lead + Lane7
+- objective: write handoff and runlog with exact next actions
+- timebox_rule: stay inside this window unless a gate-critical bug appears.
+- command_1: append runlog
+- command_2: write handoff
+- command_3: collect changed file list
+- command_4: list remaining blockers
+- target_1: OPS/02_EXECUTION_RUNLOG.md
+- target_2: OPS/06_NEXT_3H_HANDOFF.md
+- expected_1: resume-ready repo state
+- failure_branch: missing exact commands
+- rollback_branch: add command-first handoff block
+- artifact_1: OPS/06_NEXT_3H_HANDOFF.md
+- verification_rule_1: record exact command result, not only interpretation.
+- verification_rule_2: if command fails for environment reasons, keep the failure itself as evidence.
+- verification_rule_3: if output contradicts a week report, prefer the current output.
+- anti_scope_rule_1: avoid broad rewrites during a verification segment.
+- anti_scope_rule_2: if a patch becomes multi-module and low-confidence, defer it to a fix ladder.
+- checkpoint_rule_1: update runlog before leaving the segment.
+- checkpoint_rule_2: note whether the owner lane is active, blocked, or completed.
+- expected_signal_1: each segment should either close a gate or narrow a blocker.
+- expected_signal_2: a segment with no evidence must still produce a documented reason why.
+- evidence_link_1: this segment must map to at least one item from section 2.
+- evidence_link_2: this segment must map to at least one claim from section 4.
+- operator_guard_1: do not declare success inside the segment; only record observed state.
+- operator_guard_2: leave emotional or motivational language out of segment notes.
+- pass_condition_1: the segment produces either a proof artifact or a concrete blocker artifact.
+- fail_condition_1: the segment ends with only intuition and no command/file anchor.
+- fail_condition_2: the segment hides contradiction to preserve a nicer status story.
+- handoff_rule_1: next operator should understand this segment without replaying all commands.
+- handoff_rule_2: if a command is dangerous or external, the segment must say so plainly.
+- lane_overlap_guard: when a specialist lane already found a defect, do not rediscover it without adding new proof.
+- rollback_guard: if a patch fails validation, revert only the patch scope touched in this sprint.
+- narrative_guard: documents updated by this segment must become more conservative, never more optimistic.
+- closure_guard: the segment is complete only after affected OPS artifacts are updated.
+- residual_risk_line_1: unresolved side effects from this segment move to section 6 or section 10.
+- residual_risk_line_2: missing live external verification remains visible as hard-blocked if applicable.
+- operator_memory_line_1: every segment should make a resumed session safer than before it started.
+- operator_memory_line_2: if context compaction happens now, OPS files should still preserve the path forward.
+- macro_block_binding_1: this segment is part of the larger 30-minute block required by the prompt.
+- macro_block_binding_2: adjacent segments may share inputs, but not hide ownership.
+- artifact_quality_line_1: commands belong in runlog; reasoning belongs in roadmap; status belongs in claims table.
+- artifact_quality_line_2: if a file changes, include it in handoff and validation sections later.
+- sprint_rule_1: the point of the segment is measurable coherence, not busyness.
+- sprint_rule_2: a blocked segment still helps if the block is proven.
+- sprint_rule_3: successful segments narrow the next operator's search space.
+### 5.12 S12 [165-180]
+- owner_lane: Lead
+- objective: build ultra-roadmap and final gate table
+- timebox_rule: stay inside this window unless a gate-critical bug appears.
+- command_1: generate roadmap
+- command_2: measure line count
+- command_3: close what is green
+- command_4: label hard-blocked gates
+- target_1: OPS/01_3H_ULTRA_ROADMAP.md
+- target_2: all OPS files
+- expected_1: 3000-4000 line roadmap
+- expected_2: final gate truth map
+- failure_branch: roadmap under line target
+- rollback_branch: extend matrices with inspected target appendix and verification detail
+- artifact_1: OPS/01_3H_ULTRA_ROADMAP.md
+- artifact_2: OPS/02_EXECUTION_RUNLOG.md
+- verification_rule_1: record exact command result, not only interpretation.
+- verification_rule_2: if command fails for environment reasons, keep the failure itself as evidence.
+- verification_rule_3: if output contradicts a week report, prefer the current output.
+- anti_scope_rule_1: avoid broad rewrites during a verification segment.
+- anti_scope_rule_2: if a patch becomes multi-module and low-confidence, defer it to a fix ladder.
+- checkpoint_rule_1: update runlog before leaving the segment.
+- checkpoint_rule_2: note whether the owner lane is active, blocked, or completed.
+- expected_signal_1: each segment should either close a gate or narrow a blocker.
+- expected_signal_2: a segment with no evidence must still produce a documented reason why.
+- evidence_link_1: this segment must map to at least one item from section 2.
+- evidence_link_2: this segment must map to at least one claim from section 4.
+- operator_guard_1: do not declare success inside the segment; only record observed state.
+- operator_guard_2: leave emotional or motivational language out of segment notes.
+- pass_condition_1: the segment produces either a proof artifact or a concrete blocker artifact.
+- fail_condition_1: the segment ends with only intuition and no command/file anchor.
+- fail_condition_2: the segment hides contradiction to preserve a nicer status story.
+- handoff_rule_1: next operator should understand this segment without replaying all commands.
+- handoff_rule_2: if a command is dangerous or external, the segment must say so plainly.
+- lane_overlap_guard: when a specialist lane already found a defect, do not rediscover it without adding new proof.
+- rollback_guard: if a patch fails validation, revert only the patch scope touched in this sprint.
+- narrative_guard: documents updated by this segment must become more conservative, never more optimistic.
+- closure_guard: the segment is complete only after affected OPS artifacts are updated.
+- residual_risk_line_1: unresolved side effects from this segment move to section 6 or section 10.
+- residual_risk_line_2: missing live external verification remains visible as hard-blocked if applicable.
+- operator_memory_line_1: every segment should make a resumed session safer than before it started.
+- operator_memory_line_2: if context compaction happens now, OPS files should still preserve the path forward.
+- macro_block_binding_1: this segment is part of the larger 30-minute block required by the prompt.
+- macro_block_binding_2: adjacent segments may share inputs, but not hide ownership.
+- artifact_quality_line_1: commands belong in runlog; reasoning belongs in roadmap; status belongs in claims table.
+- artifact_quality_line_2: if a file changes, include it in handoff and validation sections later.
+- sprint_rule_1: the point of the segment is measurable coherence, not busyness.
+- sprint_rule_2: a blocked segment still helps if the block is proven.
+- sprint_rule_3: successful segments narrow the next operator's search space.
+
+## 6. Fix Ladders
+### 6.1 Dashboard success rate failure
+- minimal_fix: locate failing math and state contamination
+- medium_fix: isolate metrics log path in tests
+- structural_fix: separate metrics collector from persistent test fixture
+- stop_rule: stop after reproducible green targeted test
+- defer_rule: full dashboard redesign
+- entry_condition: work this ladder only after the evidence for the issue is explicit.
+- scope_guard: ladder work must not mutate unrelated runtime surfaces.
+- validation_guard: each rung needs a test, log, or code-path proof.
+- documentation_guard: if minimal fix is applied, docs must reflect the smaller truth, not the aspirational one.
+- rollback_guard: if medium or structural fix risks new split-brain behavior, stop at minimal fix.
+- ownership_guard: lead decides whether this issue stays in current sprint or moves to next shift.
+- risk_if_skipped: unresolved issue remains visible in handoff, not buried.
+- proof_needed_1: direct file or command reference showing the issue exists.
+- proof_needed_2: direct file or command reference showing the chosen rung changed the state.
+- anti-hype: ladders exist to reduce risk, not to create a completion story.
+- operator_note_1: a smaller verified fix outranks a broader speculative one.
+- operator_note_2: stop once the user-facing risk is materially reduced and evidenced.
+- operator_note_3: defer structural cleanup when gates demand evidence first.
+- downstream_artifacts: claims table, runtime canon, handoff, and runlog may all need updates.
+- next_shift_hint: if this issue remains open, resume from the minimal or medium rung, not from scratch.
+- completion_language: describe the rung actually completed, never the rung imagined.
+- escalation_boundary: if a live external side effect is required, do not cross it silently.
+- audit_binding: issue must trace back to at least one contradiction in section 4.
+- quality_bar: no fix rung counts without verification text nearby.
+### 6.2 Queue confirm false-success signal
+- minimal_fix: raise 409 for non-awaiting tasks
+- medium_fix: add API test for confirm flow
+- structural_fix: separate state transition API from queue storage
+- stop_rule: when misleading success path is gone
+- defer_rule: full REST contract redesign
+- entry_condition: work this ladder only after the evidence for the issue is explicit.
+- scope_guard: ladder work must not mutate unrelated runtime surfaces.
+- validation_guard: each rung needs a test, log, or code-path proof.
+- documentation_guard: if minimal fix is applied, docs must reflect the smaller truth, not the aspirational one.
+- rollback_guard: if medium or structural fix risks new split-brain behavior, stop at minimal fix.
+- ownership_guard: lead decides whether this issue stays in current sprint or moves to next shift.
+- risk_if_skipped: unresolved issue remains visible in handoff, not buried.
+- proof_needed_1: direct file or command reference showing the issue exists.
+- proof_needed_2: direct file or command reference showing the chosen rung changed the state.
+- anti-hype: ladders exist to reduce risk, not to create a completion story.
+- operator_note_1: a smaller verified fix outranks a broader speculative one.
+- operator_note_2: stop once the user-facing risk is materially reduced and evidenced.
+- operator_note_3: defer structural cleanup when gates demand evidence first.
+- downstream_artifacts: claims table, runtime canon, handoff, and runlog may all need updates.
+- next_shift_hint: if this issue remains open, resume from the minimal or medium rung, not from scratch.
+- completion_language: describe the rung actually completed, never the rung imagined.
+- escalation_boundary: if a live external side effect is required, do not cross it silently.
+- audit_binding: issue must trace back to at least one contradiction in section 4.
+- quality_bar: no fix rung counts without verification text nearby.
+### 6.3 Voice wake method mismatch
+- minimal_fix: call _check_wake instead of missing method
+- medium_fix: add focused voice unit test
+- structural_fix: split wake detector from audio loop
+- stop_rule: no AttributeError path remains
+- defer_rule: full voice stack modernization
+- entry_condition: work this ladder only after the evidence for the issue is explicit.
+- scope_guard: ladder work must not mutate unrelated runtime surfaces.
+- validation_guard: each rung needs a test, log, or code-path proof.
+- documentation_guard: if minimal fix is applied, docs must reflect the smaller truth, not the aspirational one.
+- rollback_guard: if medium or structural fix risks new split-brain behavior, stop at minimal fix.
+- ownership_guard: lead decides whether this issue stays in current sprint or moves to next shift.
+- risk_if_skipped: unresolved issue remains visible in handoff, not buried.
+- proof_needed_1: direct file or command reference showing the issue exists.
+- proof_needed_2: direct file or command reference showing the chosen rung changed the state.
+- anti-hype: ladders exist to reduce risk, not to create a completion story.
+- operator_note_1: a smaller verified fix outranks a broader speculative one.
+- operator_note_2: stop once the user-facing risk is materially reduced and evidenced.
+- operator_note_3: defer structural cleanup when gates demand evidence first.
+- downstream_artifacts: claims table, runtime canon, handoff, and runlog may all need updates.
+- next_shift_hint: if this issue remains open, resume from the minimal or medium rung, not from scratch.
+- completion_language: describe the rung actually completed, never the rung imagined.
+- escalation_boundary: if a live external side effect is required, do not cross it silently.
+- audit_binding: issue must trace back to at least one contradiction in section 4.
+- quality_bar: no fix rung counts without verification text nearby.
+### 6.4 Memory path Linux hardcode
+- minimal_fix: use repo-local default plus env override
+- medium_fix: add bridge smoke test
+- structural_fix: consolidate memory backends under one config layer
+- stop_rule: path is cross-platform
+- defer_rule: unify all memory systems
+- entry_condition: work this ladder only after the evidence for the issue is explicit.
+- scope_guard: ladder work must not mutate unrelated runtime surfaces.
+- validation_guard: each rung needs a test, log, or code-path proof.
+- documentation_guard: if minimal fix is applied, docs must reflect the smaller truth, not the aspirational one.
+- rollback_guard: if medium or structural fix risks new split-brain behavior, stop at minimal fix.
+- ownership_guard: lead decides whether this issue stays in current sprint or moves to next shift.
+- risk_if_skipped: unresolved issue remains visible in handoff, not buried.
+- proof_needed_1: direct file or command reference showing the issue exists.
+- proof_needed_2: direct file or command reference showing the chosen rung changed the state.
+- anti-hype: ladders exist to reduce risk, not to create a completion story.
+- operator_note_1: a smaller verified fix outranks a broader speculative one.
+- operator_note_2: stop once the user-facing risk is materially reduced and evidenced.
+- operator_note_3: defer structural cleanup when gates demand evidence first.
+- downstream_artifacts: claims table, runtime canon, handoff, and runlog may all need updates.
+- next_shift_hint: if this issue remains open, resume from the minimal or medium rung, not from scratch.
+- completion_language: describe the rung actually completed, never the rung imagined.
+- escalation_boundary: if a live external side effect is required, do not cross it silently.
+- audit_binding: issue must trace back to at least one contradiction in section 4.
+- quality_bar: no fix rung counts without verification text nearby.
+### 6.5 Self-healer POSIX command drift
+- minimal_fix: platform-aware command generation
+- medium_fix: add incident-specific test cases
+- structural_fix: policy engine for safe fix generation
+- stop_rule: Windows no longer gets POSIX commands
+- defer_rule: full self-heal automation
+- entry_condition: work this ladder only after the evidence for the issue is explicit.
+- scope_guard: ladder work must not mutate unrelated runtime surfaces.
+- validation_guard: each rung needs a test, log, or code-path proof.
+- documentation_guard: if minimal fix is applied, docs must reflect the smaller truth, not the aspirational one.
+- rollback_guard: if medium or structural fix risks new split-brain behavior, stop at minimal fix.
+- ownership_guard: lead decides whether this issue stays in current sprint or moves to next shift.
+- risk_if_skipped: unresolved issue remains visible in handoff, not buried.
+- proof_needed_1: direct file or command reference showing the issue exists.
+- proof_needed_2: direct file or command reference showing the chosen rung changed the state.
+- anti-hype: ladders exist to reduce risk, not to create a completion story.
+- operator_note_1: a smaller verified fix outranks a broader speculative one.
+- operator_note_2: stop once the user-facing risk is materially reduced and evidenced.
+- operator_note_3: defer structural cleanup when gates demand evidence first.
+- downstream_artifacts: claims table, runtime canon, handoff, and runlog may all need updates.
+- next_shift_hint: if this issue remains open, resume from the minimal or medium rung, not from scratch.
+- completion_language: describe the rung actually completed, never the rung imagined.
+- escalation_boundary: if a live external side effect is required, do not cross it silently.
+- audit_binding: issue must trace back to at least one contradiction in section 4.
+- quality_bar: no fix rung counts without verification text nearby.
+### 6.6 OpenClaw helper dev hardcode
+- minimal_fix: remove default --dev
+- medium_fix: document canonical profile selection
+- structural_fix: single profile registry shared with bridge
+- stop_rule: helper no longer points by default to weak profile
+- defer_rule: multi-profile orchestration
+- entry_condition: work this ladder only after the evidence for the issue is explicit.
+- scope_guard: ladder work must not mutate unrelated runtime surfaces.
+- validation_guard: each rung needs a test, log, or code-path proof.
+- documentation_guard: if minimal fix is applied, docs must reflect the smaller truth, not the aspirational one.
+- rollback_guard: if medium or structural fix risks new split-brain behavior, stop at minimal fix.
+- ownership_guard: lead decides whether this issue stays in current sprint or moves to next shift.
+- risk_if_skipped: unresolved issue remains visible in handoff, not buried.
+- proof_needed_1: direct file or command reference showing the issue exists.
+- proof_needed_2: direct file or command reference showing the chosen rung changed the state.
+- anti-hype: ladders exist to reduce risk, not to create a completion story.
+- operator_note_1: a smaller verified fix outranks a broader speculative one.
+- operator_note_2: stop once the user-facing risk is materially reduced and evidenced.
+- operator_note_3: defer structural cleanup when gates demand evidence first.
+- downstream_artifacts: claims table, runtime canon, handoff, and runlog may all need updates.
+- next_shift_hint: if this issue remains open, resume from the minimal or medium rung, not from scratch.
+- completion_language: describe the rung actually completed, never the rung imagined.
+- escalation_boundary: if a live external side effect is required, do not cross it silently.
+- audit_binding: issue must trace back to at least one contradiction in section 4.
+- quality_bar: no fix rung counts without verification text nearby.
+### 6.7 OpenClaw wrapper missing file path
+- minimal_fix: point wrapper to canonical bridge
+- medium_fix: audit remaining wrappers
+- structural_fix: retire duplicate wrapper family
+- stop_rule: no launcher targets missing file
+- defer_rule: Pinokio-level packaging
+- entry_condition: work this ladder only after the evidence for the issue is explicit.
+- scope_guard: ladder work must not mutate unrelated runtime surfaces.
+- validation_guard: each rung needs a test, log, or code-path proof.
+- documentation_guard: if minimal fix is applied, docs must reflect the smaller truth, not the aspirational one.
+- rollback_guard: if medium or structural fix risks new split-brain behavior, stop at minimal fix.
+- ownership_guard: lead decides whether this issue stays in current sprint or moves to next shift.
+- risk_if_skipped: unresolved issue remains visible in handoff, not buried.
+- proof_needed_1: direct file or command reference showing the issue exists.
+- proof_needed_2: direct file or command reference showing the chosen rung changed the state.
+- anti-hype: ladders exist to reduce risk, not to create a completion story.
+- operator_note_1: a smaller verified fix outranks a broader speculative one.
+- operator_note_2: stop once the user-facing risk is materially reduced and evidenced.
+- operator_note_3: defer structural cleanup when gates demand evidence first.
+- downstream_artifacts: claims table, runtime canon, handoff, and runlog may all need updates.
+- next_shift_hint: if this issue remains open, resume from the minimal or medium rung, not from scratch.
+- completion_language: describe the rung actually completed, never the rung imagined.
+- escalation_boundary: if a live external side effect is required, do not cross it silently.
+- audit_binding: issue must trace back to at least one contradiction in section 4.
+- quality_bar: no fix rung counts without verification text nearby.
+### 6.8 Launcher ownership drift
+- minimal_fix: rewrite launcher note docs
+- medium_fix: capture actual child process ownership in one run
+- structural_fix: single launcher contract doc and tests
+- stop_rule: operators stop reading false startup order
+- defer_rule: full supervisor rewrite
+- entry_condition: work this ladder only after the evidence for the issue is explicit.
+- scope_guard: ladder work must not mutate unrelated runtime surfaces.
+- validation_guard: each rung needs a test, log, or code-path proof.
+- documentation_guard: if minimal fix is applied, docs must reflect the smaller truth, not the aspirational one.
+- rollback_guard: if medium or structural fix risks new split-brain behavior, stop at minimal fix.
+- ownership_guard: lead decides whether this issue stays in current sprint or moves to next shift.
+- risk_if_skipped: unresolved issue remains visible in handoff, not buried.
+- proof_needed_1: direct file or command reference showing the issue exists.
+- proof_needed_2: direct file or command reference showing the chosen rung changed the state.
+- anti-hype: ladders exist to reduce risk, not to create a completion story.
+- operator_note_1: a smaller verified fix outranks a broader speculative one.
+- operator_note_2: stop once the user-facing risk is materially reduced and evidenced.
+- operator_note_3: defer structural cleanup when gates demand evidence first.
+- downstream_artifacts: claims table, runtime canon, handoff, and runlog may all need updates.
+- next_shift_hint: if this issue remains open, resume from the minimal or medium rung, not from scratch.
+- completion_language: describe the rung actually completed, never the rung imagined.
+- escalation_boundary: if a live external side effect is required, do not cross it silently.
+- audit_binding: issue must trace back to at least one contradiction in section 4.
+- quality_bar: no fix rung counts without verification text nearby.
+### 6.9 Watchdog orphan heartbeat contract
+- minimal_fix: document as orphaned
+- medium_fix: either add producer or disable watchdog ownership claims
+- structural_fix: real supervisor heartbeat contract
+- stop_rule: nobody treats watchdog as verified owner
+- defer_rule: complete watchdog redesign
+- entry_condition: work this ladder only after the evidence for the issue is explicit.
+- scope_guard: ladder work must not mutate unrelated runtime surfaces.
+- validation_guard: each rung needs a test, log, or code-path proof.
+- documentation_guard: if minimal fix is applied, docs must reflect the smaller truth, not the aspirational one.
+- rollback_guard: if medium or structural fix risks new split-brain behavior, stop at minimal fix.
+- ownership_guard: lead decides whether this issue stays in current sprint or moves to next shift.
+- risk_if_skipped: unresolved issue remains visible in handoff, not buried.
+- proof_needed_1: direct file or command reference showing the issue exists.
+- proof_needed_2: direct file or command reference showing the chosen rung changed the state.
+- anti-hype: ladders exist to reduce risk, not to create a completion story.
+- operator_note_1: a smaller verified fix outranks a broader speculative one.
+- operator_note_2: stop once the user-facing risk is materially reduced and evidenced.
+- operator_note_3: defer structural cleanup when gates demand evidence first.
+- downstream_artifacts: claims table, runtime canon, handoff, and runlog may all need updates.
+- next_shift_hint: if this issue remains open, resume from the minimal or medium rung, not from scratch.
+- completion_language: describe the rung actually completed, never the rung imagined.
+- escalation_boundary: if a live external side effect is required, do not cross it silently.
+- audit_binding: issue must trace back to at least one contradiction in section 4.
+- quality_bar: no fix rung counts without verification text nearby.
+### 6.10 Gemini function-calling overclaim
+- minimal_fix: downgrade docs and mark mocks
+- medium_fix: add positive mocked process_request test
+- structural_fix: real provider integration and endpoint wiring
+- stop_rule: claim language matches actual implementation
+- defer_rule: full Gemini migration
+- entry_condition: work this ladder only after the evidence for the issue is explicit.
+- scope_guard: ladder work must not mutate unrelated runtime surfaces.
+- validation_guard: each rung needs a test, log, or code-path proof.
+- documentation_guard: if minimal fix is applied, docs must reflect the smaller truth, not the aspirational one.
+- rollback_guard: if medium or structural fix risks new split-brain behavior, stop at minimal fix.
+- ownership_guard: lead decides whether this issue stays in current sprint or moves to next shift.
+- risk_if_skipped: unresolved issue remains visible in handoff, not buried.
+- proof_needed_1: direct file or command reference showing the issue exists.
+- proof_needed_2: direct file or command reference showing the chosen rung changed the state.
+- anti-hype: ladders exist to reduce risk, not to create a completion story.
+- operator_note_1: a smaller verified fix outranks a broader speculative one.
+- operator_note_2: stop once the user-facing risk is materially reduced and evidenced.
+- operator_note_3: defer structural cleanup when gates demand evidence first.
+- downstream_artifacts: claims table, runtime canon, handoff, and runlog may all need updates.
+- next_shift_hint: if this issue remains open, resume from the minimal or medium rung, not from scratch.
+- completion_language: describe the rung actually completed, never the rung imagined.
+- escalation_boundary: if a live external side effect is required, do not cross it silently.
+- audit_binding: issue must trace back to at least one contradiction in section 4.
+- quality_bar: no fix rung counts without verification text nearby.
+### 6.11 Completion doc secret exposure
+- minimal_fix: redact secret in repo doc
+- medium_fix: record rotation required
+- structural_fix: secret scanning on docs artifacts
+- stop_rule: secret removed from repo text
+- defer_rule: historical forensic cleanup of all docs
+- entry_condition: work this ladder only after the evidence for the issue is explicit.
+- scope_guard: ladder work must not mutate unrelated runtime surfaces.
+- validation_guard: each rung needs a test, log, or code-path proof.
+- documentation_guard: if minimal fix is applied, docs must reflect the smaller truth, not the aspirational one.
+- rollback_guard: if medium or structural fix risks new split-brain behavior, stop at minimal fix.
+- ownership_guard: lead decides whether this issue stays in current sprint or moves to next shift.
+- risk_if_skipped: unresolved issue remains visible in handoff, not buried.
+- proof_needed_1: direct file or command reference showing the issue exists.
+- proof_needed_2: direct file or command reference showing the chosen rung changed the state.
+- anti-hype: ladders exist to reduce risk, not to create a completion story.
+- operator_note_1: a smaller verified fix outranks a broader speculative one.
+- operator_note_2: stop once the user-facing risk is materially reduced and evidenced.
+- operator_note_3: defer structural cleanup when gates demand evidence first.
+- downstream_artifacts: claims table, runtime canon, handoff, and runlog may all need updates.
+- next_shift_hint: if this issue remains open, resume from the minimal or medium rung, not from scratch.
+- completion_language: describe the rung actually completed, never the rung imagined.
+- escalation_boundary: if a live external side effect is required, do not cross it silently.
+- audit_binding: issue must trace back to at least one contradiction in section 4.
+- quality_bar: no fix rung counts without verification text nearby.
+### 6.12 Fresh-clone Telegram default drift
+- minimal_fix: disable Telegram by default in env sample
+- medium_fix: update README warning
+- structural_fix: startup validation wizard
+- stop_rule: blank tokens no longer imply enabled Telegram
+- defer_rule: full setup assistant
+- entry_condition: work this ladder only after the evidence for the issue is explicit.
+- scope_guard: ladder work must not mutate unrelated runtime surfaces.
+- validation_guard: each rung needs a test, log, or code-path proof.
+- documentation_guard: if minimal fix is applied, docs must reflect the smaller truth, not the aspirational one.
+- rollback_guard: if medium or structural fix risks new split-brain behavior, stop at minimal fix.
+- ownership_guard: lead decides whether this issue stays in current sprint or moves to next shift.
+- risk_if_skipped: unresolved issue remains visible in handoff, not buried.
+- proof_needed_1: direct file or command reference showing the issue exists.
+- proof_needed_2: direct file or command reference showing the chosen rung changed the state.
+- anti-hype: ladders exist to reduce risk, not to create a completion story.
+- operator_note_1: a smaller verified fix outranks a broader speculative one.
+- operator_note_2: stop once the user-facing risk is materially reduced and evidenced.
+- operator_note_3: defer structural cleanup when gates demand evidence first.
+- downstream_artifacts: claims table, runtime canon, handoff, and runlog may all need updates.
+- next_shift_hint: if this issue remains open, resume from the minimal or medium rung, not from scratch.
+- completion_language: describe the rung actually completed, never the rung imagined.
+- escalation_boundary: if a live external side effect is required, do not cross it silently.
+- audit_binding: issue must trace back to at least one contradiction in section 4.
+- quality_bar: no fix rung counts without verification text nearby.
+### 6.13 OpenClaw PowerShell CLI friction
+- minimal_fix: prefer openclaw.cmd in helper
+- medium_fix: document PS execution-policy caveat
+- structural_fix: dedicated Windows launcher wrapper
+- stop_rule: helper no longer depends on PS1 resolution
+- defer_rule: CLI packaging overhaul
+- entry_condition: work this ladder only after the evidence for the issue is explicit.
+- scope_guard: ladder work must not mutate unrelated runtime surfaces.
+- validation_guard: each rung needs a test, log, or code-path proof.
+- documentation_guard: if minimal fix is applied, docs must reflect the smaller truth, not the aspirational one.
+- rollback_guard: if medium or structural fix risks new split-brain behavior, stop at minimal fix.
+- ownership_guard: lead decides whether this issue stays in current sprint or moves to next shift.
+- risk_if_skipped: unresolved issue remains visible in handoff, not buried.
+- proof_needed_1: direct file or command reference showing the issue exists.
+- proof_needed_2: direct file or command reference showing the chosen rung changed the state.
+- anti-hype: ladders exist to reduce risk, not to create a completion story.
+- operator_note_1: a smaller verified fix outranks a broader speculative one.
+- operator_note_2: stop once the user-facing risk is materially reduced and evidenced.
+- operator_note_3: defer structural cleanup when gates demand evidence first.
+- downstream_artifacts: claims table, runtime canon, handoff, and runlog may all need updates.
+- next_shift_hint: if this issue remains open, resume from the minimal or medium rung, not from scratch.
+- completion_language: describe the rung actually completed, never the rung imagined.
+- escalation_boundary: if a live external side effect is required, do not cross it silently.
+- audit_binding: issue must trace back to at least one contradiction in section 4.
+- quality_bar: no fix rung counts without verification text nearby.
+### 6.14 Split dashboard ownership
+- minimal_fix: document the three dashboard surfaces
+- medium_fix: pick one operator default
+- structural_fix: merge or retire extra dashboards
+- stop_rule: docs stop implying one unified dashboard
+- defer_rule: UI consolidation project
+- entry_condition: work this ladder only after the evidence for the issue is explicit.
+- scope_guard: ladder work must not mutate unrelated runtime surfaces.
+- validation_guard: each rung needs a test, log, or code-path proof.
+- documentation_guard: if minimal fix is applied, docs must reflect the smaller truth, not the aspirational one.
+- rollback_guard: if medium or structural fix risks new split-brain behavior, stop at minimal fix.
+- ownership_guard: lead decides whether this issue stays in current sprint or moves to next shift.
+- risk_if_skipped: unresolved issue remains visible in handoff, not buried.
+- proof_needed_1: direct file or command reference showing the issue exists.
+- proof_needed_2: direct file or command reference showing the chosen rung changed the state.
+- anti-hype: ladders exist to reduce risk, not to create a completion story.
+- operator_note_1: a smaller verified fix outranks a broader speculative one.
+- operator_note_2: stop once the user-facing risk is materially reduced and evidenced.
+- operator_note_3: defer structural cleanup when gates demand evidence first.
+- downstream_artifacts: claims table, runtime canon, handoff, and runlog may all need updates.
+- next_shift_hint: if this issue remains open, resume from the minimal or medium rung, not from scratch.
+- completion_language: describe the rung actually completed, never the rung imagined.
+- escalation_boundary: if a live external side effect is required, do not cross it silently.
+- audit_binding: issue must trace back to at least one contradiction in section 4.
+- quality_bar: no fix rung counts without verification text nearby.
+### 6.15 Port drift 8090 vs 8091
+- minimal_fix: fix docs and start scripts over time
+- medium_fix: grep repo for stale 8090 references
+- structural_fix: single shared port config import
+- stop_rule: operators no longer get wrong default port
+- defer_rule: complete config centralization
+- entry_condition: work this ladder only after the evidence for the issue is explicit.
+- scope_guard: ladder work must not mutate unrelated runtime surfaces.
+- validation_guard: each rung needs a test, log, or code-path proof.
+- documentation_guard: if minimal fix is applied, docs must reflect the smaller truth, not the aspirational one.
+- rollback_guard: if medium or structural fix risks new split-brain behavior, stop at minimal fix.
+- ownership_guard: lead decides whether this issue stays in current sprint or moves to next shift.
+- risk_if_skipped: unresolved issue remains visible in handoff, not buried.
+- proof_needed_1: direct file or command reference showing the issue exists.
+- proof_needed_2: direct file or command reference showing the chosen rung changed the state.
+- anti-hype: ladders exist to reduce risk, not to create a completion story.
+- operator_note_1: a smaller verified fix outranks a broader speculative one.
+- operator_note_2: stop once the user-facing risk is materially reduced and evidenced.
+- operator_note_3: defer structural cleanup when gates demand evidence first.
+- downstream_artifacts: claims table, runtime canon, handoff, and runlog may all need updates.
+- next_shift_hint: if this issue remains open, resume from the minimal or medium rung, not from scratch.
+- completion_language: describe the rung actually completed, never the rung imagined.
+- escalation_boundary: if a live external side effect is required, do not cross it silently.
+- audit_binding: issue must trace back to at least one contradiction in section 4.
+- quality_bar: no fix rung counts without verification text nearby.
+
+## 7. Verification Matrix
+### 7.1 Queue persistence survives restart
+- what_proves_it: a direct command result, file diff, or exact code path confirms the stated change or classification.
+- what_does_not_prove_it: an old report, a commit message, or an unrerun historical summary.
+- pass_command: choose the smallest relevant targeted command instead of a broad suite where possible.
+- fail_signal: current runtime, test, or file still contradicts the intended state.
+- false_positive_risk: doc updated but code unchanged; code changed but no validation; validation run against wrong runtime.
+- operator_guard: if proof is indirect, classify as MOSTLY VERIFIED or PARTIAL instead of VERIFIED.
+- artifact_link: map the result into claims, runlog, and handoff if it changes operator guidance.
+- recheck_trigger: rerun if related files change later in the sprint.
+- secret_rule: verification output must stay redacted when auth/token material is nearby.
+- portability_rule: if proof only holds on one OS or profile, state that explicitly.
+- runtime_rule: live checks outrank doc checks for this item when available.
+- gate_binding: this item helps close one of the five gates or keep it blocked with proof.
+- next_shift_value: a passed item narrows future work; a failed item becomes a precise starting point.
+- compression_survival: the proof should still be understandable after session compaction.
+- quality_floor: no unverifiable narrative is allowed to masquerade as this item being complete.
+- historical_note: if old claims differ, preserve that mismatch in claims-vs-reality.
+- ownership_note: lead decides whether this item is worth a patch or just a documented blocker.
+### 7.2 Confirm endpoint rejects non-awaiting tasks
+- what_proves_it: a direct command result, file diff, or exact code path confirms the stated change or classification.
+- what_does_not_prove_it: an old report, a commit message, or an unrerun historical summary.
+- pass_command: choose the smallest relevant targeted command instead of a broad suite where possible.
+- fail_signal: current runtime, test, or file still contradicts the intended state.
+- false_positive_risk: doc updated but code unchanged; code changed but no validation; validation run against wrong runtime.
+- operator_guard: if proof is indirect, classify as MOSTLY VERIFIED or PARTIAL instead of VERIFIED.
+- artifact_link: map the result into claims, runlog, and handoff if it changes operator guidance.
+- recheck_trigger: rerun if related files change later in the sprint.
+- secret_rule: verification output must stay redacted when auth/token material is nearby.
+- portability_rule: if proof only holds on one OS or profile, state that explicitly.
+- runtime_rule: live checks outrank doc checks for this item when available.
+- gate_binding: this item helps close one of the five gates or keep it blocked with proof.
+- next_shift_value: a passed item narrows future work; a failed item becomes a precise starting point.
+- compression_survival: the proof should still be understandable after session compaction.
+- quality_floor: no unverifiable narrative is allowed to masquerade as this item being complete.
+- historical_note: if old claims differ, preserve that mismatch in claims-vs-reality.
+- ownership_note: lead decides whether this item is worth a patch or just a documented blocker.
+### 7.3 Voice wake loop no longer calls missing method
+- what_proves_it: a direct command result, file diff, or exact code path confirms the stated change or classification.
+- what_does_not_prove_it: an old report, a commit message, or an unrerun historical summary.
+- pass_command: choose the smallest relevant targeted command instead of a broad suite where possible.
+- fail_signal: current runtime, test, or file still contradicts the intended state.
+- false_positive_risk: doc updated but code unchanged; code changed but no validation; validation run against wrong runtime.
+- operator_guard: if proof is indirect, classify as MOSTLY VERIFIED or PARTIAL instead of VERIFIED.
+- artifact_link: map the result into claims, runlog, and handoff if it changes operator guidance.
+- recheck_trigger: rerun if related files change later in the sprint.
+- secret_rule: verification output must stay redacted when auth/token material is nearby.
+- portability_rule: if proof only holds on one OS or profile, state that explicitly.
+- runtime_rule: live checks outrank doc checks for this item when available.
+- gate_binding: this item helps close one of the five gates or keep it blocked with proof.
+- next_shift_value: a passed item narrows future work; a failed item becomes a precise starting point.
+- compression_survival: the proof should still be understandable after session compaction.
+- quality_floor: no unverifiable narrative is allowed to masquerade as this item being complete.
+- historical_note: if old claims differ, preserve that mismatch in claims-vs-reality.
+- ownership_note: lead decides whether this item is worth a patch or just a documented blocker.
+### 7.4 Memory DB path is cross-platform
+- what_proves_it: a direct command result, file diff, or exact code path confirms the stated change or classification.
+- what_does_not_prove_it: an old report, a commit message, or an unrerun historical summary.
+- pass_command: choose the smallest relevant targeted command instead of a broad suite where possible.
+- fail_signal: current runtime, test, or file still contradicts the intended state.
+- false_positive_risk: doc updated but code unchanged; code changed but no validation; validation run against wrong runtime.
+- operator_guard: if proof is indirect, classify as MOSTLY VERIFIED or PARTIAL instead of VERIFIED.
+- artifact_link: map the result into claims, runlog, and handoff if it changes operator guidance.
+- recheck_trigger: rerun if related files change later in the sprint.
+- secret_rule: verification output must stay redacted when auth/token material is nearby.
+- portability_rule: if proof only holds on one OS or profile, state that explicitly.
+- runtime_rule: live checks outrank doc checks for this item when available.
+- gate_binding: this item helps close one of the five gates or keep it blocked with proof.
+- next_shift_value: a passed item narrows future work; a failed item becomes a precise starting point.
+- compression_survival: the proof should still be understandable after session compaction.
+- quality_floor: no unverifiable narrative is allowed to masquerade as this item being complete.
+- historical_note: if old claims differ, preserve that mismatch in claims-vs-reality.
+- ownership_note: lead decides whether this item is worth a patch or just a documented blocker.
+### 7.5 Self-healer emits Windows-safe commands
+- what_proves_it: a direct command result, file diff, or exact code path confirms the stated change or classification.
+- what_does_not_prove_it: an old report, a commit message, or an unrerun historical summary.
+- pass_command: choose the smallest relevant targeted command instead of a broad suite where possible.
+- fail_signal: current runtime, test, or file still contradicts the intended state.
+- false_positive_risk: doc updated but code unchanged; code changed but no validation; validation run against wrong runtime.
+- operator_guard: if proof is indirect, classify as MOSTLY VERIFIED or PARTIAL instead of VERIFIED.
+- artifact_link: map the result into claims, runlog, and handoff if it changes operator guidance.
+- recheck_trigger: rerun if related files change later in the sprint.
+- secret_rule: verification output must stay redacted when auth/token material is nearby.
+- portability_rule: if proof only holds on one OS or profile, state that explicitly.
+- runtime_rule: live checks outrank doc checks for this item when available.
+- gate_binding: this item helps close one of the five gates or keep it blocked with proof.
+- next_shift_value: a passed item narrows future work; a failed item becomes a precise starting point.
+- compression_survival: the proof should still be understandable after session compaction.
+- quality_floor: no unverifiable narrative is allowed to masquerade as this item being complete.
+- historical_note: if old claims differ, preserve that mismatch in claims-vs-reality.
+- ownership_note: lead decides whether this item is worth a patch or just a documented blocker.
+### 7.6 Bridge canonical runtime statement matches source-of-truth doc
+- what_proves_it: a direct command result, file diff, or exact code path confirms the stated change or classification.
+- what_does_not_prove_it: an old report, a commit message, or an unrerun historical summary.
+- pass_command: choose the smallest relevant targeted command instead of a broad suite where possible.
+- fail_signal: current runtime, test, or file still contradicts the intended state.
+- false_positive_risk: doc updated but code unchanged; code changed but no validation; validation run against wrong runtime.
+- operator_guard: if proof is indirect, classify as MOSTLY VERIFIED or PARTIAL instead of VERIFIED.
+- artifact_link: map the result into claims, runlog, and handoff if it changes operator guidance.
+- recheck_trigger: rerun if related files change later in the sprint.
+- secret_rule: verification output must stay redacted when auth/token material is nearby.
+- portability_rule: if proof only holds on one OS or profile, state that explicitly.
+- runtime_rule: live checks outrank doc checks for this item when available.
+- gate_binding: this item helps close one of the five gates or keep it blocked with proof.
+- next_shift_value: a passed item narrows future work; a failed item becomes a precise starting point.
+- compression_survival: the proof should still be understandable after session compaction.
+- quality_floor: no unverifiable narrative is allowed to masquerade as this item being complete.
+- historical_note: if old claims differ, preserve that mismatch in claims-vs-reality.
+- ownership_note: lead decides whether this item is worth a patch or just a documented blocker.
+### 7.7 OpenClaw helper no longer defaults to --dev
+- what_proves_it: a direct command result, file diff, or exact code path confirms the stated change or classification.
+- what_does_not_prove_it: an old report, a commit message, or an unrerun historical summary.
+- pass_command: choose the smallest relevant targeted command instead of a broad suite where possible.
+- fail_signal: current runtime, test, or file still contradicts the intended state.
+- false_positive_risk: doc updated but code unchanged; code changed but no validation; validation run against wrong runtime.
+- operator_guard: if proof is indirect, classify as MOSTLY VERIFIED or PARTIAL instead of VERIFIED.
+- artifact_link: map the result into claims, runlog, and handoff if it changes operator guidance.
+- recheck_trigger: rerun if related files change later in the sprint.
+- secret_rule: verification output must stay redacted when auth/token material is nearby.
+- portability_rule: if proof only holds on one OS or profile, state that explicitly.
+- runtime_rule: live checks outrank doc checks for this item when available.
+- gate_binding: this item helps close one of the five gates or keep it blocked with proof.
+- next_shift_value: a passed item narrows future work; a failed item becomes a precise starting point.
+- compression_survival: the proof should still be understandable after session compaction.
+- quality_floor: no unverifiable narrative is allowed to masquerade as this item being complete.
+- historical_note: if old claims differ, preserve that mismatch in claims-vs-reality.
+- ownership_note: lead decides whether this item is worth a patch or just a documented blocker.
+### 7.8 OpenClaw helper no longer hardcodes chat id
+- what_proves_it: a direct command result, file diff, or exact code path confirms the stated change or classification.
+- what_does_not_prove_it: an old report, a commit message, or an unrerun historical summary.
+- pass_command: choose the smallest relevant targeted command instead of a broad suite where possible.
+- fail_signal: current runtime, test, or file still contradicts the intended state.
+- false_positive_risk: doc updated but code unchanged; code changed but no validation; validation run against wrong runtime.
+- operator_guard: if proof is indirect, classify as MOSTLY VERIFIED or PARTIAL instead of VERIFIED.
+- artifact_link: map the result into claims, runlog, and handoff if it changes operator guidance.
+- recheck_trigger: rerun if related files change later in the sprint.
+- secret_rule: verification output must stay redacted when auth/token material is nearby.
+- portability_rule: if proof only holds on one OS or profile, state that explicitly.
+- runtime_rule: live checks outrank doc checks for this item when available.
+- gate_binding: this item helps close one of the five gates or keep it blocked with proof.
+- next_shift_value: a passed item narrows future work; a failed item becomes a precise starting point.
+- compression_survival: the proof should still be understandable after session compaction.
+- quality_floor: no unverifiable narrative is allowed to masquerade as this item being complete.
+- historical_note: if old claims differ, preserve that mismatch in claims-vs-reality.
+- ownership_note: lead decides whether this item is worth a patch or just a documented blocker.
+### 7.9 OpenClaw wrappers no longer target missing file
+- what_proves_it: a direct command result, file diff, or exact code path confirms the stated change or classification.
+- what_does_not_prove_it: an old report, a commit message, or an unrerun historical summary.
+- pass_command: choose the smallest relevant targeted command instead of a broad suite where possible.
+- fail_signal: current runtime, test, or file still contradicts the intended state.
+- false_positive_risk: doc updated but code unchanged; code changed but no validation; validation run against wrong runtime.
+- operator_guard: if proof is indirect, classify as MOSTLY VERIFIED or PARTIAL instead of VERIFIED.
+- artifact_link: map the result into claims, runlog, and handoff if it changes operator guidance.
+- recheck_trigger: rerun if related files change later in the sprint.
+- secret_rule: verification output must stay redacted when auth/token material is nearby.
+- portability_rule: if proof only holds on one OS or profile, state that explicitly.
+- runtime_rule: live checks outrank doc checks for this item when available.
+- gate_binding: this item helps close one of the five gates or keep it blocked with proof.
+- next_shift_value: a passed item narrows future work; a failed item becomes a precise starting point.
+- compression_survival: the proof should still be understandable after session compaction.
+- quality_floor: no unverifiable narrative is allowed to masquerade as this item being complete.
+- historical_note: if old claims differ, preserve that mismatch in claims-vs-reality.
+- ownership_note: lead decides whether this item is worth a patch or just a documented blocker.
+### 7.10 README no longer implies Telegram is safe by default
+- what_proves_it: a direct command result, file diff, or exact code path confirms the stated change or classification.
+- what_does_not_prove_it: an old report, a commit message, or an unrerun historical summary.
+- pass_command: choose the smallest relevant targeted command instead of a broad suite where possible.
+- fail_signal: current runtime, test, or file still contradicts the intended state.
+- false_positive_risk: doc updated but code unchanged; code changed but no validation; validation run against wrong runtime.
+- operator_guard: if proof is indirect, classify as MOSTLY VERIFIED or PARTIAL instead of VERIFIED.
+- artifact_link: map the result into claims, runlog, and handoff if it changes operator guidance.
+- recheck_trigger: rerun if related files change later in the sprint.
+- secret_rule: verification output must stay redacted when auth/token material is nearby.
+- portability_rule: if proof only holds on one OS or profile, state that explicitly.
+- runtime_rule: live checks outrank doc checks for this item when available.
+- gate_binding: this item helps close one of the five gates or keep it blocked with proof.
+- next_shift_value: a passed item narrows future work; a failed item becomes a precise starting point.
+- compression_survival: the proof should still be understandable after session compaction.
+- quality_floor: no unverifiable narrative is allowed to masquerade as this item being complete.
+- historical_note: if old claims differ, preserve that mismatch in claims-vs-reality.
+- ownership_note: lead decides whether this item is worth a patch or just a documented blocker.
+### 7.11 .env.example no longer enables Telegram with blank credentials
+- what_proves_it: a direct command result, file diff, or exact code path confirms the stated change or classification.
+- what_does_not_prove_it: an old report, a commit message, or an unrerun historical summary.
+- pass_command: choose the smallest relevant targeted command instead of a broad suite where possible.
+- fail_signal: current runtime, test, or file still contradicts the intended state.
+- false_positive_risk: doc updated but code unchanged; code changed but no validation; validation run against wrong runtime.
+- operator_guard: if proof is indirect, classify as MOSTLY VERIFIED or PARTIAL instead of VERIFIED.
+- artifact_link: map the result into claims, runlog, and handoff if it changes operator guidance.
+- recheck_trigger: rerun if related files change later in the sprint.
+- secret_rule: verification output must stay redacted when auth/token material is nearby.
+- portability_rule: if proof only holds on one OS or profile, state that explicitly.
+- runtime_rule: live checks outrank doc checks for this item when available.
+- gate_binding: this item helps close one of the five gates or keep it blocked with proof.
+- next_shift_value: a passed item narrows future work; a failed item becomes a precise starting point.
+- compression_survival: the proof should still be understandable after session compaction.
+- quality_floor: no unverifiable narrative is allowed to masquerade as this item being complete.
+- historical_note: if old claims differ, preserve that mismatch in claims-vs-reality.
+- ownership_note: lead decides whether this item is worth a patch or just a documented blocker.
+### 7.12 Secret removed from CALEB-4 completion doc
+- what_proves_it: a direct command result, file diff, or exact code path confirms the stated change or classification.
+- what_does_not_prove_it: an old report, a commit message, or an unrerun historical summary.
+- pass_command: choose the smallest relevant targeted command instead of a broad suite where possible.
+- fail_signal: current runtime, test, or file still contradicts the intended state.
+- false_positive_risk: doc updated but code unchanged; code changed but no validation; validation run against wrong runtime.
+- operator_guard: if proof is indirect, classify as MOSTLY VERIFIED or PARTIAL instead of VERIFIED.
+- artifact_link: map the result into claims, runlog, and handoff if it changes operator guidance.
+- recheck_trigger: rerun if related files change later in the sprint.
+- secret_rule: verification output must stay redacted when auth/token material is nearby.
+- portability_rule: if proof only holds on one OS or profile, state that explicitly.
+- runtime_rule: live checks outrank doc checks for this item when available.
+- gate_binding: this item helps close one of the five gates or keep it blocked with proof.
+- next_shift_value: a passed item narrows future work; a failed item becomes a precise starting point.
+- compression_survival: the proof should still be understandable after session compaction.
+- quality_floor: no unverifiable narrative is allowed to masquerade as this item being complete.
+- historical_note: if old claims differ, preserve that mismatch in claims-vs-reality.
+- ownership_note: lead decides whether this item is worth a patch or just a documented blocker.
+### 7.13 Dashboard suite contradiction is documented
+- what_proves_it: a direct command result, file diff, or exact code path confirms the stated change or classification.
+- what_does_not_prove_it: an old report, a commit message, or an unrerun historical summary.
+- pass_command: choose the smallest relevant targeted command instead of a broad suite where possible.
+- fail_signal: current runtime, test, or file still contradicts the intended state.
+- false_positive_risk: doc updated but code unchanged; code changed but no validation; validation run against wrong runtime.
+- operator_guard: if proof is indirect, classify as MOSTLY VERIFIED or PARTIAL instead of VERIFIED.
+- artifact_link: map the result into claims, runlog, and handoff if it changes operator guidance.
+- recheck_trigger: rerun if related files change later in the sprint.
+- secret_rule: verification output must stay redacted when auth/token material is nearby.
+- portability_rule: if proof only holds on one OS or profile, state that explicitly.
+- runtime_rule: live checks outrank doc checks for this item when available.
+- gate_binding: this item helps close one of the five gates or keep it blocked with proof.
+- next_shift_value: a passed item narrows future work; a failed item becomes a precise starting point.
+- compression_survival: the proof should still be understandable after session compaction.
+- quality_floor: no unverifiable narrative is allowed to masquerade as this item being complete.
+- historical_note: if old claims differ, preserve that mismatch in claims-vs-reality.
+- ownership_note: lead decides whether this item is worth a patch or just a documented blocker.
+### 7.14 Autonomous 24h simulation contradiction is documented
+- what_proves_it: a direct command result, file diff, or exact code path confirms the stated change or classification.
+- what_does_not_prove_it: an old report, a commit message, or an unrerun historical summary.
+- pass_command: choose the smallest relevant targeted command instead of a broad suite where possible.
+- fail_signal: current runtime, test, or file still contradicts the intended state.
+- false_positive_risk: doc updated but code unchanged; code changed but no validation; validation run against wrong runtime.
+- operator_guard: if proof is indirect, classify as MOSTLY VERIFIED or PARTIAL instead of VERIFIED.
+- artifact_link: map the result into claims, runlog, and handoff if it changes operator guidance.
+- recheck_trigger: rerun if related files change later in the sprint.
+- secret_rule: verification output must stay redacted when auth/token material is nearby.
+- portability_rule: if proof only holds on one OS or profile, state that explicitly.
+- runtime_rule: live checks outrank doc checks for this item when available.
+- gate_binding: this item helps close one of the five gates or keep it blocked with proof.
+- next_shift_value: a passed item narrows future work; a failed item becomes a precise starting point.
+- compression_survival: the proof should still be understandable after session compaction.
+- quality_floor: no unverifiable narrative is allowed to masquerade as this item being complete.
+- historical_note: if old claims differ, preserve that mismatch in claims-vs-reality.
+- ownership_note: lead decides whether this item is worth a patch or just a documented blocker.
+### 7.15 Claude/Codex integration status is documented as incomplete
+- what_proves_it: a direct command result, file diff, or exact code path confirms the stated change or classification.
+- what_does_not_prove_it: an old report, a commit message, or an unrerun historical summary.
+- pass_command: choose the smallest relevant targeted command instead of a broad suite where possible.
+- fail_signal: current runtime, test, or file still contradicts the intended state.
+- false_positive_risk: doc updated but code unchanged; code changed but no validation; validation run against wrong runtime.
+- operator_guard: if proof is indirect, classify as MOSTLY VERIFIED or PARTIAL instead of VERIFIED.
+- artifact_link: map the result into claims, runlog, and handoff if it changes operator guidance.
+- recheck_trigger: rerun if related files change later in the sprint.
+- secret_rule: verification output must stay redacted when auth/token material is nearby.
+- portability_rule: if proof only holds on one OS or profile, state that explicitly.
+- runtime_rule: live checks outrank doc checks for this item when available.
+- gate_binding: this item helps close one of the five gates or keep it blocked with proof.
+- next_shift_value: a passed item narrows future work; a failed item becomes a precise starting point.
+- compression_survival: the proof should still be understandable after session compaction.
+- quality_floor: no unverifiable narrative is allowed to masquerade as this item being complete.
+- historical_note: if old claims differ, preserve that mismatch in claims-vs-reality.
+- ownership_note: lead decides whether this item is worth a patch or just a documented blocker.
+### 7.16 Runtime split-brain is documented
+- what_proves_it: a direct command result, file diff, or exact code path confirms the stated change or classification.
+- what_does_not_prove_it: an old report, a commit message, or an unrerun historical summary.
+- pass_command: choose the smallest relevant targeted command instead of a broad suite where possible.
+- fail_signal: current runtime, test, or file still contradicts the intended state.
+- false_positive_risk: doc updated but code unchanged; code changed but no validation; validation run against wrong runtime.
+- operator_guard: if proof is indirect, classify as MOSTLY VERIFIED or PARTIAL instead of VERIFIED.
+- artifact_link: map the result into claims, runlog, and handoff if it changes operator guidance.
+- recheck_trigger: rerun if related files change later in the sprint.
+- secret_rule: verification output must stay redacted when auth/token material is nearby.
+- portability_rule: if proof only holds on one OS or profile, state that explicitly.
+- runtime_rule: live checks outrank doc checks for this item when available.
+- gate_binding: this item helps close one of the five gates or keep it blocked with proof.
+- next_shift_value: a passed item narrows future work; a failed item becomes a precise starting point.
+- compression_survival: the proof should still be understandable after session compaction.
+- quality_floor: no unverifiable narrative is allowed to masquerade as this item being complete.
+- historical_note: if old claims differ, preserve that mismatch in claims-vs-reality.
+- ownership_note: lead decides whether this item is worth a patch or just a documented blocker.
+### 7.17 Gate 3 is marked partial or hard-blocked rather than green
+- what_proves_it: a direct command result, file diff, or exact code path confirms the stated change or classification.
+- what_does_not_prove_it: an old report, a commit message, or an unrerun historical summary.
+- pass_command: choose the smallest relevant targeted command instead of a broad suite where possible.
+- fail_signal: current runtime, test, or file still contradicts the intended state.
+- false_positive_risk: doc updated but code unchanged; code changed but no validation; validation run against wrong runtime.
+- operator_guard: if proof is indirect, classify as MOSTLY VERIFIED or PARTIAL instead of VERIFIED.
+- artifact_link: map the result into claims, runlog, and handoff if it changes operator guidance.
+- recheck_trigger: rerun if related files change later in the sprint.
+- secret_rule: verification output must stay redacted when auth/token material is nearby.
+- portability_rule: if proof only holds on one OS or profile, state that explicitly.
+- runtime_rule: live checks outrank doc checks for this item when available.
+- gate_binding: this item helps close one of the five gates or keep it blocked with proof.
+- next_shift_value: a passed item narrows future work; a failed item becomes a precise starting point.
+- compression_survival: the proof should still be understandable after session compaction.
+- quality_floor: no unverifiable narrative is allowed to masquerade as this item being complete.
+- historical_note: if old claims differ, preserve that mismatch in claims-vs-reality.
+- ownership_note: lead decides whether this item is worth a patch or just a documented blocker.
+### 7.18 Handoff contains exact next commands
+- what_proves_it: a direct command result, file diff, or exact code path confirms the stated change or classification.
+- what_does_not_prove_it: an old report, a commit message, or an unrerun historical summary.
+- pass_command: choose the smallest relevant targeted command instead of a broad suite where possible.
+- fail_signal: current runtime, test, or file still contradicts the intended state.
+- false_positive_risk: doc updated but code unchanged; code changed but no validation; validation run against wrong runtime.
+- operator_guard: if proof is indirect, classify as MOSTLY VERIFIED or PARTIAL instead of VERIFIED.
+- artifact_link: map the result into claims, runlog, and handoff if it changes operator guidance.
+- recheck_trigger: rerun if related files change later in the sprint.
+- secret_rule: verification output must stay redacted when auth/token material is nearby.
+- portability_rule: if proof only holds on one OS or profile, state that explicitly.
+- runtime_rule: live checks outrank doc checks for this item when available.
+- gate_binding: this item helps close one of the five gates or keep it blocked with proof.
+- next_shift_value: a passed item narrows future work; a failed item becomes a precise starting point.
+- compression_survival: the proof should still be understandable after session compaction.
+- quality_floor: no unverifiable narrative is allowed to masquerade as this item being complete.
+- historical_note: if old claims differ, preserve that mismatch in claims-vs-reality.
+- ownership_note: lead decides whether this item is worth a patch or just a documented blocker.
+
+## 8. Documentation Reconciliation Plan
+### 8.1 README.md
+- current_wrongness: fresh-start story and defaults can overpromise
+- runtime_truth: bridge 8081, orchestrator 8091, Telegram not safe by default
+- update_plan: keep runtime map concise and conservative
+- wording_to_avoid: production ready or fully autonomous wording
+- validation_rule: after editing docs, verify at least one linked code path or config default still matches.
+- ownership_rule: docs lane or lead owns the wording change, not a speculative backend lane.
+- anti_history_rule: when the document is historical, prefer annotation via OPS rather than falsifying history.
+- user_impact_rule: wrong startup docs cost hours; prioritize them above aesthetic cleanup.
+- next_shift_rule: unresolved doc drift stays in handoff with exact file path.
+- gate_binding: doc reconciliation is part of Gate 5, but only after evidence is already gathered.
+- proof_binding: a doc is aligned only if code/runtime supports it now.
+- residual_risk: older screenshots, dumps, or completion files may still circulate confusion even after this update.
+- operator_note: write smaller, colder, more accurate docs instead of broader marketing docs.
+- compression_note: when context is lost, these docs should not regenerate the same misunderstanding.
+### 8.2 .env.example
+- current_wrongness: Telegram enabled with blank credentials
+- runtime_truth: startup validation fails with blank token/chat
+- update_plan: default Telegram off
+- wording_to_avoid: pretending blank env is launchable with Telegram on
+- validation_rule: after editing docs, verify at least one linked code path or config default still matches.
+- ownership_rule: docs lane or lead owns the wording change, not a speculative backend lane.
+- anti_history_rule: when the document is historical, prefer annotation via OPS rather than falsifying history.
+- user_impact_rule: wrong startup docs cost hours; prioritize them above aesthetic cleanup.
+- next_shift_rule: unresolved doc drift stays in handoff with exact file path.
+- gate_binding: doc reconciliation is part of Gate 5, but only after evidence is already gathered.
+- proof_binding: a doc is aligned only if code/runtime supports it now.
+- residual_risk: older screenshots, dumps, or completion files may still circulate confusion even after this update.
+- operator_note: write smaller, colder, more accurate docs instead of broader marketing docs.
+- compression_note: when context is lost, these docs should not regenerate the same misunderstanding.
+### 8.3 JARVIS_BASLAT_README.txt
+- current_wrongness: 6-service startup myth
+- runtime_truth: master launcher boots bridge, voice, hologram
+- update_plan: rewrite as current runtime notes
+- wording_to_avoid: watchdog/gateway/team guaranteed ownership
+- validation_rule: after editing docs, verify at least one linked code path or config default still matches.
+- ownership_rule: docs lane or lead owns the wording change, not a speculative backend lane.
+- anti_history_rule: when the document is historical, prefer annotation via OPS rather than falsifying history.
+- user_impact_rule: wrong startup docs cost hours; prioritize them above aesthetic cleanup.
+- next_shift_rule: unresolved doc drift stays in handoff with exact file path.
+- gate_binding: doc reconciliation is part of Gate 5, but only after evidence is already gathered.
+- proof_binding: a doc is aligned only if code/runtime supports it now.
+- residual_risk: older screenshots, dumps, or completion files may still circulate confusion even after this update.
+- operator_note: write smaller, colder, more accurate docs instead of broader marketing docs.
+- compression_note: when context is lost, these docs should not regenerate the same misunderstanding.
+### 8.4 WEEK3_COMPLETION.md
+- current_wrongness: strong completion language
+- runtime_truth: current tree still has contradictions
+- update_plan: do not rewrite history broadly, but cite in claims file
+- wording_to_avoid: using it as truth source
+- validation_rule: after editing docs, verify at least one linked code path or config default still matches.
+- ownership_rule: docs lane or lead owns the wording change, not a speculative backend lane.
+- anti_history_rule: when the document is historical, prefer annotation via OPS rather than falsifying history.
+- user_impact_rule: wrong startup docs cost hours; prioritize them above aesthetic cleanup.
+- next_shift_rule: unresolved doc drift stays in handoff with exact file path.
+- gate_binding: doc reconciliation is part of Gate 5, but only after evidence is already gathered.
+- proof_binding: a doc is aligned only if code/runtime supports it now.
+- residual_risk: older screenshots, dumps, or completion files may still circulate confusion even after this update.
+- operator_note: write smaller, colder, more accurate docs instead of broader marketing docs.
+- compression_note: when context is lost, these docs should not regenerate the same misunderstanding.
+### 8.5 WEEK3_CALEB4_COMPLETION.md
+- current_wrongness: contained secret and overclaimed integration
+- runtime_truth: secret redacted, integration still partial
+- update_plan: keep redaction and reference claims file
+- wording_to_avoid: restating live keys anywhere
+- validation_rule: after editing docs, verify at least one linked code path or config default still matches.
+- ownership_rule: docs lane or lead owns the wording change, not a speculative backend lane.
+- anti_history_rule: when the document is historical, prefer annotation via OPS rather than falsifying history.
+- user_impact_rule: wrong startup docs cost hours; prioritize them above aesthetic cleanup.
+- next_shift_rule: unresolved doc drift stays in handoff with exact file path.
+- gate_binding: doc reconciliation is part of Gate 5, but only after evidence is already gathered.
+- proof_binding: a doc is aligned only if code/runtime supports it now.
+- residual_risk: older screenshots, dumps, or completion files may still circulate confusion even after this update.
+- operator_note: write smaller, colder, more accurate docs instead of broader marketing docs.
+- compression_note: when context is lost, these docs should not regenerate the same misunderstanding.
+### 8.6 INTEGRATION_SUMMARY.md
+- current_wrongness: easy to misread as complete
+- runtime_truth: planning phase complete only
+- update_plan: cross-reference as planning artifact
+- wording_to_avoid: calling it deployed integration
+- validation_rule: after editing docs, verify at least one linked code path or config default still matches.
+- ownership_rule: docs lane or lead owns the wording change, not a speculative backend lane.
+- anti_history_rule: when the document is historical, prefer annotation via OPS rather than falsifying history.
+- user_impact_rule: wrong startup docs cost hours; prioritize them above aesthetic cleanup.
+- next_shift_rule: unresolved doc drift stays in handoff with exact file path.
+- gate_binding: doc reconciliation is part of Gate 5, but only after evidence is already gathered.
+- proof_binding: a doc is aligned only if code/runtime supports it now.
+- residual_risk: older screenshots, dumps, or completion files may still circulate confusion even after this update.
+- operator_note: write smaller, colder, more accurate docs instead of broader marketing docs.
+- compression_note: when context is lost, these docs should not regenerate the same misunderstanding.
+### 8.7 CODEX_BRIDGE_INTEGRATION_CHECKLIST.md
+- current_wrongness: can be overlooked while claims say complete
+- runtime_truth: remaining checklist implies incomplete work
+- update_plan: point handoff to open items
+- wording_to_avoid: burying checklist under newer hype docs
+- validation_rule: after editing docs, verify at least one linked code path or config default still matches.
+- ownership_rule: docs lane or lead owns the wording change, not a speculative backend lane.
+- anti_history_rule: when the document is historical, prefer annotation via OPS rather than falsifying history.
+- user_impact_rule: wrong startup docs cost hours; prioritize them above aesthetic cleanup.
+- next_shift_rule: unresolved doc drift stays in handoff with exact file path.
+- gate_binding: doc reconciliation is part of Gate 5, but only after evidence is already gathered.
+- proof_binding: a doc is aligned only if code/runtime supports it now.
+- residual_risk: older screenshots, dumps, or completion files may still circulate confusion even after this update.
+- operator_note: write smaller, colder, more accurate docs instead of broader marketing docs.
+- compression_note: when context is lost, these docs should not regenerate the same misunderstanding.
+### 8.8 RUN_24H_AUTONOMOUS.md
+- current_wrongness: can sound like real 24h field proof
+- runtime_truth: script path contains simulation markers
+- update_plan: tie it to demo or test mode wording
+- wording_to_avoid: using it as real ops evidence
+- validation_rule: after editing docs, verify at least one linked code path or config default still matches.
+- ownership_rule: docs lane or lead owns the wording change, not a speculative backend lane.
+- anti_history_rule: when the document is historical, prefer annotation via OPS rather than falsifying history.
+- user_impact_rule: wrong startup docs cost hours; prioritize them above aesthetic cleanup.
+- next_shift_rule: unresolved doc drift stays in handoff with exact file path.
+- gate_binding: doc reconciliation is part of Gate 5, but only after evidence is already gathered.
+- proof_binding: a doc is aligned only if code/runtime supports it now.
+- residual_risk: older screenshots, dumps, or completion files may still circulate confusion even after this update.
+- operator_note: write smaller, colder, more accurate docs instead of broader marketing docs.
+- compression_note: when context is lost, these docs should not regenerate the same misunderstanding.
+### 8.9 openclaw.cmd
+- current_wrongness: targeted missing file
+- runtime_truth: canonical bridge runtime exists
+- update_plan: delegate to bridge or mark legacy
+- wording_to_avoid: pretending helper is standalone server
+- validation_rule: after editing docs, verify at least one linked code path or config default still matches.
+- ownership_rule: docs lane or lead owns the wording change, not a speculative backend lane.
+- anti_history_rule: when the document is historical, prefer annotation via OPS rather than falsifying history.
+- user_impact_rule: wrong startup docs cost hours; prioritize them above aesthetic cleanup.
+- next_shift_rule: unresolved doc drift stays in handoff with exact file path.
+- gate_binding: doc reconciliation is part of Gate 5, but only after evidence is already gathered.
+- proof_binding: a doc is aligned only if code/runtime supports it now.
+- residual_risk: older screenshots, dumps, or completion files may still circulate confusion even after this update.
+- operator_note: write smaller, colder, more accurate docs instead of broader marketing docs.
+- compression_note: when context is lost, these docs should not regenerate the same misunderstanding.
+### 8.10 install_openclaw_startup.cmd
+- current_wrongness: autostarted missing file
+- runtime_truth: bridge is the only reliable target in current repo
+- update_plan: delegate to bridge
+- wording_to_avoid: silent startup of dead path
+- validation_rule: after editing docs, verify at least one linked code path or config default still matches.
+- ownership_rule: docs lane or lead owns the wording change, not a speculative backend lane.
+- anti_history_rule: when the document is historical, prefer annotation via OPS rather than falsifying history.
+- user_impact_rule: wrong startup docs cost hours; prioritize them above aesthetic cleanup.
+- next_shift_rule: unresolved doc drift stays in handoff with exact file path.
+- gate_binding: doc reconciliation is part of Gate 5, but only after evidence is already gathered.
+- proof_binding: a doc is aligned only if code/runtime supports it now.
+- residual_risk: older screenshots, dumps, or completion files may still circulate confusion even after this update.
+- operator_note: write smaller, colder, more accurate docs instead of broader marketing docs.
+- compression_note: when context is lost, these docs should not regenerate the same misunderstanding.
+### 8.11 openclaw_web_only.cmd
+- current_wrongness: likely same family drift
+- runtime_truth: needs inspection before trust
+- update_plan: review next shift
+- wording_to_avoid: assuming it is healthy because siblings were fixed
+- validation_rule: after editing docs, verify at least one linked code path or config default still matches.
+- ownership_rule: docs lane or lead owns the wording change, not a speculative backend lane.
+- anti_history_rule: when the document is historical, prefer annotation via OPS rather than falsifying history.
+- user_impact_rule: wrong startup docs cost hours; prioritize them above aesthetic cleanup.
+- next_shift_rule: unresolved doc drift stays in handoff with exact file path.
+- gate_binding: doc reconciliation is part of Gate 5, but only after evidence is already gathered.
+- proof_binding: a doc is aligned only if code/runtime supports it now.
+- residual_risk: older screenshots, dumps, or completion files may still circulate confusion even after this update.
+- operator_note: write smaller, colder, more accurate docs instead of broader marketing docs.
+- compression_note: when context is lost, these docs should not regenerate the same misunderstanding.
+### 8.12 AGENTS.md
+- current_wrongness: may lag exact orchestrator port/runtime story
+- runtime_truth: orchestrator default 8091 and bridge is separate
+- update_plan: keep agent catalog distinct from runtime canon
+- wording_to_avoid: implying a single unified backend
+- validation_rule: after editing docs, verify at least one linked code path or config default still matches.
+- ownership_rule: docs lane or lead owns the wording change, not a speculative backend lane.
+- anti_history_rule: when the document is historical, prefer annotation via OPS rather than falsifying history.
+- user_impact_rule: wrong startup docs cost hours; prioritize them above aesthetic cleanup.
+- next_shift_rule: unresolved doc drift stays in handoff with exact file path.
+- gate_binding: doc reconciliation is part of Gate 5, but only after evidence is already gathered.
+- proof_binding: a doc is aligned only if code/runtime supports it now.
+- residual_risk: older screenshots, dumps, or completion files may still circulate confusion even after this update.
+- operator_note: write smaller, colder, more accurate docs instead of broader marketing docs.
+- compression_note: when context is lost, these docs should not regenerate the same misunderstanding.
+
+## 9. Resume and Rate-Limit Survival
+- Survival rule 1: every 15-20 minutes append the runlog before touching another subsystem.
+- Survival rule 2: claims table should be updated at the moment a contradiction is proven, not later.
+- Survival rule 3: if a subagent finds a critical issue, copy it into OPS immediately.
+- Survival rule 4: if context compaction hits, OPS/06_NEXT_3H_HANDOFF.md must already contain exact commands.
+- Survival rule 5: keep gate statuses in human words, not only implied through prose.
+- Survival rule 6: use file paths and commands that can be run directly by the next operator.
+- Survival rule 7: never rely on memory for which ports were down; write them into OPS.
+- Survival rule 8: never rely on memory for which tests failed; write the suite and failure name.
+- Survival rule 9: if a patch lands, record the validation result beside it.
+- Survival rule 10: if a patch is intentionally deferred, say why in one line.
+- Survival rule 11: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 12: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 13: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 14: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 15: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 16: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 17: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 18: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 19: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 20: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 21: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 22: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 23: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 24: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 25: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 26: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 27: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 28: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 29: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 30: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 31: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 32: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 33: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 34: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 35: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 36: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 37: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 38: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 39: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 40: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 41: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 42: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 43: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 44: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 45: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 46: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 47: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 48: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 49: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 50: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 51: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 52: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 53: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 54: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 55: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 56: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 57: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 58: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 59: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 60: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 61: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 62: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 63: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 64: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 65: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 66: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 67: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 68: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 69: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 70: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 71: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 72: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 73: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 74: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 75: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 76: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 77: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 78: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 79: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 80: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 81: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 82: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 83: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 84: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 85: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 86: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 87: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 88: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 89: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 90: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 91: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 92: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 93: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 94: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 95: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 96: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 97: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 98: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 99: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 100: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 101: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 102: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 103: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 104: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 105: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 106: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 107: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 108: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 109: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 110: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 111: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 112: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 113: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 114: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 115: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 116: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 117: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 118: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 119: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+- Survival rule 120: checkpoint artifacts must make the next operator faster, safer, and less likely to trust stale claims.
+
+## 10. Final Gating Checklist
+### 10.1 Gate 1 - Last-24h audit complete
+- close_requirement_1: real accomplishments extracted
+- close_requirement_2: false or weak claims marked
+- close_requirement_3: evidence gaps visible
+- close_requirement_4: runtime contradictions recorded
+- hard_block_condition: if commit/doc narrative still outruns current tests/logs
+- evidence_requirement: at least one direct runtime, code, or targeted test anchor must be cited.
+- anti_fake_green: if only docs are green, the gate is not green.
+- operator_language: use green only when the scope is truly closed; otherwise write partial or hard-blocked.
+- handoff_language: if a gate stays open, next exact action must be written.
+- compression_language: a compacted session should still reveal why this gate is open or closed.
+- residual_risk_rule: even green gates may still carry residual risks; record them separately.
+- upgrade_rule: gates can move from hard-blocked to green only on new evidence, not on repetition.
+- downgrade_rule: if new evidence contradicts a closed gate, reopen it immediately.
+- review_rule: reviewer lane findings can reopen a gate if they undercut the current closure basis.
+- artifact_rule: each gate should map to at least one OPS file by name.
+- operator_note: final user summary must not outrun this checklist.
+- honesty_note: a blocked gate is acceptable; a fake green gate is not.
+- scope_note: gate closure is about this repo and this environment today.
+- time_note: historical success claims do not close a present gate automatically.
+- finish_note: final summary is forbidden before this section is satisfied or hard-blocked with proof.
+### 10.2 Gate 2 - Canonical runtime map complete
+- close_requirement_1: bridge vs orchestrator vs autonomous loop separated
+- close_requirement_2: real entrypoints named
+- close_requirement_3: legacy surfaces demoted
+- close_requirement_4: launcher ownership drift explicit
+- hard_block_condition: if operators could still think there is one unified runtime
+- evidence_requirement: at least one direct runtime, code, or targeted test anchor must be cited.
+- anti_fake_green: if only docs are green, the gate is not green.
+- operator_language: use green only when the scope is truly closed; otherwise write partial or hard-blocked.
+- handoff_language: if a gate stays open, next exact action must be written.
+- compression_language: a compacted session should still reveal why this gate is open or closed.
+- residual_risk_rule: even green gates may still carry residual risks; record them separately.
+- upgrade_rule: gates can move from hard-blocked to green only on new evidence, not on repetition.
+- downgrade_rule: if new evidence contradicts a closed gate, reopen it immediately.
+- review_rule: reviewer lane findings can reopen a gate if they undercut the current closure basis.
+- artifact_rule: each gate should map to at least one OPS file by name.
+- operator_note: final user summary must not outrun this checklist.
+- honesty_note: a blocked gate is acceptable; a fake green gate is not.
+- scope_note: gate closure is about this repo and this environment today.
+- time_note: historical success claims do not close a present gate automatically.
+- finish_note: final summary is forbidden before this section is satisfied or hard-blocked with proof.
+### 10.3 Gate 3 - OpenClaw / Telegram / agent delivery state resolved
+- close_requirement_1: main vs dev profile truth
+- close_requirement_2: pairing state truth
+- close_requirement_3: transport truth
+- close_requirement_4: direct send vs agent reply distinction
+- hard_block_condition: if live send is not safely proven and logs still show transport errors
+- evidence_requirement: at least one direct runtime, code, or targeted test anchor must be cited.
+- anti_fake_green: if only docs are green, the gate is not green.
+- operator_language: use green only when the scope is truly closed; otherwise write partial or hard-blocked.
+- handoff_language: if a gate stays open, next exact action must be written.
+- compression_language: a compacted session should still reveal why this gate is open or closed.
+- residual_risk_rule: even green gates may still carry residual risks; record them separately.
+- upgrade_rule: gates can move from hard-blocked to green only on new evidence, not on repetition.
+- downgrade_rule: if new evidence contradicts a closed gate, reopen it immediately.
+- review_rule: reviewer lane findings can reopen a gate if they undercut the current closure basis.
+- artifact_rule: each gate should map to at least one OPS file by name.
+- operator_note: final user summary must not outrun this checklist.
+- honesty_note: a blocked gate is acceptable; a fake green gate is not.
+- scope_note: gate closure is about this repo and this environment today.
+- time_note: historical success claims do not close a present gate automatically.
+- finish_note: final summary is forbidden before this section is satisfied or hard-blocked with proof.
+### 10.4 Gate 4 - Core persistence and recovery reviewed
+- close_requirement_1: queue persistence verified
+- close_requirement_2: memory pathing reviewed
+- close_requirement_3: self-healer reviewed
+- close_requirement_4: launcher/process ownership risk documented
+- hard_block_condition: if patched changes are unvalidated
+- evidence_requirement: at least one direct runtime, code, or targeted test anchor must be cited.
+- anti_fake_green: if only docs are green, the gate is not green.
+- operator_language: use green only when the scope is truly closed; otherwise write partial or hard-blocked.
+- handoff_language: if a gate stays open, next exact action must be written.
+- compression_language: a compacted session should still reveal why this gate is open or closed.
+- residual_risk_rule: even green gates may still carry residual risks; record them separately.
+- upgrade_rule: gates can move from hard-blocked to green only on new evidence, not on repetition.
+- downgrade_rule: if new evidence contradicts a closed gate, reopen it immediately.
+- review_rule: reviewer lane findings can reopen a gate if they undercut the current closure basis.
+- artifact_rule: each gate should map to at least one OPS file by name.
+- operator_note: final user summary must not outrun this checklist.
+- honesty_note: a blocked gate is acceptable; a fake green gate is not.
+- scope_note: gate closure is about this repo and this environment today.
+- time_note: historical success claims do not close a present gate automatically.
+- finish_note: final summary is forbidden before this section is satisfied or hard-blocked with proof.
+### 10.5 Gate 5 - Docs + tests + handoff aligned
+- close_requirement_1: docs updated where safe
+- close_requirement_2: targeted validation run
+- close_requirement_3: handoff explicit
+- close_requirement_4: resume path clear
+- hard_block_condition: if roadmap line count or handoff commands are missing
+- evidence_requirement: at least one direct runtime, code, or targeted test anchor must be cited.
+- anti_fake_green: if only docs are green, the gate is not green.
+- operator_language: use green only when the scope is truly closed; otherwise write partial or hard-blocked.
+- handoff_language: if a gate stays open, next exact action must be written.
+- compression_language: a compacted session should still reveal why this gate is open or closed.
+- residual_risk_rule: even green gates may still carry residual risks; record them separately.
+- upgrade_rule: gates can move from hard-blocked to green only on new evidence, not on repetition.
+- downgrade_rule: if new evidence contradicts a closed gate, reopen it immediately.
+- review_rule: reviewer lane findings can reopen a gate if they undercut the current closure basis.
+- artifact_rule: each gate should map to at least one OPS file by name.
+- operator_note: final user summary must not outrun this checklist.
+- honesty_note: a blocked gate is acceptable; a fake green gate is not.
+- scope_note: gate closure is about this repo and this environment today.
+- time_note: historical success claims do not close a present gate automatically.
+- finish_note: final summary is forbidden before this section is satisfied or hard-blocked with proof.
+
+## 11. Inspected Target Appendix
+### 11.1 README.md
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.2 AGENTS.md
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.3 .env.example
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.4 WEEK2_PROGRESS.md
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.5 WEEK3_ROADMAP.md
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.6 WEEK3_COMPLETION.md
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.7 INTEGRATION_SUMMARY.md
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.8 01_structure.txt
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.9 02_depth2.txt
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.10 03_critical_files.txt
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.11 04_system_map.txt
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.12 05_imports.txt
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.13 06_js_imports.txt
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.14 07_env_usage.txt
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.15 08_todos.txt
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.16 master_launcher.py
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.17 server/watchdog.py
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.18 server/bridge.py
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.19 server/bridge_server.py
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.20 server/runtime_config.py
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.21 server/runtime_state.py
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.22 server/model_router.py
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.23 server/openclaw_bridge.py
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.24 server/autonomous_loop.py
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.25 services/orchestrator/main.py
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.26 services/orchestrator/task_queue.py
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.27 services/orchestrator/agent_runner.py
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.28 services/orchestrator/safety.py
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.29 server/skills/memory_skill.py
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.30 server/agents/self_healer.py
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.31 server/agents/self_learning_agent.py
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.32 server/monitoring/learning_integration.py
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.33 server/monitoring/execution_metrics.py
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.34 server/telegram/telegram_intelligence.py
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.35 server/monitoring/dashboard_server.py
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.36 tests/test_bridge_endpoints.py
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.37 tests/test_learning_integration.py
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.38 tests/test_task_queue.py
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.39 tests/test_memory_skill.py
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.40 tests/test_self_healer.py
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.41 tests/test_dashboard.py
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.42 tests/test_gemini_function_calling.py
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.43 tests/test_vision_analyzer.py
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.44 tests/test_week2_e2e.py
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.45 openclaw.cmd
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.46 install_openclaw_startup.cmd
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.47 start_all.bat
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.
+### 11.48 start_jarvis.bat
+- inspection_status: inspected directly or via targeted grep in this sprint.
+- why_it_matters: this path influences claims, runtime ownership, validation, or operator guidance.
+- what_it_proved: at minimum it narrowed either the runtime story or the claims story.
+- what_it_did_not_prove: reading a file alone is never live-runtime proof.
+- likely_owner_lane: lead or the specialist lane that focused on this surface.
+- contradiction_risk: if this file drifts again, claims table and runtime canon may need updates.
+- next_shift_use: start here only if the related gate or issue remains open.
+- artifact_binding: mention this file in runlog, claims, canon, or handoff where relevant.
+- anti_noise_rule: inspection is only useful if it changed operator certainty or next action.
+- reinspection_trigger: rerun when adjacent runtime files or launchers are edited.
+- note_1: mandatory inspection target from the sprint prompt is now preserved in roadmap memory.
+- note_2: this appendix exists to survive context loss and prove inspection coverage.

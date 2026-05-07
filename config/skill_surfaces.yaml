@@ -1,0 +1,339 @@
+# Skill-surface registry — one entry per `skill_surfaces:` value referenced
+# in config/agents.yaml. Surfaces are domain-level capability labels that
+# map a persona to concrete skill modules or slash commands.
+#
+# Schema per entry:
+#   description: one-line purpose (required)
+#   category: one of {content, social, video, research, ecommerce,
+#             security, compliance, dev, ops}
+#   module: optional dotted path to a skill module (if known today)
+#   command: optional slash command that exposes this surface
+#   hidden: false by default — true means excluded from user-facing catalogs
+#
+# Validator warns on: missing description, unknown category, and surfaces
+# referenced from agents.yaml but not defined here.
+
+skill_surfaces:
+
+  # ---------- content / brand ----------
+  ad_prompts:
+    description: Reklam görsel/video prompt üretimi.
+    category: content
+    module: null
+    command: null
+  brand_dna:
+    description: Marka DNA belgesi üretimi ve güncellemesi.
+    category: content
+    module: null
+    command: null
+  buse_content:
+    description: Buse'nin sosyal içerik kümelerini tetikleyen yüzey.
+    category: content
+    module: null
+    command: null
+  content_factory:
+    description: İçerik üretim akışı — kopya, görsel, çerçeve.
+    category: content
+    module: null
+    command: null
+  reklam_ajans:
+    description: Reklam ajansı iş akışı (brief → konsept → metin → görsel prompt).
+    category: content
+    module: null
+    command: null
+  satis_departmani:
+    description: Satış iletişimi ve teklif metinleri.
+    category: content
+    module: null
+    command: null
+  web_ajans:
+    description: Web ajansı tarafı (landing, UX metni, marka uyumu).
+    category: content
+    module: null
+    command: null
+
+  # ---------- social ----------
+  instagram:
+    description: Instagram içerik + etkileşim akışı.
+    category: social
+    module: server.skills.instagram_skill
+    command: /instagram
+  sosyal_medya:
+    description: Çok-platform sosyal medya takvimi ve üretimi.
+    category: social
+    module: null
+    command: null
+  takvim:
+    description: İçerik takvimi ve programlama.
+    category: social
+    module: null
+    command: null
+
+  # ---------- video ----------
+  channel_analyzer:
+    description: YouTube/video kanal analizi.
+    category: video
+    module: null
+    command: null
+  eren_data:
+    description: Eren'in video veri ve performans yüzeyi.
+    category: video
+    module: null
+    command: null
+  raporlama:
+    description: Video performans ve kanal raporlaması.
+    category: video
+    module: null
+    command: null
+  youtube:
+    description: YouTube komut yüzeyi.
+    category: video
+    module: server.skills.youtube_skill
+    command: /youtube
+  youtube_unified:
+    description: Birleşik YouTube operasyonları (transkript + analiz + özet).
+    category: video
+    module: server.skills.youtube_unified_skill
+    command: /yt
+  pr:
+    description: PR / iletişim materyalleri (Seda altında dev PR olarak çalışır).
+    category: dev
+    module: null
+    command: null
+
+  # ---------- research ----------
+  autoresearch:
+    description: Otonom araştırma döngüsü.
+    category: research
+    module: server.skills.autoresearch_skill
+    command: /arastir
+  deerflow:
+    description: Derin araştırma boru hattı (deerflow stili çok kaynaklı).
+    category: research
+    module: null
+    command: null
+  mert_research:
+    description: Mert'in derin araştırma yüzeyi.
+    category: research
+    module: null
+    command: null
+  pazar:
+    description: Pazar boyutu ve segment analizi.
+    category: research
+    module: null
+    command: null
+  perplexica:
+    description: Perplexica benzeri canlı-arama katmanı.
+    category: research
+    module: null
+    command: null
+  rakip:
+    description: Rakip analizi yüzeyi.
+    category: research
+    module: null
+    command: /mert-rakip
+  web_search:
+    description: Genel amaçlı web arama.
+    category: research
+    module: null
+    command: /mert-ara
+
+  # ---------- ecommerce ----------
+  batch_profile_scraper:
+    description: Toplu satıcı/profil veri kazıma.
+    category: ecommerce
+    module: null
+    command: null
+  ebay_research:
+    description: eBay ürün/kategori/trend araştırması.
+    category: ecommerce
+    module: server.skills.ebay_research
+    command: /ebay
+  ecommerce_opportunity:
+    description: E-ticaret niş ve fırsat tarayıcı.
+    category: ecommerce
+    module: null
+    command: null
+  printify:
+    description: Printify ürün/sipariş yönetimi.
+    category: ecommerce
+    module: server.skills.printify_skill
+    command: /printify
+  trendyol:
+    description: Trendyol kategori, satıcı, ürün yüzeyi.
+    category: ecommerce
+    module: server.skills.trendyol_skill
+    command: /trendyol
+
+  # ---------- security (lab-only where relevant) ----------
+  luna_browser:
+    description: Luna'nın izole browser araştırma aracı.
+    category: security
+    module: null
+    command: null
+  luna_report:
+    description: Luna'nın güvenlik bulgu raporu üretimi.
+    category: security
+    module: null
+    command: null
+  luna_scan:
+    description: Luna'nın pasif tarayıcı yüzeyi — lab ortamı + izinli hedef.
+    category: security
+    module: null
+    command: null
+  osint:
+    description: Açık kaynak istihbarat toplama.
+    category: security
+    module: null
+    command: /osint
+  pentest:
+    description: İzinli hedefler üzerinde pentest planı + rapor — yalnızca lab.
+    category: security
+    module: null
+    command: null
+  shadowbroker:
+    description: ShadowBroker lab ortamı arayüzü — canlı hedef yasak.
+    category: security
+    module: null
+    command: null
+
+  # ---------- compliance / audit ----------
+  compliance:
+    description: Uyum denetim akışı (genel).
+    category: compliance
+    module: null
+    command: null
+  kvkk_audit:
+    description: KVKK/GDPR veri akışı denetimi.
+    category: compliance
+    module: null
+    command: null
+  log_analiz:
+    description: Log özeti + anomali taraması.
+    category: compliance
+    module: null
+    command: null
+
+  # ---------- dev (internal — Seda) ----------
+  debug:
+    description: Hata izleme, stack trace, test koşumu.
+    category: dev
+    module: null
+    command: null
+    hidden: true
+  kod:
+    description: Kod yazma / okuma / diff inceleme.
+    category: dev
+    module: null
+    command: null
+    hidden: true
+  python:
+    description: Python ekosistemi — paketler, paketleme, venv.
+    category: dev
+    module: null
+    command: null
+    hidden: true
+  refactor:
+    description: Refactor pasları — reviewer bakış açısı.
+    category: dev
+    module: null
+    command: null
+    hidden: true
+  typescript:
+    description: TypeScript / web UI kod yüzeyi.
+    category: dev
+    module: null
+    command: null
+    hidden: true
+
+  # ---------- ops (internal — Sabrican) ----------
+  auth_profile_sync:
+    description: Hesap / auth profil senkronizasyonu.
+    category: ops
+    module: null
+    command: null
+    hidden: true
+  channel_delivery:
+    description: Kanal teslim akışı (Telegram, WhatsApp, e-posta).
+    category: ops
+    module: null
+    command: null
+    hidden: true
+  channel_messaging:
+    description: Çok-kanallı mesajlaşma yüzeyi.
+    category: ops
+    module: null
+    command: null
+    hidden: true
+  ci:
+    description: CI/CD izleme ve tetikleme.
+    category: ops
+    module: null
+    command: null
+    hidden: true
+  deploy:
+    description: Deploy akışı (staging/prod ek onay).
+    category: ops
+    module: null
+    command: null
+    hidden: true
+  docker:
+    description: Docker / container yaşam döngüsü.
+    category: ops
+    module: null
+    command: null
+    hidden: true
+  gateway_health:
+    description: Gateway / bridge sağlık kontrolleri.
+    category: ops
+    module: null
+    command: null
+    hidden: true
+  monitor_feed:
+    description: İzleme akışları ve alert konsolidasyonu.
+    category: ops
+    module: null
+    command: null
+    hidden: true
+  octogent_helper:
+    description: Octogent yardımcı yüzeyi.
+    category: ops
+    module: null
+    command: /octogent
+    hidden: true
+  openclaw_helper:
+    description: OpenClaw runtime köprüsü.
+    category: ops
+    module: null
+    command: null
+    hidden: true
+  ops:
+    description: Genel operasyon yüzeyi.
+    category: ops
+    module: null
+    command: null
+    hidden: true
+  tentacle_control:
+    description: Dağıtık "tentacle" worker kontrolü.
+    category: ops
+    module: null
+    command: null
+    hidden: true
+  terminal_control:
+    description: Uzak terminal komutları (yalnızca yetkili slotlar).
+    category: ops
+    module: null
+    command: null
+    hidden: true
+  todo_orchestration:
+    description: Çok adımlı todo orkestrasyonu.
+    category: ops
+    module: null
+    command: null
+    hidden: true
+  wrapper_control:
+    description: Wrapper servis kontrolü.
+    category: ops
+    module: null
+    command: null
+    hidden: true

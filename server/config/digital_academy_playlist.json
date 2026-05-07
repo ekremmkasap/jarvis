@@ -1,0 +1,37 @@
+{
+  "collection_status": "incomplete",
+  "requested_playlist": {
+    "title": "Digital Academy Turkiye 43 video playlist",
+    "expected_video_count": 43
+  },
+  "collected_at": "2026-04-03",
+  "verified_public_sources": [
+    {
+      "title": "Digital Academy",
+      "url": "https://www.skool.com/otomasyon",
+      "type": "community"
+    },
+    {
+      "title": "Digital Academy Plans",
+      "url": "https://www.skool.com/otomasyon/plans",
+      "type": "plans"
+    },
+    {
+      "title": "Digital Academy - YouTube Otomasyonu",
+      "url": "https://digitalacademy.com.tr/training/youtube-automation",
+      "type": "program_page"
+    }
+  ],
+  "notes": [
+    "Public search exposed the Digital Academy community and plan pages, but not a public classroom or playlist URL with 43 video-level records.",
+    "Local network access from the shell was blocked, so direct metadata extraction from Skool or YouTube could not be completed in this environment.",
+    "No video rows are populated because title, URL, publish date, and view count could not be verified without fabricating data."
+  ],
+  "video_schema": [
+    "title",
+    "url",
+    "published_at",
+    "view_count"
+  ],
+  "videos": []
+}

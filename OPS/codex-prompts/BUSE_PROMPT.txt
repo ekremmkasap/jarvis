@@ -1,0 +1,79 @@
+==============================================================
+JARVIS — BUSE LANE — Pazarlama & İçerik Skill Katmanı
+Branch: 004-dijital-ajan-v3-persona-swarm
+==============================================================
+
+ÇALIŞMA DİZİNİ:
+C:\Users\sergen\Desktop\jarvis-mission-control
+
+ÖNCE OKU (sırayla):
+1. specs/004-dijital-ajan-v3-persona-swarm/plan.md
+2. config/agents.yaml  (buse persona bloğu — system_prompt, sub_agents)
+3. server/bridge.py  (mevcut Telegram komut bloğu)
+4. server/persona_manager.py  (okuyabilirsin, değiştirme)
+
+ASLA DOKUNMA:
+- hey_jarvis.py
+- apps/desktop-hologram/
+- server/persona_manager.py
+
+==============================================================
+GÖREV — Buse Pazarlama Skill Katmanı
+==============================================================
+
+A) server/skills/buse_content_skill.py oluştur:
+
+1. generate_hook(topic, style="instagram"):
+   - Style: "instagram" | "linkedin" | "email" | "telegram"
+   - Hook kalıpları (hardcoded template engine, LLM gerekmez):
+     * Para: "[rakam] TL'yi [süre]'de [sonuç]"
+     * Sır: "[konu]'da çoğu kişinin bilmediği şey..."
+     * Kontrast: "Önce: [sorun]. Sonra: [çözüm]."
+   - 3 farklı hook seçeneği döner
+
+2. generate_cta(goal, platform="instagram"):
+   - Goal: "dm_bait" | "link_click" | "comment_bait" | "follow"
+   - comment_bait için: "Yorumlara '[keyword]' yazın, [değer] göndereyim"
+   - dm_bait için: "DM'den '[kelime]' yazın, [değer] göndereyim"
+   - Platform uyarlaması: Instagram/Telegram/LinkedIn
+
+3. content_brief(product, audience, goal):
+   - İçerik özeti oluştur: hook + body + cta
+   - Obsidian'a kaydet: personas/buse/content/<tarih>_<product_slug>.md
+   - {"ok": True, "hook": str, "body_outline": list, "cta": str, "saved_to": path} döner
+
+B) server/bridge.py içine Telegram komutları ekle:
+
+- /buse-hook <konu>              → 3 farklı hook seçeneği
+- /buse-cta <hedef> <platform>   → CTA üret
+- /buse-brief <ürün> | <kitle> | <hedef>  → tam içerik özeti
+
+C) tests/test_buse_content_skill.py oluştur:
+- generate_hook boş topic → ok:False
+- 3 hook döndürüyor mu
+- content_brief pipe formatı parse ediliyor mu
+- Obsidian vault yoksa graceful fail
+
+KRİTİK KURALLAR:
+1. LLM çağrısı yok — template engine ile çalışır (hızlı, offline)
+2. Her üretilen içerik server/logs/buse_content.jsonl'e loglanır
+3. bridge.py'ye sadece /buse-* komutları ekle
+
+==============================================================
+TEST KOMUTU
+==============================================================
+
+python -m pytest tests/test_buse_content_skill.py -v --tb=short
+python -c "from server.skills.buse_content_skill import generate_hook; print(generate_hook('AI asistan'))"
+
+==============================================================
+TESLİM FORMATI
+==============================================================
+
+1. Oluşturulan dosyalar
+2. 3 hook tipi çalışıyor mu
+3. CTA kalıpları platform'a göre değişiyor mu
+4. Bridge komutları eklendi mi
+5. Test sonuçları
+
+Commit: feat: buse content skill — hook generator + cta builder + /buse-* commands

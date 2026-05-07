@@ -120,3 +120,36 @@ def test_missing_yaml_returns_bundled_defaults(reset_cache, tmp_path, monkeypatc
     matrix = persona_capabilities.load_matrix()
     assert matrix["default"]["shell.safe"] == "allow"
     assert matrix["default"]["openclaw.deliver"] == "require_approval"
+    assert matrix["default"]["dreams.snapshot"] == "require_approval"
+    assert matrix["default"]["dreams.report"] == "require_approval"
+
+
+def test_dreams_action_classes_known(reset_cache):
+    persona_capabilities.reload_matrix()
+    assert persona_capabilities.ACTION_DREAMS_SNAPSHOT in persona_capabilities.KNOWN_ACTION_CLASSES
+    assert persona_capabilities.ACTION_DREAMS_REPORT in persona_capabilities.KNOWN_ACTION_CLASSES
+
+
+def test_canonical_matrix_dreams_capabilities(reset_cache):
+    """Canonical config/persona_capabilities.yaml gates dreams.* per persona."""
+    persona_capabilities.reload_matrix()
+
+    assert persona_capabilities.resolve_capability("sabrican", "dreams.snapshot") == "allow"
+    assert persona_capabilities.resolve_capability("sabrican", "dreams.report") == "allow"
+
+    assert persona_capabilities.resolve_capability("jarvis", "dreams.snapshot") == "allow"
+    assert persona_capabilities.resolve_capability("jarvis", "dreams.report") == "allow"
+
+    assert persona_capabilities.resolve_capability("sabri", "dreams.snapshot") == "deny"
+    assert persona_capabilities.resolve_capability("buse", "dreams.report") == "deny"
+    assert persona_capabilities.resolve_capability("luna", "dreams.snapshot") == "deny"
+    assert persona_capabilities.resolve_capability("zeynep", "dreams.report") == "deny"
+
+    assert persona_capabilities.resolve_capability("seda", "dreams.snapshot") == "deny"
+    assert persona_capabilities.resolve_capability("seda", "dreams.report") == "require_approval"
+
+    # Unknown persona → default require_approval
+    assert (
+        persona_capabilities.resolve_capability("ghost", "dreams.snapshot")
+        == "require_approval"
+    )

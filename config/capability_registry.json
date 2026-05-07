@@ -1,0 +1,228 @@
+{
+  "version": "1.0",
+  "description": "Jarvis Corp — tüm repoların yetenek kaydı. Coordinator bu kayıttan router yapar.",
+
+  "repos": {
+    "aider": {
+      "status": "integrated",
+      "skill": "aider_skill",
+      "commands": ["/aider"],
+      "capabilities": ["pair-programming", "code-edit", "refactor", "bug-fix"],
+      "department": "engineering",
+      "tier": "worker",
+      "works_with": ["cline", "openhands", "claw-code", "bypass-core"]
+    },
+    "cline": {
+      "status": "integrated",
+      "skill": "cline_skill",
+      "commands": ["/cline"],
+      "capabilities": ["vscode-agent", "code-edit", "file-ops", "browser"],
+      "department": "engineering",
+      "tier": "worker",
+      "works_with": ["aider", "openhands"]
+    },
+    "openhands": {
+      "status": "integrated",
+      "skill": "openhands_skill",
+      "commands": ["/openhands"],
+      "capabilities": ["autonomous-engineer", "docker-sandbox", "multi-step-coding"],
+      "department": "engineering",
+      "tier": "deputy",
+      "works_with": ["aider", "cline", "devika", "bypass-core"]
+    },
+    "devika": {
+      "status": "integrated",
+      "skill": "devika_skill",
+      "commands": ["/devika"],
+      "capabilities": ["agentic-software-engineer", "research", "planning", "coding"],
+      "department": "engineering",
+      "tier": "deputy",
+      "works_with": ["aider", "openhands"]
+    },
+    "crewai": {
+      "status": "integrated",
+      "skill": "crewai_skill",
+      "commands": ["/crewai"],
+      "capabilities": ["multi-agent-crew", "role-playing", "task-delegation"],
+      "department": "operations",
+      "tier": "manager",
+      "works_with": ["swarms", "bypass-core", "coordinator"]
+    },
+    "ClawRouter": {
+      "status": "integrated",
+      "skill": "clawrouter_skill",
+      "commands": ["/clawrouter"],
+      "capabilities": ["llm-routing", "model-selection", "load-balancing"],
+      "department": "operations",
+      "tier": "operator",
+      "works_with": ["claw-code", "bypass-core"]
+    },
+    "CLI-Anything": {
+      "status": "integrated",
+      "skill": "cli_anything_skill",
+      "commands": ["/cli-anything"],
+      "capabilities": ["cli-wrapper", "any-tool-as-agent", "command-translation"],
+      "department": "operations",
+      "tier": "worker",
+      "works_with": ["bypass-core", "swarm"]
+    },
+    "claw-code": {
+      "status": "integrated",
+      "skill": "claw_code_skill",
+      "commands": ["/claw-code"],
+      "capabilities": ["coding-agent", "50k-star", "multi-language"],
+      "department": "engineering",
+      "tier": "deputy",
+      "works_with": ["aider", "cline", "openhands"]
+    },
+    "paperclip": {
+      "status": "integrated",
+      "skill": "paperclip_skill",
+      "commands": ["/paperclip"],
+      "capabilities": ["autonomous-business-runner", "goal-oriented", "self-directed"],
+      "department": "strategy",
+      "tier": "deputy",
+      "works_with": ["crewai", "swarms", "coordinator"]
+    },
+    "swarms": {
+      "status": "integrated",
+      "skill": "swarms_skill",
+      "commands": ["/swarms-agent", "/swarms-durum"],
+      "capabilities": ["python-multi-agent", "sequential-workflow", "parallel-agents", "agent-marketplace"],
+      "department": "operations",
+      "tier": "manager",
+      "works_with": ["crewai", "bypass-core", "coordinator", "aider", "devika"]
+    },
+    "spec-kit": {
+      "status": "integrated",
+      "skill": "speckit_skill",
+      "commands": ["/spec-specify", "/spec-plan", "/spec-tasks", "/spec-liste"],
+      "capabilities": ["spec-driven-development", "feature-planning", "task-generation"],
+      "department": "engineering",
+      "tier": "operator",
+      "works_with": ["aider", "openhands", "coordinator"]
+    },
+    "claude-skills": {
+      "status": "integrated",
+      "skill": "claude_skills_skill",
+      "commands": ["/cs-liste", "/cs-kullan", "/cs-ara"],
+      "capabilities": ["223-skills", "engineering-skills", "marketing-skills", "business-skills"],
+      "department": "all",
+      "tier": "catalog",
+      "works_with": ["agent-catalog", "coordinator", "all-workers"]
+    },
+    "skills": {
+      "status": "integrated",
+      "skill": "claude_skills_skill",
+      "commands": ["/cs-liste"],
+      "capabilities": ["minimalist-entrepreneur-skills", "business-skills"],
+      "department": "strategy",
+      "tier": "catalog",
+      "works_with": ["claude-skills", "coordinator"]
+    },
+    "prompts-chat": {
+      "status": "integrated",
+      "skill": "prompts_skill",
+      "commands": ["/prompt-liste", "/prompt-ara", "/prompt-al"],
+      "capabilities": ["prompt-catalog", "170-prompts", "role-prompts"],
+      "department": "all",
+      "tier": "catalog",
+      "works_with": ["coordinator", "marketing-manager", "all-workers"]
+    },
+    "claude-code-hooks-mastery": {
+      "status": "integrated",
+      "skill": "hooks_skill",
+      "commands": ["/hooks-durum", "/hooks-ornekler", "/hook-ekle"],
+      "capabilities": ["pre-tool-hooks", "post-tool-hooks", "meta-agent", "team-validation"],
+      "department": "security",
+      "tier": "operator",
+      "works_with": ["bypass-core", "security-manager", "coordinator"]
+    },
+    "claude-code-new-features-early-2026": {
+      "status": "integrated",
+      "skill": "cc_features_skill",
+      "commands": ["/cc-features", "/cc-cheatsheet"],
+      "capabilities": ["parallel-subagents", "coordinator-mode", "agent-memory", "swarm-workers"],
+      "department": "engineering",
+      "tier": "catalog",
+      "works_with": ["tanbiralam-patterns", "coordinator"]
+    },
+    "awesome-agent-skills": {
+      "status": "integrated",
+      "skill": "agent_catalog_skill",
+      "commands": ["/agent-ara", "/agent-oner", "/katalog-stats"],
+      "capabilities": ["agent-search", "skill-catalog", "role-recommendation"],
+      "department": "all",
+      "tier": "catalog",
+      "works_with": ["awesome-codex-subagents", "claude-skills", "coordinator"]
+    },
+    "awesome-codex-subagents": {
+      "status": "integrated",
+      "skill": "agent_catalog_skill",
+      "commands": ["/agent-ara"],
+      "capabilities": ["codex-agents", "toml-format", "136-subagents"],
+      "department": "all",
+      "tier": "catalog",
+      "works_with": ["awesome-agent-skills", "coordinator"]
+    },
+    "youtube-transcript-api": {
+      "status": "integrated",
+      "skill": "youtube_unified_skill",
+      "commands": ["/transkript", "/yt-ozet"],
+      "capabilities": ["youtube-transcript", "multi-language", "subtitle-extraction"],
+      "department": "marketing",
+      "tier": "worker",
+      "works_with": ["mcp-server-youtube-transcript", "youtube-mcp-server", "video-agents"]
+    },
+    "mcp-server-youtube-transcript": {
+      "status": "integrated",
+      "skill": "youtube_unified_skill",
+      "commands": ["/transkript"],
+      "capabilities": ["mcp-youtube", "node-mcp-server"],
+      "department": "marketing",
+      "tier": "worker",
+      "works_with": ["youtube-transcript-api", "youtube-mcp-server"]
+    },
+    "youtube-mcp-server": {
+      "status": "integrated",
+      "skill": "youtube_unified_skill",
+      "commands": ["/transkript", "/yt-backend"],
+      "capabilities": ["python-mcp-youtube", "transcript", "video-metadata"],
+      "department": "marketing",
+      "tier": "worker",
+      "works_with": ["youtube-transcript-api", "mcp-server-youtube-transcript"]
+    },
+    "tanbiralam-claude-code": {
+      "status": "integrated",
+      "skill": "cc_features_skill",
+      "commands": ["/cc-features"],
+      "capabilities": ["coordinator-mode", "swarm-workers", "agent-memory-scopes", "leaked-source"],
+      "department": "engineering",
+      "tier": "catalog",
+      "works_with": ["bypass-core", "coordinator", "swarms"]
+    },
+    "bypass-core": {
+      "status": "integrated",
+      "skill": "bypass_skill",
+      "commands": ["/bypass", "/bypass-exec", "/bypass-mode", "/bypass-logs", "/bypass-start", "/swarm"],
+      "capabilities": ["permission-engine", "shell-execution", "agent-swarm", "strict-auto-danger"],
+      "department": "operations",
+      "tier": "core",
+      "works_with": ["all"]
+    }
+  },
+
+  "capability_map": {
+    "code-edit":            ["aider", "cline", "claw-code", "openhands"],
+    "bug-fix":              ["aider", "cline", "openhands"],
+    "multi-agent":          ["crewai", "swarms", "bypass-core"],
+    "research":             ["devika", "paperclip", "awesome-agent-skills"],
+    "marketing":            ["claude-skills", "prompts-chat"],
+    "shell-execution":      ["bypass-core", "CLI-Anything"],
+    "planning":             ["spec-kit", "devika", "crewai"],
+    "transcript":           ["youtube-transcript-api", "mcp-server-youtube-transcript", "youtube-mcp-server"],
+    "routing":              ["ClawRouter"],
+    "hooks":                ["claude-code-hooks-mastery"],
+    "agent-catalog":        ["awesome-agent-skills", "awesome-codex-subagents", "claude-skills"]
+  }
+}

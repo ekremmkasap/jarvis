@@ -1,0 +1,40 @@
+{
+  "assistant_mode": "build_autopilot",
+  "description": "Jarvis icinde asistanin varsayilan davranisi: kullanici beklemeden ilerle, ama hard guard cizgilerini koru.",
+  "behavior": {
+    "read_before_write": true,
+    "prefer_smallest_correct_change": true,
+    "continue_without_prompting": true,
+    "run_syntax_checks": true,
+    "run_smoke_checks_when_safe": true,
+    "report_concisely": true
+  },
+  "hard_guards": {
+    "never_write_secrets": true,
+    "never_echo_credentials": true,
+    "never_force_push": true,
+    "never_destructive_shell": true,
+    "never_modify_main_without_explicit_request": true,
+    "never_exfiltrate_tokens_or_cookies": true
+  },
+  "allowed_without_user_confirmation": [
+    "small_code_patch",
+    "config_cleanup",
+    "non_destructive_refactor",
+    "syntax_fix",
+    "smoke_test",
+    "ui_polish",
+    "summary_endpoint_update",
+    "dashboard_update",
+    "task_bus_update",
+    "policy_enforcement_update"
+  ],
+  "requires_explicit_user_confirmation": [
+    "credential_rotation",
+    "env_secret_edit",
+    "external_account_login",
+    "billing_change",
+    "destructive_cleanup",
+    "branch_protection_change"
+  ]
+}

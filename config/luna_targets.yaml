@@ -1,0 +1,10 @@
+targets:
+  - id: jarvis-bridge
+    url: http://127.0.0.1:8081/health
+    scope:
+      - localhost:8081
+      - 127.0.0.1:8081
+    type: own_system
+    program: null
+    added_at: "2026-04-13T00:00:00Z"
+    scan_path: server

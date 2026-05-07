@@ -1,0 +1,65 @@
+==============================================================
+JARVIS — LUNA LANE — Cyber Agent Bug Bounty & Responsible Disclosure Stack
+Branch: 004-dijital-ajan-v3-persona-swarm
+==============================================================
+
+ÇALIŞMA DİZİNİ:
+C:\Users\sergen\Desktop\jarvis-mission-control
+
+ÖNCE OKU (sırayla):
+1. specs/004-dijital-ajan-v3-persona-swarm/plan.md
+2. specs/004-dijital-ajan-v3-persona-swarm/tasks.md
+3. specs/004-dijital-ajan-v3-persona-swarm/data-model.md
+4. config/agents.yaml  (luna persona bloğu)
+5. server/bridge.py    (mevcut Telegram komut bloğunu bul — /obsidian-oku sonrasına ekleyeceksin)
+6. server/persona_manager.py  (okuyabilirsin, değiştirme)
+
+ASLA DOKUNMA:
+- hey_jarvis.py
+- apps/desktop-hologram/
+- server/persona_manager.py  (okuyabilirsin, değiştirme)
+- server/services/persona_swarm.py  (zaten tamamlandı)
+
+==============================================================
+GÖREV — MVP: T001–T015
+==============================================================
+
+tasks.md içindeki T001–T015 görevlerini sırayla tamamla.
+
+ÖZET:
+- config/luna_targets.yaml  oluştur (Jarvis kendi endpoint'leri, own_system)
+- server/logs/luna_audit.jsonl  oluştur (boş)
+- server/skills/luna_scan_skill.py  oluştur (Foxguard wrapper)
+- server/skills/luna_browser_skill.py  oluştur (stub)
+- server/skills/luna_report_skill.py  oluştur (stub)
+- server/services/luna_agent.py  oluştur (audit log + whitelist + scan_target)
+- server/bridge.py  içine /luna-tara Telegram komutu ekle
+- tests/test_luna_agent.py  oluştur
+
+KRİTİK KURALLAR:
+1. attack_mode her zaman False — exploit/saldırı kodu yazma
+2. Her işlem luna_audit.jsonl'ye düşer
+3. Yetkisiz hedef → TargetNotAuthorizedError, sistem çökmez
+4. Foxguard binary yoksa graceful fail ({"ok": False, "error": "foxguard_not_installed"})
+5. bridge.py'ye sadece /luna-tara komutunu ekle, başka hiçbir şeye dokunma
+
+==============================================================
+TEST KOMUTU
+==============================================================
+
+python -m pytest tests/test_luna_agent.py -v --tb=short
+python -c "import server.bridge; print('bridge ok')"
+
+==============================================================
+TESLİM FORMATI
+==============================================================
+
+1. Değişen/oluşturulan dosyalar listesi
+2. luna_audit.jsonl yazma çalışıyor mu
+3. is_authorized() yetkisiz hedefi engelliyor mu
+4. /luna-tara komutu bridge'e eklendi mi
+5. Test sonuçları (kaç passed)
+6. Kalan riskler
+
+Önerilen commit mesajı:
+feat: luna cyber agent MVP — foxguard + audit log + /luna-tara command

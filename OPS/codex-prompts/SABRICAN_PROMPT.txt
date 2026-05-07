@@ -1,0 +1,85 @@
+==============================================================
+JARVIS — SABRİCAN LANE — DevOps & Deploy Skill Katmanı
+Branch: 004-dijital-ajan-v3-persona-swarm
+==============================================================
+
+ÇALIŞMA DİZİNİ:
+C:\Users\sergen\Desktop\jarvis-mission-control
+
+ÖNCE OKU (sırayla):
+1. specs/004-dijital-ajan-v3-persona-swarm/plan.md
+2. config/agents.yaml  (sabrican persona bloğu — system_prompt, sub_agents)
+3. server/bridge.py  (mevcut Telegram komut bloğu, /health endpoint'i)
+4. server/persona_manager.py  (okuyabilirsin, değiştirme)
+
+ASLA DOKUNMA:
+- hey_jarvis.py
+- apps/desktop-hologram/
+- server/persona_manager.py
+- master_launcher.py
+
+==============================================================
+GÖREV — Sabrican DevOps Skill Katmanı
+==============================================================
+
+A) server/skills/sabrican_ops_skill.py oluştur:
+
+1. check_service_health(service_name, url=None):
+   - Bilinen servisler: "bridge" (localhost:8081/health), "ollama" (localhost:11434), "hologram" (electron process)
+   - URL verilirse o URL'e GET atar, timeout 5 sn
+   - Process kontrolü: psutil ile process adına göre (psutil yoksa subprocess ile tasklist)
+   - {"ok": True/False, "service": str, "status": "up"|"down"|"unknown", "latency_ms": int|None} döner
+
+2. get_system_status():
+   - Tüm bilinen servisleri kontrol et (bridge, ollama, hologram)
+   - CPU %, RAM %, disk % (psutil varsa, yoksa subprocess ile wmic)
+   - {"services": list, "cpu_pct": float, "ram_pct": float, "disk_pct": float} döner
+
+3. docker_status():
+   - `docker ps --format json` subprocess çağrısı
+   - Docker yoksa veya çalışmıyorsa graceful fail
+   - Çalışan container listesi döner
+
+4. restart_service(service_name):
+   - Sadece "bridge" ve "ollama" destekler (güvenli liste)
+   - bridge: bridge.py process'ini yeniden başlat
+   - Diğerleri → {"ok": False, "error": "not_allowed"}
+   - Her restart server/logs/sabrican_ops.jsonl'e loglanır
+
+B) server/bridge.py içine Telegram komutları ekle:
+
+- /sabrican-durum           → get_system_status() çağır, formatlı özet
+- /sabrican-servis <isim>   → check_service_health() çağır
+- /sabrican-docker          → docker_status() çağır
+- /sabrican-restart <isim>  → restart_service() çağır (sadece whitelist)
+
+C) tests/test_sabrican_ops_skill.py oluştur:
+- check_service_health bilinmeyen servis → ok:False
+- get_system_status dict formatı doğru mu
+- restart_service whitelist dışı → ok:False
+- docker yoksa → graceful fail
+
+KRİTİK KURALLAR:
+1. restart_service SADECE ["bridge", "ollama"] — başka servis reddedilir
+2. Her ops işlemi server/logs/sabrican_ops.jsonl'e loglanır
+3. psutil opsiyonel — yoksa stdlib/subprocess fallback
+4. bridge.py'ye sadece /sabrican-* komutları ekle
+
+==============================================================
+TEST KOMUTU
+==============================================================
+
+python -m pytest tests/test_sabrican_ops_skill.py -v --tb=short
+python -c "from server.skills.sabrican_ops_skill import get_system_status; print('sabrican ok')"
+
+==============================================================
+TESLİM FORMATI
+==============================================================
+
+1. Oluşturulan dosyalar
+2. Servis kontrolü psutil olmadan çalışıyor mu
+3. restart_service whitelist koruması var mı
+4. Bridge komutları eklendi mi
+5. Test sonuçları
+
+Commit: feat: sabrican ops skill — service health + /sabrican-* commands

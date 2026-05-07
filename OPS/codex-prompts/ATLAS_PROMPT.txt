@@ -1,0 +1,202 @@
+==============================================================
+JARVIS — ATLAS LANE — Persona Swarm Executors + Obsidian Vault Config
+Branch: 004-dijital-ajan-v3-persona-swarm
+==============================================================
+
+ÇALIŞMA DİZİNİ:
+C:\Users\sergen\Desktop\jarvis-mission-control
+
+ÖNCE OKU (sırayla):
+1. specs/004-dijital-ajan-v3-persona-swarm/plan.md  (Slice 4 + 7)
+2. specs/004-dijital-ajan-v3-persona-swarm/spec.md
+3. server/services/persona_swarm.py  (tüm dosya)
+4. server/skills/persona_obsidian_skill.py  (save_note, recall_notes fonksiyonları)
+5. server/skills/obsidian_sync_skill.py  (get_obsidian_vault_dir)
+6. .env.example  (varsa)
+
+ASLA DOKUNMA:
+- server/bridge.py  (ana routing — Forge lane'in görevi)
+- hey_jarvis.py  (Spark lane'in görevi)
+- apps/desktop-hologram/  (Spark lane'in görevi)
+- server/persona_manager.py  (okuyabilirsin, değiştirme)
+
+==============================================================
+SLICE 4 — server/services/persona_swarm.py: Real executor bağlantısı
+==============================================================
+
+MEVCUT DURUM:
+persona_swarm.py içinde executor'lar tanımlı ama hepsi "not_configured" döndürüyor.
+Bunları gerçek işlere bağlamak gerekiyor.
+
+YAPILACAK:
+
+A) default_executor_registry() fonksiyonunu güncelle — her executor için gerçek işlev:
+
+1. web_search executor:
+   def _web_search_executor(payload, context):
+       query = payload.get("query", "")
+       try:
+           # Mevcut web search skill'i kullan (varsa)
+           # Yoksa basit requests ile DuckDuckGo Instant Answer API
+           import requests
+           resp = requests.get(
+               "https://api.duckduckgo.com/",
+               params={"q": query, "format": "json", "no_html": 1},
+               timeout=10
+           )
+           data = resp.json()
+           answer = data.get("AbstractText") or data.get("Answer") or "Sonuç bulunamadı."
+           return {"ok": True, "result": answer, "query": query}
+       except Exception as e:
+           return {"ok": False, "error": str(e), "query": query}
+
+2. file_reader executor:
+   def _file_reader_executor(payload, context):
+       filepath = payload.get("path", "")
+       try:
+           from pathlib import Path
+           content = Path(filepath).read_text(encoding="utf-8", errors="ignore")
+           return {"ok": True, "result": content[:3000], "path": filepath}  # max 3000 char
+       except Exception as e:
+           return {"ok": False, "error": str(e), "path": filepath}
+
+3. code_analyzer executor:
+   def _code_analyzer_executor(payload, context):
+       code = payload.get("code", "") or payload.get("content", "")
+       filepath = payload.get("path", "")
+       if filepath and not code:
+           try:
+               from pathlib import Path
+               code = Path(filepath).read_text(encoding="utf-8", errors="ignore")[:5000]
+           except Exception:
+               pass
+       # Basit statik analiz: satır sayısı, fonksiyon sayısı, TODO sayısı
+       lines = code.splitlines()
+       result = {
+           "lines": len(lines),
+           "functions": sum(1 for l in lines if l.strip().startswith("def ")),
+           "todos": sum(1 for l in lines if "TODO" in l or "FIXME" in l),
+           "preview": "\n".join(lines[:20]),
+       }
+       return {"ok": True, "result": result}
+
+4. obsidian_writer executor:
+   def _obsidian_writer_executor(payload, context):
+       try:
+           from server.skills.persona_obsidian_skill import save_note
+           persona_id = context.get("persona_id", "jarvis")
+           title = payload.get("title", "Swarm Notu")
+           content = payload.get("content", "")
+           note = save_note(persona_id=persona_id, title=title, content=content)
+           return {"ok": True, "result": f"Kaydedildi: {note.get('path', '?')}"}
+       except Exception as e:
+           return {"ok": False, "error": str(e)}
+
+5. summarizer executor:
+   def _summarizer_executor(payload, context):
+       text = payload.get("text", "") or payload.get("content", "")
+       max_len = payload.get("max_length", 300)
+       if not text:
+           return {"ok": False, "error": "text_required"}
+       # Basit summarizer: ilk N karakter + cümle sınırı
+       summary = text[:max_len]
+       last_period = summary.rfind(".")
+       if last_period > 50:
+           summary = summary[:last_period+1]
+       return {"ok": True, "result": summary}
+
+B) default_executor_registry() içinde yukarıdaki fonksiyonları dön:
+   return {
+       "web_search": _web_search_executor,
+       "file_reader": _file_reader_executor,
+       "code_analyzer": _code_analyzer_executor,
+       "obsidian_writer": _obsidian_writer_executor,
+       "summarizer": _summarizer_executor,
+   }
+
+C) Failure isolation kontrolü:
+   execute_plan() veya benzeri ana fonksiyonda:
+   - Bir adım başarısız olursa status="failed" yap
+   - Diğer adımlar devam eder (sistem çökmez)
+   - Final result'a failed adımları listele
+
+D) Swarm tetikleme helper (bridge.py'nin çağırabileceği):
+   def should_use_swarm(task_text: str) -> bool:
+       """3+ adım gerektiren görevleri tespit et"""
+       keywords = ["analiz et ve", "araştır ve", "bul ve", "incele ve", "yap ve raporla"]
+       return any(kw in task_text.lower() for kw in keywords)
+
+   def run_persona_swarm(persona_id: str, task: str, executor_registry=None) -> dict:
+       """Bridge'den çağrılacak ana entry point"""
+       if executor_registry is None:
+           executor_registry = default_executor_registry()
+       # Görevi adımlara böl
+       steps = [
+           {"type": "web_search", "payload": {"query": task}},
+           {"type": "summarizer", "payload": {"text": "", "max_length": 500}},
+           {"type": "obsidian_writer", "payload": {"title": task[:50], "content": ""}},
+       ]
+       # Persona context
+       context = {"persona_id": persona_id, "task": task}
+       return execute_steps(steps, executor_registry, context)
+       # execute_steps: mevcut fonksiyonu kullan veya yaz
+
+==============================================================
+SLICE 7 — .env + Obsidian vault konfigürasyonu
+==============================================================
+
+A) .env.example dosyasını bul (veya oluştur):
+   Şu satırı ekle:
+   OBSIDIAN_VAULT_PATH=C:/Users/sergen/Documents/ObsidianVault
+
+B) server/skills/obsidian_sync_skill.py içinde get_obsidian_vault_dir() fonksiyonunu kontrol et:
+   - Vault path yoksa veya dizin mevcut değilse → VaultUnavailableError fırlatır
+   - Bridge/swarm bunu yakalar, kullanıcıya "Obsidian kasası bulunamadı" der, sistem çökmez
+
+C) obsidian/personas/ dizini oluştur (vault yoksa skip):
+   from pathlib import Path
+   import os
+   vault = os.getenv("OBSIDIAN_VAULT_PATH", "")
+   if vault:
+       for persona in ["seda","mert","buse","eren","luna","sabrican","sabri"]:
+           Path(vault) / "personas" / persona).mkdir(parents=True, exist_ok=True)
+
+==============================================================
+TESTLER
+==============================================================
+
+1. Mevcut testleri çalıştır:
+   python -m pytest tests/test_persona_swarm.py -v --tb=short
+   python -m pytest tests/test_persona_obsidian_skill.py -v --tb=short
+
+2. Yeni test yaz: tests/test_persona_swarm_executors.py
+   - web_search executor: query verince dict döner
+   - file_reader executor: geçerli path → içerik, geçersiz path → ok:False
+   - code_analyzer executor: basit Python kodu → lines/functions/todos sayısı
+   - obsidian_writer executor: VaultUnavailableError'u yakalar, ok:False döner
+   - summarizer executor: uzun metin → max_length'e kesilir
+   - Failure isolation: bir adım fail → diğerleri devam eder
+
+3. Swarm smoke testi:
+   python -c "
+   from server.services.persona_swarm import default_executor_registry, should_use_swarm
+   print('swarm import ok')
+   print('should_use_swarm test:', should_use_swarm('araştır ve özetle'))
+   reg = default_executor_registry()
+   print('executors:', list(reg.keys()))
+   "
+
+==============================================================
+TESLİM FORMATI
+==============================================================
+
+1. Değişen dosyalar listesi
+2. Executor'lar bağlandı mı (hangileri gerçek, hangisi stub kaldı)
+3. Failure isolation çalışıyor mu
+4. Obsidian vault config tamamlandı mı
+5. Test sonuçları (kaç passed)
+6. Kalan riskler
+7. Commit hash
+
+Önerilen commit mesajı:
+feat: persona swarm real executors and obsidian vault config

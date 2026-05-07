@@ -1,0 +1,18 @@
+kpis:
+  gelir:
+    label: Gelir
+    direction: higher
+    warning_below: 10000
+    critical_below: 5000
+    unit: TL
+  musteri:
+    label: Musteri
+    direction: higher
+    warning_below: 20
+    critical_below: 10
+  churn:
+    label: Churn
+    direction: lower
+    warning_above: 0.08
+    critical_above: 0.15
+    format: percent
