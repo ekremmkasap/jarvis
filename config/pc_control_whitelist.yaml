@@ -1,0 +1,186 @@
+commands:
+  ekran-goruntusu:
+    action: screenshot
+    args_required: false
+
+  pc-durum:
+    action: system_status
+    args_required: false
+
+  dosya-gonder:
+    action: send_file
+    args_required: true
+    allowed_dirs:
+      - C:/Users/sergen/Desktop
+      - C:/Users/sergen/Documents
+      - C:/Users/sergen/Downloads
+      - C:/Users/sergen/Desktop/jarvis-mission-control/outputs
+
+  jarvis-baslat:
+    action: start_jarvis
+    args_required: false
+
+  jarvis-kapat:
+    action: stop_jarvis
+    args_required: false
+
+  # ── Faz 1: Sistem kontrolleri ────────────────────────────────
+  ses:
+    # Ses seviyesini ayarla. Örn: "ses 50", "ses yukari", "ses asagi"
+    action: set_volume
+    args_required: true
+
+  sustur:
+    action: toggle_mute
+    args_required: false
+
+  duraklat:
+    # Media play/pause (Spotify, YouTube vs.)
+    action: media_key
+    args_required: false
+    key: play_pause
+
+  devam:
+    action: media_key
+    args_required: false
+    key: play_pause
+
+  sonraki:
+    action: media_key
+    args_required: false
+    key: next
+
+  onceki:
+    action: media_key
+    args_required: false
+    key: prev
+
+  kilit:
+    action: lock_screen
+    args_required: false
+
+  uyku:
+    # Dikkat: ekranı uyutur. Onay istenmesi bridge katmanında yapılır.
+    action: sleep_pc
+    args_required: false
+    requires_confirmation: true
+
+  parlaklik:
+    # Laptop için — örn: "parlaklik 60"
+    action: set_brightness
+    args_required: true
+
+  url:
+    # Varsayılan tarayıcıda URL aç. Örn: "url https://github.com"
+    action: open_url
+    args_required: true
+
+  ara:
+    # Google'da ara. Örn: "ara gemini 2.5 benchmark"
+    action: web_search
+    args_required: true
+    engine: google
+
+  youtube-ara:
+    action: web_search
+    args_required: true
+    engine: youtube
+
+  aktif-pencere:
+    action: active_window
+    args_required: false
+
+  # ── Faz 2: Pano, sekme ve pencere yönetimi ───────────────────
+  pano-oku:
+    action: clipboard_read
+    args_required: false
+
+  pano-yaz:
+    # "pano-yaz selam nasılsın" → panoya yazar
+    action: clipboard_write
+    args_required: true
+
+  pano-temizle:
+    action: clipboard_clear
+    args_required: false
+
+  yaz:
+    # Aktif pencereye metin yazdırır (SendKeys / clipboard paste fallback)
+    action: type_text
+    args_required: true
+
+  sekme-ac:
+    # Ctrl+T → tarayıcıda yeni sekme
+    action: new_tab
+    args_required: false
+
+  sekme-kapat:
+    # Ctrl+W → aktif sekmeyi kapatır
+    action: close_tab
+    args_required: false
+
+  sonraki-sekme:
+    action: next_tab
+    args_required: false
+
+  onceki-sekme:
+    action: prev_tab
+    args_required: false
+
+  pencere-kapat:
+    # Alt+F4
+    action: close_window
+    args_required: false
+
+  masaustu:
+    # Win+D
+    action: minimize_all
+    args_required: false
+
+  pencere-buyut:
+    # Win+Up
+    action: maximize_window
+    args_required: false
+
+  adres-cubugu:
+    # Ctrl+L → tarayıcıda adres çubuğuna odaklanır
+    action: focus_address_bar
+    args_required: false
+
+  # Ek uygulamalar
+  ac:
+    action: open_app
+    args_required: true
+    apps:
+      chrome:
+        command: [cmd, /c, start, "", chrome]
+      firefox:
+        command: [cmd, /c, start, "", firefox]
+      vscode:
+        command: [cmd, /c, start, "", code]
+      notepad:
+        command: [cmd, /c, start, "", notepad]
+      explorer:
+        command: [cmd, /c, start, "", explorer]
+      spotify:
+        command: [cmd, /c, start, "", spotify]
+      calc:
+        command: [cmd, /c, start, "", calc]
+      whatsapp:
+        command: [cmd, /c, start, "", "whatsapp:"]
+      discord:
+        command: [cmd, /c, start, "", discord]
+      telegram:
+        command: [cmd, /c, start, "", telegram]
+      teams:
+        command: [cmd, /c, start, "", msteams]
+      obsidian:
+        command: [cmd, /c, start, "", obsidian]
+      terminal:
+        command: [cmd, /c, start, "", wt]
+      cmd:
+        command: [cmd, /c, start, "", cmd]
+      powershell:
+        command: [cmd, /c, start, "", powershell]
+      edge:
+        command: [cmd, /c, start, "", "microsoft-edge:"]

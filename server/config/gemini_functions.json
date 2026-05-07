@@ -1,0 +1,116 @@
+{
+  "functions": [
+    {
+      "name": "analyze_image",
+      "description": "Analyzes an image or screenshot and provides detailed visual information including text content, UI elements, and state information.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "image_path": {
+            "type": "string",
+            "description": "Path to the image file to analyze (absolute or relative path)"
+          },
+          "focus_areas": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Optional list of areas to focus analysis on (e.g., ['text', 'buttons', 'errors'])"
+          }
+        },
+        "required": ["image_path"]
+      }
+    },
+    {
+      "name": "execute_command",
+      "description": "Executes a system command or action through the Jarvis executor with specified parameters.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "tool_name": {
+            "type": "string",
+            "description": "Name of the registered tool to execute (e.g., 'read', 'write', 'api_call')"
+          },
+          "params": {
+            "type": "object",
+            "description": "Parameters to pass to the tool"
+          }
+        },
+        "required": ["tool_name", "params"]
+      }
+    },
+    {
+      "name": "get_metrics",
+      "description": "Retrieves system metrics, performance data, and health information about Jarvis.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "metric_type": {
+            "type": "string",
+            "enum": ["cpu", "memory", "latency", "success_rate", "throughput", "all"],
+            "description": "Type of metrics to retrieve"
+          },
+          "time_window": {
+            "type": "string",
+            "enum": ["1m", "5m", "15m", "1h", "24h"],
+            "description": "Time window for metrics aggregation (default: 1h)"
+          }
+        },
+        "required": ["metric_type"]
+      }
+    },
+    {
+      "name": "apply_improvement",
+      "description": "Applies a learned improvement or optimization to the system configuration or execution strategy.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "improvement_type": {
+            "type": "string",
+            "enum": ["batch_execution", "smart_caching", "resource_allocation", "performance_tuning"],
+            "description": "Type of improvement to apply"
+          },
+          "target": {
+            "type": "string",
+            "description": "Component or system area to apply improvement to"
+          },
+          "config": {
+            "type": "object",
+            "description": "Configuration parameters for the improvement"
+          }
+        },
+        "required": ["improvement_type", "target"]
+      }
+    },
+    {
+      "name": "check_health",
+      "description": "Performs comprehensive health check on all system components and returns status report.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "components": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["executor", "database", "cache", "api", "telegram", "voice", "learning_system"]
+            },
+            "description": "Specific components to check (default: all)"
+          },
+          "detailed": {
+            "type": "boolean",
+            "description": "Whether to return detailed diagnostic information"
+          }
+        }
+      }
+    }
+  ],
+  "function_to_tool_mapping": {
+    "analyze_image": "vision_analyzer",
+    "execute_command": "executor",
+    "get_metrics": "metrics_provider",
+    "apply_improvement": "improvement_applier",
+    "check_health": "health_checker"
+  },
+  "version": "1.0.0",
+  "last_updated": "2026-04-04"
+}

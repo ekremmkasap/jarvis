@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jarvis Mission Control - Real-time Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Chart.js for chart rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <h1>Jarvis Mission Control</h1>
+            <div class="header-info">
+                <span id="current-time" class="time-display"></span>
+                <span id="connection-status" class="connection-status connected">Connected</span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="dashboard-content">
+            <!-- Health Indicator -->
+            <section class="health-section">
+                <div class="health-card">
+                    <h2>System Health</h2>
+                    <div class="health-status">
+                        <div id="health-indicator" class="health-circle healthy"></div>
+                        <div id="health-text" class="health-text">Healthy</div>
+                    </div>
+                    <div id="health-components" class="health-components">
+                        <p>Loading components...</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Key Metrics -->
+            <section class="metrics-section">
+                <div class="metric-card">
+                    <h3>Success Rate</h3>
+                    <div id="success-rate" class="metric-value">--</div>
+                    <p class="metric-label">%</p>
+                </div>
+
+                <div class="metric-card">
+                    <h3>Avg Latency</h3>
+                    <div id="avg-latency" class="metric-value">--</div>
+                    <p class="metric-label">seconds</p>
+                </div>
+
+                <div class="metric-card">
+                    <h3>Total Executions</h3>
+                    <div id="total-executions" class="metric-value">--</div>
+                    <p class="metric-label">calls</p>
+                </div>
+
+                <div class="metric-card">
+                    <h3>Throughput</h3>
+                    <div id="throughput" class="metric-value">--</div>
+                    <p class="metric-label">calls/min</p>
+                </div>
+
+                <div class="metric-card">
+                    <h3>Cache Hit Rate</h3>
+                    <div id="cache-hit-rate" class="metric-value">--</div>
+                    <p class="metric-label">%</p>
+                </div>
+
+                <div class="metric-card">
+                    <h3>Failure Count</h3>
+                    <div id="failure-count" class="metric-value">--</div>
+                    <p class="metric-label">errors</p>
+                </div>
+            </section>
+
+            <!-- Charts -->
+            <section class="charts-section">
+                <div class="chart-container">
+                    <h3>Success Rate Trend</h3>
+                    <canvas id="success-rate-chart" class="chart"></canvas>
+                </div>
+
+                <div class="chart-container">
+                    <h3>Latency Trend</h3>
+                    <canvas id="latency-chart" class="chart"></canvas>
+                </div>
+
+                <div class="chart-container">
+                    <h3>Throughput Over Time</h3>
+                    <canvas id="throughput-chart" class="chart"></canvas>
+                </div>
+
+                <div class="chart-container">
+                    <h3>Cache Performance</h3>
+                    <canvas id="cache-chart" class="chart"></canvas>
+                </div>
+            </section>
+
+            <!-- Execution Log -->
+            <section class="log-section">
+                <h2>Live Execution Log</h2>
+                <div class="log-container">
+                    <div id="execution-log" class="execution-log">
+                        <p class="log-entry">Waiting for execution data...</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="dashboard-footer">
+            <p>Last updated: <span id="last-update"></span></p>
+            <p>Real-time updates every 5 seconds</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

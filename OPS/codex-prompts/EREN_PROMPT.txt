@@ -1,0 +1,79 @@
+==============================================================
+JARVIS — EREN LANE — Veri Analizi & Dashboard Skill Katmanı
+Branch: 004-dijital-ajan-v3-persona-swarm
+==============================================================
+
+ÇALIŞMA DİZİNİ:
+C:\Users\sergen\Desktop\jarvis-mission-control
+
+ÖNCE OKU (sırayla):
+1. specs/004-dijital-ajan-v3-persona-swarm/plan.md
+2. config/agents.yaml  (eren persona bloğu — system_prompt, sub_agents)
+3. server/services/persona_swarm.py  (_exec_file_reader, _exec_code_analyzer)
+4. server/bridge.py  (mevcut Telegram komut bloğu)
+5. server/persona_manager.py  (okuyabilirsin, değiştirme)
+
+ASLA DOKUNMA:
+- hey_jarvis.py
+- apps/desktop-hologram/
+- server/persona_manager.py
+
+==============================================================
+GÖREV — Eren Veri Analiz Skill Katmanı
+==============================================================
+
+A) server/skills/eren_data_skill.py oluştur:
+
+1. analyze_csv(file_path, max_rows=1000):
+   - CSV dosyasını oku (stdlib csv modülü, pandas gerekmez)
+   - Temel istatistik: satır sayısı, sütun listesi, her sütun için: min/max/avg (sayısal), unique sayısı (metin)
+   - Boş değer oranı her sütun için
+   - {"ok": True, "rows": int, "columns": list, "stats": dict, "preview": list[5 satır]} döner
+
+2. kpi_summary(data: dict):
+   - KPI dict'ini al: {"gelir": 15000, "müşteri": 23, "churn": 0.05}
+   - Her KPI için: değer + basit yorum ("hedefin üstünde" / "dikkat" / "kritik")
+   - Thresholds config: server/config/eren_kpi_thresholds.yaml (oluştur)
+   - Telegram'a gönderilecek formatlı metin döner
+
+3. quick_report(file_path):
+   - analyze_csv() çağır
+   - Obsidian'a kaydet: personas/eren/reports/<tarih>_<dosya_adı>.md
+   - {"ok": True, "summary": str, "saved_to": path} döner
+
+B) server/bridge.py içine Telegram komutları ekle:
+
+- /eren-analiz <dosya_yolu>    → quick_report() çağır, özeti Telegram'a gönder
+- /eren-kpi <json_string>      → kpi_summary() çağır
+  Örnek: /eren-kpi {"gelir":15000,"musteri":23}
+
+C) tests/test_eren_data_skill.py oluştur:
+- analyze_csv geçersiz dosya → ok:False
+- analyze_csv geçerli CSV → rows/columns/stats doğru
+- kpi_summary geçersiz JSON → ok:False, graceful
+- Obsidian vault yoksa graceful fail
+
+KRİTİK KURALLAR:
+1. pandas, numpy gerekmez — stdlib ile (csv, statistics, json)
+2. Her analiz server/logs/eren_analysis.jsonl'e loglanır
+3. bridge.py'ye sadece /eren-* komutları ekle
+4. JSON parse hatası kullanıcıya açık mesaj döner
+
+==============================================================
+TEST KOMUTU
+==============================================================
+
+python -m pytest tests/test_eren_data_skill.py -v --tb=short
+python -c "from server.skills.eren_data_skill import kpi_summary; print(kpi_summary({'gelir':15000}))"
+
+==============================================================
+TESLİM FORMATI
+==============================================================
+
+1. Oluşturulan dosyalar
+2. CSV analizi stdlib ile çalışıyor mu
+3. KPI thresholds YAML oluşturuldu mu
+4. Bridge komutları eklendi mi
+5. Test sonuçları
+
+Commit: feat: eren data skill — csv analyzer + kpi summary + /eren-* commands

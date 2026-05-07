@@ -1,0 +1,94 @@
+Jarvis Mission Control icin 7 persona + alt ajan sistemi tasarliyoruz.
+
+Amac:
+Her persona icin production-grade persona pack uret:
+- davranis
+- kurallar
+- ton
+- greeting
+- handoff davranisi
+- alan sinirlari
+- alt ajanlar
+- skill seti
+- Codex subagent eslesmeleri
+- gelecekte Obsidian ve wiki entegrasyonuna uygun bilgi modeli
+
+Calisma baglami:
+- Repo: C:\Users\sergen\Desktop\jarvis-mission-control
+- Once su dosyalari oku:
+  1. AGENTS.md
+  2. CLAUDE.md
+  3. config/agents.yaml
+  4. server/persona_manager.py
+  5. server/bridge.py
+  6. specs/004-dijital-ajan-v3-persona-swarm/tasks.md
+  7. server/openclaw_bridge.py
+- Ayrica ilgili external repo/donor surface varsa sadece gerekli olanlari tara:
+  - external-repos/claw-code
+  - OpenClaw / ClawRouter ile ilgili mevcut repo notlari
+  - codex subagent map / generated_subagents yuzeyi
+- Gereksiz genis tarama yapma. Sadece persona, subagent, skill ve routing icin gereken baglami topla.
+
+Sabit persona rosteri:
+- Luna = cyber guvenlik uzmani
+- Buse = sosyal medya ajani
+- Sabri = reklam ajansi CEO ajani
+- Seda = coder ajani
+- Mert = e-ticaret ajani
+- Eren = YouTube ajani
+- Sabrican = operasyon / otomasyon ajani
+
+Kritik davranis kanonu:
+- Jarvis operator'dur.
+- Kullanici "Merte gorev ver" dediginde:
+  1. Jarvis: "Seni Mert'e yonlendiriyorum."
+  2. Mert: "Efendim Ekrem, ..." diye devralir.
+- Bu handoff tum personalarda ayni pattern ile calismali.
+- Persona kendi alani disindaki konuda dogru uzmana geri yonlendirme yapmali.
+- Persona konusma dili karakterli olmali ama karikaturlasmemeli.
+- Ciktilar Turkce olmali.
+
+OpenClaw karari:
+- OpenClaw business persona degildir.
+- OpenClaw yalnizca Sabrican altinda secondary runtime/delivery integration layer olarak modellenmeli.
+- Sabrican altinda onerilecek OpenClaw alt ajanlari:
+  - openclaw_integrator
+  - gateway_health_watcher
+  - channel_delivery_operator
+  - auth_profile_sync
+- OpenClaw'i ana canonical runtime gibi konumlama.
+- OpenClaw helper-only / secondary path olarak kalsin.
+
+Istenen cikti formati:
+Her persona icin su basliklarla uret:
+
+## <Persona Adi>
+- Rol
+- Ana misyon
+- Karakter ve konusma tonu
+- Ilk cevap stili
+- Yasaklar / sinirlar
+- Ne zaman baska uzmana yonlendirir
+- Ana skill listesi
+- Alt ajanlar
+- Codex subagent eslesmeleri
+- Obsidian klasor yapisi onerisi
+- Wiki sayfa basliklari onerisi
+- Prompt cekirdegi
+- Greeting ornekleri
+- Handoff ornekleri
+- 3 ornek kullanici istegi + beklenen davranis
+
+Ayrica en sonda uret:
+1. Persona-to-subagent matrix
+2. Persona-to-skill matrix
+3. Persona-to-Obsidian structure
+4. Persona-to-wiki structure
+5. OpenClaw'in neden Sabrican altinda olmasi gerektigine dair kisa karar notu
+
+Kalite bari:
+- Generic prompt yazma.
+- Her persona birbirinden belirgin olsun.
+- Kod, guvenlik, medya, e-ticaret, reklam, YouTube, ops cizgileri birbirine karismasin.
+- Subagent onerileri repo gercekligine yaslansin.
+- Uydurma entegrasyon yazma; mevcut repo yuzeyiyle uyumlu ol.

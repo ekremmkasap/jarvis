@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jarvis Hologram</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="shell">
+    <div class="topline">
+      <div id="agentName">JARVIS</div>
+      <div id="connectionState">Baglaniyor...</div>
+    </div>
+    <div id="agentRole">AI Operating System</div>
+    <div id="hologram" class="hologram idle">
+      <canvas id="particleHologram" aria-hidden="true"></canvas>
+      <div class="ring outer"></div>
+      <div class="ring middle"></div>
+      <div class="core"></div>
+      <div class="wave"></div>
+      <div class="swarm-dots">
+        <div class="s-dot" style="--c: #00ff88; --i: 0;"></div>
+        <div class="s-dot" style="--c: #ffdd00; --i: 1;"></div>
+        <div class="s-dot" style="--c: #ff69b4; --i: 2;"></div>
+        <div class="s-dot" style="--c: #ff8c00; --i: 3;"></div>
+        <div class="s-dot" style="--c: #9b59b6; --i: 4;"></div>
+        <div class="s-dot" style="--c: #95a5a6; --i: 5;"></div>
+        <div class="s-dot" style="--c: #e74c3c; --i: 6;"></div>
+      </div>
+      <div class="thinking-spiral-box"></div>
+    </div>
+    <div id="agentBar">
+      <span class="agent-icon" data-agent="seda">S</span>
+      <span class="agent-icon" data-agent="mert">M</span>
+      <span class="agent-icon" data-agent="buse">B</span>
+      <span class="agent-icon" data-agent="deniz">D</span>
+      <span class="agent-icon" data-agent="eren">E</span>
+      <span class="agent-icon" data-agent="luna">L</span>
+      <span class="agent-icon" data-agent="zeynep">Z</span>
+      <span class="agent-icon" data-agent="sabrican">SC</span>
+      <span class="agent-icon" data-agent="sabri">SB</span>
+    </div>
+    <div id="agentState">Hazir</div>
+    <div id="speechText"></div>
+    <div id="previewText"></div>
+    <div id="agentSkills"></div>
+    <div id="abilityStatus"></div>
+    <div id="activityMeter"><div id="activityFill"></div></div>
+  </div>
+  <div id="persona-label" aria-live="polite"></div>
+  <script src="renderer.js"></script>
+</body>
+</html>

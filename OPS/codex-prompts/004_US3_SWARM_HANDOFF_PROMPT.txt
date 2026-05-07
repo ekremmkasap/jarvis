@@ -1,0 +1,96 @@
+==============================================================
+JARVIS - CODEX HANDOFF - 004 US3 SWARM
+Branch: 004-dijital-ajan-v3-persona-swarm
+==============================================================
+
+CALISMA DIZINI:
+C:\Users\sergen\Desktop\jarvis-mission-control
+
+AMAC:
+Bu sekmenin gorevi, `specs/004-dijital-ajan-v3-persona-swarm/tasks.md`
+icindeki US3 `T019-T027` kapsamindaki swarm islerini repo gercegine gore
+dogrulamak ve eksik kalanlari en dar degisiklikle tamamlamaktir.
+
+ONEMLI NOT:
+- Repo dirty olabilir. Kullaniciya ait mevcut degisiklikleri revert etme.
+- Bu turda yeni spec yazma. Mevcut spec/plan/tasks uzerinden uygula.
+- Bir sey zaten tamamsa bozma; sadece eksik veya task ile uyumsuz kisimlari kapat.
+
+ONCE OKU (sirayla):
+1. `AGENTS.md`
+2. `CLAUDE.md`
+3. `specs/004-dijital-ajan-v3-persona-swarm/tasks.md`
+4. `server/skills/sub_agent_runner.py`
+5. `tests/test_sub_agent_runner.py`
+6. `server/bridge.py` icinde su yuzeyler:
+   - `is_multi_step`
+   - `run_sub_agents`
+   - `_build_swarm_prefix`
+   - `_process_message_with_swarm_layer`
+
+GOREV:
+US3 `T019-T027` durumunu dogrula ve eksik kalanlari tamamla.
+
+HEDEF DOSYALAR:
+- `server/skills/sub_agent_runner.py`
+- `server/bridge.py`
+- `tests/test_sub_agent_runner.py`
+
+KONTROL LISTESI:
+1. `is_multi_step(message)`
+   - `tasks.md` ile uyumlu cok adimli patternleri algilamali
+   - basit mesajlarda `False` donmeli
+
+2. `server/skills/sub_agent_runner.py`
+   - `_run_web_search(payload)` gercek veya fallback arama akisina baglanmali
+   - `_run_code_analyzer(payload)` dosyayi okuyup LLM analizine gondermeli
+   - `_run_file_reader(payload)` missing file durumunda graceful fail vermeli
+   - `_run_obsidian_writer(payload)` `persona_obsidian_skill.write_persona_note()` kullanmali
+   - `_run_summarizer(payload)` Groq icin OpenAI SDK kullanmali
+   - `run_sub_agents(persona_id, task, agent_types)` hata toleransli olmali;
+     bir adim fail olsa bile digerleri devam etmeli
+
+3. `server/bridge.py`
+   - Swarm intent hook APPEND-ONLY kalmali
+   - `is_multi_step(message)` true ise aktif persona `sub_agents` listesi ile
+     `run_sub_agents()` cagrilmali
+   - Alt ajan ciktisi normal persona cevabinin basina prefix olarak eklenmeli
+   - Mevcut message flow bozulmamali
+
+4. `tests/test_sub_agent_runner.py`
+   - `is_multi_step("analiz et ve ozetle") -> True`
+   - `is_multi_step("merhaba") -> False`
+   - missing file graceful fail
+   - bir adim fail oldugunda zincir devam ediyor
+   - bridge swarm prefix davranisi dogrulaniyor
+   - Groq cagrisi icin OpenAI SDK yolu test ediliyorsa koru
+
+UYGULAMA KURALLARI:
+- `server/bridge.py` APPEND-ONLY. Mevcut handler veya flow'u buyuk refactor etme.
+- Kullaniciya ait unrelated degisiklikleri silme veya geri alma.
+- Groq cagrilarinda `urllib` kullanma; `openai` SDK + `https://api.groq.com/openai/v1` kullan.
+- Env eksigi veya dosya eksigi varsa graceful fail ver; sistem cokmesin.
+- Operator-facing metinlerde Turkceyi koru.
+- Dar kapsamli git: bu prompt sadece US3 swarm kapanisina odakli.
+
+DOGRULAMA:
+1. `python -m py_compile server/skills/sub_agent_runner.py server/bridge.py`
+2. `python -m pytest tests/test_sub_agent_runner.py -q`
+
+EGER HER SEY ZATEN TAMAMSA:
+- Gereksiz kod churn yapma
+- Kisa bir gap analizi ver
+- Testleri kos
+- "no code change needed" ise bunu net soyle
+
+TESLIM FORMATI:
+1. Hangi dosyalarda degisiklik yaptin
+2. Ne eksikti ve nasil kapattin
+3. Dogrulama sonucu
+4. Kalan riskler veya env bagimliliklari
+
+KISA HANDOFF:
+- Hedef: 004 US3 swarm kapanisi
+- Kritik dosyalar: `server/skills/sub_agent_runner.py`, `server/bridge.py`, `tests/test_sub_agent_runner.py`
+- Risk: dirty worktree, bridge.py buyuk ve append-only kalmali
+- Sonraki adim: eksik varsa dar patch + test, eksik yoksa sadece dogrulama ve rapor

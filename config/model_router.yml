@@ -23,42 +23,212 @@ providers:
     base_url_env: OPENAI_BASE_URL
     base_url: https://api.openai.com/v1
     api_key_env: OPENAI_API_KEY
+  # ── Ücretsiz Cloud Providerlar ──────────────────────────────
+  # Groq: 1000 istek/gün ücretsiz, süper hızlı (800+ tok/sn)
+  # API key: https://console.groq.com/keys
+  groq:
+    kind: groq
+    base_url: https://api.groq.com/openai/v1
+    api_key_env: GROQ_API_KEY
+  # Gemini: 1500 istek/gün ücretsiz, vision+video destekli, 1M context
+  # API key: https://aistudio.google.com/apikey
+  gemini:
+    kind: gemini
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+    api_key_env: GEMINI_API_KEY
+
+  # Persona-specific Gemini pools. These are optional so Jarvis can boot before
+  # every key is present. Add the secrets only to local .env, never to git.
+  gemini_seda:
+    kind: gemini
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+    api_key_env: GEMINI_KEY_SEDA
+    optional: true
+  gemini_mert:
+    kind: gemini
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+    api_key_env: GEMINI_KEY_MERT
+    optional: true
+  gemini_buse:
+    kind: gemini
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+    api_key_env: GEMINI_KEY_BUSE
+    optional: true
+  gemini_eren:
+    kind: gemini
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+    api_key_env: GEMINI_KEY_EREN
+    optional: true
+  gemini_deniz:
+    kind: gemini
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+    api_key_env: GEMINI_KEY_DENIZ
+    optional: true
+  gemini_luna:
+    kind: gemini
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+    api_key_env: GEMINI_KEY_LUNA
+    optional: true
+  gemini_zeynep:
+    kind: gemini
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+    api_key_env: GEMINI_KEY_ZEYNEP
+    optional: true
+  gemini_sabrican:
+    kind: gemini
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+    api_key_env: GEMINI_KEY_SABRICAN
+    optional: true
+  gemini_sabri:
+    kind: gemini
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+    api_key_env: GEMINI_KEY_SABRI
+    optional: true
+  # Cerebras: 1M token/gün ücretsiz, Llama 70B
+  # API key: https://cloud.cerebras.ai/
+  cerebras:
+    kind: openai
+    base_url: https://api.cerebras.ai/v1
+    api_key_env: CEREBRAS_API_KEY
+  # GLM (Zhipu AI): GLM-4-Flash ÜCRETSIZ, GLM-5.1 SWE-Bench #1 açık kaynak
+  # Ücretsiz key: https://open.bigmodel.cn → kayıt ol → API Keys
+  glm:
+    kind: openai
+    base_url: https://open.bigmodel.cn/api/paas/v4
+    api_key_env: GLM_API_KEY
 
 chains:
+  # ── Default: Ücretsiz önce, ücretli fallback ───────────────
   default:
+    - provider: groq
+      model: llama-3.3-70b-versatile
+    - provider: glm
+      model: glm-4-flash          # Ücretsiz, hızlı
+    - provider: gemini
+      model: gemini-2.5-flash
     - provider: ollama
-      model: qwen3:8b
+      model: gemma4:e2b
     - provider: openrouter
       model: deepseek/deepseek-v3.2
-    - provider: openai
-      model: gpt-4o-mini
 
+  # ── Hız: Groq önce (800+ tok/sn), Cerebras yedek ──────────
+  fast:
+    - provider: groq
+      model: llama-3.1-8b-instant
+    - provider: cerebras
+      model: llama3.3-70b
+    - provider: groq
+      model: llama-3.3-70b-versatile
+    - provider: ollama
+      model: deepseek-coder:latest
+
+  # ── Vision: Gemini önce (video+görüntü), Ollama yedek ──────
+  vision:
+    - provider: gemini
+      model: gemini-2.5-flash
+    - provider: gemini
+      model: gemini-2.0-flash
+    - provider: ollama
+      model: gemma4:e2b
+    - provider: ollama
+      model: moondream:latest
+
+  # ── Uzun Context (576K satır dosya için) ───────────────────
+  long:
+    - provider: gemini
+      model: gemini-2.5-pro
+    - provider: gemini
+      model: gemini-2.5-flash
+    - provider: openrouter
+      model: moonshotai/kimi-k2.5
+
+  # ── Gemini route (eski uyumluluk) ──────────────────────────
+  gemini:
+    - provider: gemini
+      model: gemini-2.5-flash
+    - provider: gemini
+      model: gemini-2.0-flash
+    - provider: ollama
+      model: gemma4:e2b
+
+  # ── Kod: GLM-5.1 #1 SWE-Bench + Groq Kimi K2 fallback ────
   code:
+    - provider: glm
+      model: glm-5.1
+    - provider: groq
+      model: moonshotai/kimi-k2-5
     - provider: openrouter
       model: anthropic/claude-sonnet-4.6
     - provider: openrouter
       model: deepseek/deepseek-v3.2
-    - provider: openrouter
-      model: moonshotai/kimi-k2.5
     - provider: openai
       model: gpt-4o
 
+  # ── Derin Düşünme ──────────────────────────────────────────
+  deep:
+    - provider: groq
+      model: qwen-qwq-32b
+    - provider: openrouter
+      model: deepseek/deepseek-v3.2
+    - provider: ollama
+      model: deepseek-coder:latest
+
+  # ── Chat: Groq Llama 4 Scout ücretsiz ─────────────────────
+  chat:
+    - provider: groq
+      model: meta-llama/llama-4-scout-17b-16e-instruct
+    - provider: gemini
+      model: gemini-2.5-flash
+    - provider: openrouter
+      model: stepfun/step-3.5-flash:free
+    - provider: openai
+      model: gpt-4o-mini
+
+  # ── Marketing: kampanya, sosyal medya, kısa form creative ──
+  marketing:
+    - provider: gemini
+      model: gemini-2.5-flash
+    - provider: groq
+      model: llama-3.3-70b-versatile
+    - provider: openrouter
+      model: stepfun/step-3.5-flash:free
+
+  # ── Data: analiz, raporlama, YouTube KPI, uzun cevaplar ───
+  data:
+    - provider: gemini
+      model: gemini-2.5-pro
+    - provider: gemini
+      model: gemini-2.5-flash
+    - provider: groq
+      model: qwen-qwq-32b
+
+  # ── System: ops, deploy, admin koordinasyonu ──────────────
+  system:
+    - provider: groq
+      model: llama-3.1-8b-instant
+    - provider: gemini
+      model: gemini-2.5-flash
+    - provider: ollama
+      model: gemma4:e2b
+
+  # ── Reasoning ─────────────────────────────────────────────
   reasoning:
+    - provider: groq
+      model: qwen-qwq-32b
+    - provider: glm
+      model: glm-5.1             # SWE-Bench #1 açık kaynak
     - provider: openrouter
       model: anthropic/claude-opus-4.6
     - provider: openrouter
       model: z-ai/glm-5-turbo
-    - provider: openrouter
-      model: google/gemini-3.1-pro-preview
     - provider: openai
       model: gpt-4.1
 
-  chat:
-    - provider: openrouter
-      model: minimax/minimax-m2.7
-    - provider: openrouter
-      model: stepfun/step-3.5-flash:free
-    - provider: openrouter
-      model: google/gemini-3-flash-preview
-    - provider: openai
-      model: gpt-4o-mini
+  # ── GLM: Zhipu AI modelleri ────────────────────────────────
+  glm:
+    - provider: glm
+      model: glm-4-flash          # Ücretsiz
+    - provider: glm
+      model: glm-4-plus           # Güçlü, ücretli
+    - provider: glm
+      model: glm-5.1              # SWE-Bench #1, ücretli

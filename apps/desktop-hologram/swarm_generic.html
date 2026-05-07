@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Swarm Agent</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            font-family: 'Inter', sans-serif;
+            color: white;
+        }
+        .orb-container {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .orb {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #ffffff;
+            box-shadow: 0 0 20px currentColor, inset 0 0 20px rgba(255,255,255,0.8);
+            transition: all 0.3s ease;
+            opacity: 0.4;
+        }
+        .orb.speaking {
+            animation: pulse 1s infinite alternate;
+            opacity: 1;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 20px currentColor; }
+            100% { transform: scale(1.3); box-shadow: 0 0 40px currentColor, inset 0 0 10px white; }
+        }
+        .agent-name {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: 600;
+            text-transform: capitalize;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+        .subtitle {
+            margin-top: 10px;
+            font-size: 12px;
+            text-align: center;
+            width: 180px;
+            line-height: 1.4;
+            opacity: 0.8;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+            min-height: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="orb-container">
+        <div id="orb" class="orb"></div>
+    </div>
+    <div id="agentName" class="agent-name">Agent</div>
+    <div id="subtitle" class="subtitle">...</div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+
+        const COLORS = {
+            seda: "#00ff88",
+            mert: "#ffdd00",
+            buse: "#ff69b4",
+            eren: "#ff8c00",
+            luna: "#9b59b6",
+            sabrican: "#95a5a6",
+            sabri: "#e74c3c"
+        };
+        
+        let currentAgent = "seda";
+
+        ipcRenderer.on('set-agent', (event, agentId) => {
+            currentAgent = agentId;
+            document.getElementById('agentName').textContent = agentId;
+            document.getElementById('orb').style.color = COLORS[agentId] || "#ffffff";
+        });
+
+        // Polling loop
+        setInterval(async () => {
+            try {
+                // Ensure bridge runs on 8081
+                const res = await fetch("http://localhost:8081/api/swarm-status");
+                if (res.ok) {
+                    const data = await res.json();
+                    
+                    const isSpeaking = data.speaking === currentAgent;
+                    const orb = document.getElementById('orb');
+                    
+                    if (isSpeaking) {
+                        orb.classList.add('speaking');
+                        document.getElementById('subtitle').textContent = data.text || "...";
+                    } else {
+                        orb.classList.remove('speaking');
+                        if (!data.dialogue_active) {
+                            document.getElementById('subtitle').textContent = "...";
+                        }
+                    }
+                }
+            } catch (e) {
+                // Not running or error
+            }
+        }, 2000);
+    </script>
+</body>
+</html>

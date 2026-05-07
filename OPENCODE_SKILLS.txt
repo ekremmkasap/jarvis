@@ -1,0 +1,420 @@
+================================================================================
+                        OPENCODE NATIVE SKILLS (200+)
+================================================================================
+
+Version: 1.3.12
+Total Skills: 200+
+Categories: 12
+Date: 2026-04-04
+
+================================================================================
+                              QUICK REFERENCE
+================================================================================
+
+TOP CATEGORIES BY SKILL COUNT:
+1. Marketing / Growth / Content / CRO (35+ skills)
+2. Leadership / C-Level / Strategy (25 skills)
+3. Agent / AI / Automation (23 skills)
+4. Engineering / Core Development (21 skills)
+5. Platform / DevOps / Cloud / Infra (14 skills)
+6. Product / UX / Design (15 skills)
+
+================================================================================
+                          1. AGENT / AI / AUTOMATION
+================================================================================
+Total: 23 Skills
+
+agent-designer
+agent-protocol
+agent-workflow-designer
+agenthub
+autoresearch-agent
+board
+eval
+extract
+gepeto
+git-worktree-manager
+llm-cost-optimizer
+loop
+pinokio
+promote
+prompt-engineer-toolkit
+prompt-governance
+rag-architect
+remember
+resume
+run
+self-eval
+self-improving-agent
+setup
+spawn
+status
+senior-prompt-engineer
+
+KEY: autoresearch-agent ve self-improving-agent Jarvis için önemli
+
+================================================================================
+                    2. ENGINEERING / CORE DEVELOPMENT
+================================================================================
+Total: 21 Skills
+
+a11y-audit
+adversarial-reviewer
+api-design-reviewer
+changelog-generator
+code-reviewer
+codebase-onboarding
+database-designer
+database-schema-designer
+dependency-auditor
+engineering-advanced-skills
+engineering-skills
+focused-fix
+migration-architect
+monorepo-navigator
+observability-designer
+performance-profiler
+pr-review-expert
+release-manager
+runbook-generator
+senior-architect
+senior-backend
+senior-frontend
+senior-fullstack
+spec-driven-workflow
+sql-database-assistant
+tech-debt-tracker
+tech-stack-evaluator
+
+KEY: performance-profiler (throughput optimization) + adversarial-reviewer (security)
+
+================================================================================
+                   3. PLATFORM / DEVOPS / CLOUD / INFRA
+================================================================================
+Total: 14 Skills
+
+aws-solution-architect
+azure-cloud-architect
+browser-automation
+ci-cd-pipeline-builder
+docker-development
+gcp-cloud-architect
+google-workspace-cli
+helm-chart-builder
+mcp-server-builder
+ms365-tenant-manager
+senior-devops
+snowflake-development
+stripe-integration-expert
+terraform-patterns
+
+KEY: docker-development (Wave 1 task) + ci-cd-pipeline-builder
+
+================================================================================
+                          4. TESTING / QA
+================================================================================
+Total: 9 Skills
+
+api-test-suite-builder
+browserstack
+coverage
+fix
+generate
+init
+migrate
+playwright-pro
+report
+review
+senior-qa
+skill-tester
+tdd-guide
+testrail
+
+KEY: skill-tester (for agent validation)
+
+================================================================================
+                       5. SECURITY / SECOPS
+================================================================================
+Total: 10 Skills
+
+ai-security
+cloud-security
+env-secrets-manager
+incident-commander
+incident-response
+red-team
+secrets-vault-manager
+security-pen-testing
+senior-secops
+senior-security
+skill-security-auditor
+threat-detection
+
+KEY: skill-security-auditor + secrets-vault-manager (Wave 1 security)
+
+================================================================================
+                         6. DATA / ML
+================================================================================
+Total: 4 Skills
+
+senior-computer-vision
+senior-data-engineer
+senior-data-scientist
+senior-ml-engineer
+
+================================================================================
+                    7. PRODUCT / UX / DESIGN
+================================================================================
+Total: 15 Skills
+
+agile-product-owner
+code-to-prd
+competitive-teardown
+epic-design
+experiment-designer
+landing-page-generator
+product-analytics
+product-discovery
+product-manager-toolkit
+product-skills
+product-strategist
+roadmap-communicator
+saas-scaffolder
+ui-design-system
+ux-researcher-designer
+
+================================================================================
+               8. MARKETING / GROWTH / CONTENT / CRO (35+)
+================================================================================
+Total: 35+ Skills
+
+ab-test-setup
+ad-creative
+ai-seo
+analytics-tracking
+app-store-optimization
+brand-guidelines
+campaign-analytics
+churn-prevention
+cold-email
+competitor-alternatives
+content-creator
+content-humanizer
+content-production
+content-strategy
+copy-editing
+copywriting
+email-sequence
+email-template-builder
+form-cro
+free-tool-strategy
+launch-strategy
+marketing-context
+marketing-demand-acquisition
+marketing-ideas
+marketing-ops
+marketing-plan
+marketing-psychology
+marketing-skills
+marketing-strategy-pmm
+onboarding-cro
+page-cro
+paid-ads
+paywall-upgrade-cro
+popup-cro
+pricing-strategy
+programmatic-seo
+referral-program
+schema-markup
+seo-audit
+signup-flow-cro
+site-architecture
+social-content
+social-media-analyzer
+social-media-manager
+video-content-strategist
+x-twitter-growth
+
+KEY: social-media-manager + content-creator (Instagram/Telegram strategy)
+
+================================================================================
+                    9. BUSINESS / REVENUE / FINANCE
+================================================================================
+Total: 12 Skills
+
+business-growth-skills
+business-investment-advisor
+contract-and-proposal-writer
+customer-success-manager
+finance-skills
+financial-analyst
+first-customers
+grow-sustainably
+minimalist-review
+mvp
+pricing
+revenue-operations
+saas-metrics-coach
+sales-engineer
+validate-idea
+
+================================================================================
+               10. LEADERSHIP / C-LEVEL / STRATEGY
+================================================================================
+Total: 25+ Skills
+
+board-deck-builder
+board-meeting
+board-prep
+c-level-advisor
+ceo-advisor
+cfo-advisor
+challenge
+change-management
+chief-of-staff
+chro-advisor
+ciso-advisor
+cmo-advisor
+company-os
+competitive-intel
+context-engine
+coo-advisor
+cpo-advisor
+cro-advisor
+cs-onboard
+cto-advisor
+culture-architect
+decision-logger
+executive-mentor
+founder-coach
+hard-call
+internal-narrative
+intl-expansion
+ma-playbook
+org-health-diagnostic
+postmortem
+scenario-war-room
+strategic-alignment
+stress-test
+
+================================================================================
+             11. PROJECT MANAGEMENT / ATLASSIAN / COLLABORATION
+================================================================================
+Total: 13 Skills
+
+atlassian-admin
+atlassian-templates
+confluence-expert
+interview-system-designer
+jira-expert
+meeting-analyzer
+pm-skills
+research-summarizer
+scrum-master
+senior-pm
+team-communications
+
+================================================================================
+                12. COMPLIANCE / REGULATORY / QUALITY
+================================================================================
+Total: 10+ Skills
+
+capa-officer
+fda-consultant-specialist
+gdpr-dsgvo-expert
+information-security-manager-iso27001
+isms-audit-expert
+mdr-745-specialist
+qms-audit-expert
+quality-documentation-manager
+quality-manager-qmr
+quality-manager-qms-iso13485
+ra-qm-skills
+regulatory-affairs-head
+risk-management-specialist
+soc2-compliance
+
+================================================================================
+                         JARVIS INTEGRATION PLAN
+================================================================================
+
+Priority 1 (Wave 1):
+  - social-media-manager
+  - autoresearch-agent
+  - docker-development
+  - skill-security-auditor
+  - performance-profiler
+
+Priority 2 (Wave 2):
+  - self-improving-agent
+  - content-creator
+  - api-design-reviewer
+  - ci-cd-pipeline-builder
+
+Priority 3 (Wave 3+):
+  - All other skills
+
+================================================================================
+                              COMMAND USAGE
+================================================================================
+
+opencode serve --port 7080          # Start OpenCode server
+opencode skills --list              # List all available skills
+opencode skills --search [keyword]  # Search skills
+opencode skills --info [skill]      # Get skill details
+
+From Jarvis:
+/opencode-skills [category]
+/opencode-skill [skill-name]
+/opencode-run [skill] [args]
+
+Examples:
+/opencode-skills marketing
+/opencode-skill social-media-manager "Instagram strategy for dogs"
+/opencode-skill autoresearch-agent "Telegram throughput optimization"
+
+================================================================================
+                          COMPARISON TABLE
+================================================================================
+
+Feature              | Claude Skills | OpenCode Skills
+---------------------|---------------|----------------
+Total Skills         | 220+          | 200+
+Platform Focus       | Claude Code   | Universal (5+ agents)
+Language             | Python stdlib | Multi-language
+Marketing Domain     | 40+           | 35+
+Agent/AI Domain      | 23            | 23
+Engineering          | 27            | 21
+DevOps               | 14            | 14
+Compliance           | 10+           | 10+
+Best For             | Claude-first  | Cross-platform
+
+RECOMMENDATION: Use both (420+ total ecosystem)
+
+================================================================================
+                              ADDITIONAL NOTES
+================================================================================
+
+OpenCode Skills Characteristics:
+- Ecosystem agnostic (works with Claude, Codex, Gemini, Cursor, Mistral, vb.)
+- Web-based skill discovery interface
+- Community-contributed skills
+- Versioning & compatibility management
+- Real-time installation/update
+
+Integration with Jarvis:
+- Already serving on http://127.0.0.1:7080
+- Bridge.py can call /api/opencode/status and /api/opencode/start
+- Skills can be proxied through gateway/server.py
+- Hologram UI can display skill marketplace
+
+Next Steps:
+1. Prioritize Wave 1 skills
+2. Create Jarvis-specific skill wrappers
+3. Add skill discovery to dashboard
+4. Implement skill dependency resolver
+5. Add skill versioning/rollback
+
+================================================================================
+End of OpenCode Skills Reference (2026-04-04)
+================================================================================

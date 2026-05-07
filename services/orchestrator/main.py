@@ -22,6 +22,11 @@ from services.orchestrator.task_queue import TaskQueue, Task, TaskStatus, TaskPr
 from services.orchestrator.safety import SafetyPolicy
 from services.orchestrator.ws_broadcaster import WSBroadcaster
 from services.orchestrator.agent_runner import AgentRunner
+from services.orchestrator.live_state import (
+    load_runtime_snapshot,
+    read_latest_voice_runtime_event,
+    read_recent_live_events,
+)
 
 log = logging.getLogger("orchestrator.main")
 
@@ -35,9 +40,13 @@ app.add_middleware(
 )
 
 broadcaster = WSBroadcaster()
-queue = TaskQueue(broadcaster=broadcaster)
+queue = TaskQueue(
+    broadcaster=broadcaster,
+    state_file=os.getenv("JARVIS_ORCHESTRATOR_STATE_FILE"),
+)
 safety = SafetyPolicy()
 runner = AgentRunner(queue=queue, broadcaster=broadcaster, safety=safety)
+_voice_runtime_marker: str | float | None = None
 
 
 class TaskRequest(BaseModel):
@@ -56,7 +65,25 @@ class VoiceCommand(BaseModel):
 @app.on_event("startup")
 async def startup():
     asyncio.create_task(runner.run_loop())
+    asyncio.create_task(_mirror_voice_runtime_events())
     log.info("Orchestrator started on port %s", os.getenv("ORCHESTRATOR_PORT", "8091"))
+
+
+async def _mirror_voice_runtime_events() -> None:
+    global _voice_runtime_marker
+
+    while True:
+        try:
+            latest = read_latest_voice_runtime_event()
+            if latest:
+                marker = latest.get("updated_at") or latest.get("timestamp")
+                if marker and marker != _voice_runtime_marker:
+                    _voice_runtime_marker = marker
+                    payload = {"event": "runtime_state", **latest}
+                    await broadcaster.broadcast(payload)
+        except Exception as exc:
+            log.debug("Voice runtime mirror skipped: %s", exc)
+        await asyncio.sleep(1.0)
 
 
 @app.websocket("/ws")
@@ -77,11 +104,16 @@ async def create_task(req: TaskRequest):
     if check.blocked:
         raise HTTPException(status_code=403, detail=f"Safety violation: {check.reason}")
 
+    try:
+        priority = TaskPriority(req.priority)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=f"Invalid priority: {req.priority}") from exc
+
     task = Task(
         id=str(uuid.uuid4())[:8],
         goal=req.goal,
         agent=req.agent,
-        priority=TaskPriority(req.priority),
+        priority=priority,
         context=req.context,
         dry_run=req.dry_run,
         created_at=datetime.now(timezone.utc).isoformat(),
@@ -112,12 +144,12 @@ async def get_task(task_id: str):
 
 @app.post("/tasks/{task_id}/confirm")
 async def confirm_task(task_id: str):
-    task = queue.get(task_id)
+    try:
+        task = await queue.confirm(task_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
-    task.requires_confirmation = False
-    task.status = TaskStatus.QUEUED
-    await queue._queue.put(task)
     await broadcaster.broadcast({"event": "task_confirmed", "task": task.to_dict()})
     return {"ok": True}
 
@@ -159,11 +191,27 @@ async def voice_command(cmd: VoiceCommand):
 
 @app.get("/health")
 async def health():
+    snapshot = queue.snapshot()
+    runtime = load_runtime_snapshot()
+    raw_phase = str(runtime.get("phase") or "idle").strip().lower() or "idle"
+    voice_phase = "idle" if raw_phase == "offline" else raw_phase
     return {
         "status": "ok",
-        "queue_size": queue.size(),
+        "queue_size": snapshot["queued_tasks"],
+        "awaiting_confirmation": snapshot["awaiting_confirmation_tasks"],
+        "running_tasks": snapshot["running_tasks"],
+        "total_tasks": snapshot["total_tasks"],
+        "queued_by_priority": snapshot["queued_by_priority"],
+        "queue_snapshot": snapshot,
         "ws_connections": broadcaster.connection_count(),
         "agents": len(runner.list_agents()),
+        "queue_state_file": str(queue.state_file),
+        "recent_events": read_recent_live_events(limit=5),
+        "voice_runtime": {
+            "phase": voice_phase,
+            "status": runtime.get("runtime", {}).get("status", "offline"),
+            "updated_at": runtime.get("updated_at", 0.0),
+        },
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 

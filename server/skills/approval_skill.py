@@ -85,7 +85,7 @@ def _save_autopilot(data: dict):
     AUTOPILOT_PATH.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def add_approval_request(title: str, summary: str = "", source: str = "jarvis", risk: str = "medium") -> str:
+def create_approval_request(title: str, summary: str = "", source: str = "jarvis", risk: str = "medium") -> dict:
     queue = _load_queue()
     item_id = str(uuid.uuid4())[:8]
     autopilot = _load_autopilot()
@@ -108,9 +108,25 @@ def add_approval_request(title: str, summary: str = "", source: str = "jarvis", 
         }
     )
     _save_queue(queue)
+    return {
+        "id": item_id,
+        "title": title.strip(),
+        "summary": summary.strip(),
+        "source": source,
+        "risk": risk,
+        "status": status,
+        "decision_note": decision_note,
+    }
+
+
+def add_approval_request(title: str, summary: str = "", source: str = "jarvis", risk: str = "medium") -> str:
+    item = create_approval_request(title=title, summary=summary, source=source, risk=risk)
+    item_id = item["id"]
+    status = item["status"]
+    clean_title = item["title"]
     if status == "approved":
-        return f"Onay istegi otomatik kabul edildi: #{item_id} - {title.strip()}"
-    return f"Onay istegi eklendi: #{item_id} - {title.strip()}"
+        return f"Onay istegi otomatik kabul edildi: #{item_id} - {clean_title}"
+    return f"Onay istegi eklendi: #{item_id} - {clean_title}"
 
 
 def list_approval_requests(status: str = "pending") -> str:

@@ -1,0 +1,183 @@
+==============================================================
+JARVIS — FORGE LANE — Persona System Prompt + LLM Inject + Obsidian Commands
+Branch: 004-dijital-ajan-v3-persona-swarm
+==============================================================
+
+ÇALIŞMA DİZİNİ:
+C:\Users\sergen\Desktop\jarvis-mission-control
+
+ÖNCE OKU (sırayla):
+1. specs/004-dijital-ajan-v3-persona-swarm/plan.md
+2. specs/004-dijital-ajan-v3-persona-swarm/spec.md
+3. server/bridge.py  (büyük dosya — sadece /api/chat ve LLM çağrı bloğunu bul)
+4. server/persona_manager.py
+5. server/skills/persona_obsidian_skill.py
+6. config/agents.yaml  (personas bölümü, satır ~184)
+
+ASLA DOKUNMA:
+- hey_jarvis.py
+- apps/desktop-hologram/
+- server/services/persona_swarm.py  (Atlas lane'in görevi)
+
+==============================================================
+SLICE 1 — config/agents.yaml personas bloğunu tamamla
+==============================================================
+
+Her 7 persona için şu alanları ekle (mevcut alanları KORU, sadece eksik ekle):
+
+  system_prompt: |
+    Sen [İsim]'sin. [Rol] uzmanısın. [Kişilik ve ton].
+    Uzmanlık alanın: [alan1, alan2, alan3].
+    Alan dışı sorularda şunu söyle: "Bu konu benim uzmanlığım değil, [doğru persona]'ya sor."
+    Kısa ve net konuş. Türkçe konuş.
+
+  sub_agents:
+    - code_analyzer      # Seda, Luna, Sabrican için
+    - web_search         # Mert, Buse, Sabri için
+    - obsidian_writer    # hepsi için
+    - summarizer         # hepsi için
+    - file_reader        # Seda, Eren, Luna için
+
+  obsidian_folder: "personas/<persona_id>"
+
+Her persona için öneri:
+
+seda:
+  system_prompt: |
+    Sen Seda'sın. Kıdemli yazılım mühendisisin. Teknik, debug odaklı, doğrudan konuşursun.
+    Uzmanlığın: kod inceleme, hata ayıklama, refactor, PR review, Python ve TypeScript.
+    Alan dışı sorularda: "Bu benim alanım değil, [ilgili persona]'ya sor." de.
+    Kısa yanıt ver. Türkçe konuş.
+  sub_agents: [code_analyzer, obsidian_writer, summarizer, file_reader]
+  obsidian_folder: "personas/seda"
+
+mert:
+  system_prompt: |
+    Sen Mert'sin. Araştırma ve rakip analizi uzmanısın. Meraklı, tarafsız, kanıt odaklısın.
+    Uzmanlığın: pazar araştırması, rakip analizi, trend takibi, teknoloji karşılaştırma.
+    Alan dışı sorularda: "Bu benim alanım değil, [ilgili persona]'ya sor." de.
+    Bulgularını madde madde sun. Türkçe konuş.
+  sub_agents: [web_search, obsidian_writer, summarizer]
+  obsidian_folder: "personas/mert"
+
+buse:
+  system_prompt: |
+    Sen Buse'sin. Pazarlama ve içerik uzmanısın. Enerjik, yaratıcı, satış odaklısın.
+    Uzmanlığın: landing page, copywriting, sosyal medya, CTA, marka dili.
+    Alan dışı sorularda: "Bu benim alanım değil, [ilgili persona]'ya sor." de.
+    İkna edici yaz. Türkçe konuş.
+  sub_agents: [web_search, obsidian_writer, summarizer]
+  obsidian_folder: "personas/buse"
+
+eren:
+  system_prompt: |
+    Sen Eren'sin. Veri analizi ve dashboard uzmanısın. Analitik, sayı odaklı, görsel düşünürsün.
+    Uzmanlığın: veri analizi, grafik önerileri, KPI, dashboard tasarımı, raporlama.
+    Alan dışı sorularda: "Bu benim alanım değil, [ilgili persona]'ya sor." de.
+    Sayılarla ve metriklerle konuş. Türkçe konuş.
+  sub_agents: [file_reader, obsidian_writer, summarizer]
+  obsidian_folder: "personas/eren"
+
+luna:
+  system_prompt: |
+    Sen Luna'sın. Siber güvenlik ve audit uzmanısın. Soğukkanlı, şüpheci, risk odaklısın.
+    Uzmanlığın: güvenlik analizi, log inceleme, zafiyet değerlendirme, güvenli kod review, savunma.
+    SINIR: Sadece yetkili/lab/analiz bağlamında çalışırsın. İzinsiz saldırı, exploit planı, canlı hedef yok.
+    Alan dışı sorularda: "Bu benim alanım değil, [ilgili persona]'ya sor." de.
+    Risk bazlı düşün. Türkçe konuş.
+  sub_agents: [code_analyzer, file_reader, obsidian_writer, summarizer]
+  obsidian_folder: "personas/luna"
+
+sabrican:
+  system_prompt: |
+    Sen Sabrican'sın. DevOps ve deploy uzmanısın. Pratik, süreç odaklı, güvenilirsin.
+    Uzmanlığın: deploy, Docker, CI/CD, ops, altyapı, servis izleme.
+    Alan dışı sorularda: "Bu benim alanım değil, [ilgili persona]'ya sor." de.
+    Adım adım açıkla. Türkçe konuş.
+  sub_agents: [code_analyzer, file_reader, obsidian_writer, summarizer]
+  obsidian_folder: "personas/sabrican"
+
+sabri:
+  system_prompt: |
+    Sen Sabri'sin. Yaratıcı fikir ve strateji uzmanısın. Serbest düşünceli, bağlantı kuran, vizyonersin.
+    Uzmanlığın: yeni fikirler, strateji, inovasyon, bağlantı noktaları bulma, wildcard düşünce.
+    Alan dışı sorularda bile bağlantı kur, farklı açıdan bak.
+    Yaratıcı ve ilham verici konuş. Türkçe konuş.
+  sub_agents: [web_search, obsidian_writer, summarizer]
+  obsidian_folder: "personas/sabri"
+
+==============================================================
+SLICE 2 — server/bridge.py: LLM çağrısına system_prompt inject
+==============================================================
+
+bridge.py içinde LLM mesajı oluşturulan yeri bul (/api/chat veya eşdeğeri).
+Orada şu mantığı ekle (backward-safe — Jarvis aktifse mevcut davranış korunur):
+
+  from server.persona_manager import get_active_persona
+
+  def _build_messages_with_persona(user_message: str, history: list) -> list:
+      persona = get_active_persona()
+      messages = []
+      system_prompt = persona.get("system_prompt", "")
+      if system_prompt and persona.get("id") != "jarvis":
+          messages.append({"role": "system", "content": system_prompt})
+      messages.extend(history)
+      messages.append({"role": "user", "content": user_message})
+      return messages
+
+/api/persona/active endpoint payload'ına ekle (system_prompt ekleme, sadece):
+  - sub_agents
+  - obsidian_folder
+
+==============================================================
+SLICE 3 — server/bridge.py: Obsidian komut entegrasyonu
+==============================================================
+
+bridge.py içinde gelen mesajda keyword detect et:
+
+KAYDET triggerlari: "kaydet", "not al", "obsidian'a yaz", "bunu sakla"
+  → from server.skills.persona_obsidian_skill import save_note
+  → save_note(persona_id=active_id, title=ilk_cümle, content=mesaj)
+  → Kullanıcıya: "Obsidian'a kaydedildi: [başlık]"
+
+RECALL triggerlari: "ne biliyorsun", "araştırdıklarımız", "notlarına bak", "geçmişte"
+  → from server.skills.persona_obsidian_skill import recall_notes
+  → notes = recall_notes(persona_id=active_id, query=mesaj)
+  → LLM messages'a context olarak ekle: {"role": "system", "content": f"Obsidian notların:\n{notes}"}
+
+TELEGRAM KOMUTLARI (bridge.py içine):
+  /obsidian-kaydet <başlık> → save_note() çağır
+  /obsidian-oku <query>    → recall_notes() çağır, sonucu Telegram'a gönder
+
+==============================================================
+TESTLER
+==============================================================
+
+Şunları yaz ve çalıştır:
+
+1. Mevcut testleri çalıştır:
+   python -m pytest tests/test_persona_manager.py -v --tb=short
+   python -m pytest tests/test_persona_obsidian_skill.py -v --tb=short
+
+2. Yeni test yaz: tests/test_bridge_persona_flow.py
+   - Seda aktif → LLM messages başında Seda system_prompt var
+   - Jarvis aktif → system_prompt inject yok (mevcut davranış)
+   - "kaydet" keyword → save_note çağrıldı
+   - "ne biliyorsun" → recall_notes çağrıldı
+
+3. Smoke:
+   python -c "import server.bridge; print('bridge import ok')"
+
+==============================================================
+TESLİM FORMATI
+==============================================================
+
+1. Değişen dosyalar listesi
+2. system_prompt inject çalışıyor mu (evet/hayır + kanıt)
+3. Obsidian kaydet/oku komutları çalışıyor mu
+4. Test sonuçları (kaç passed)
+5. Kalan riskler
+6. Commit hash
+
+Önerilen commit mesajı:
+feat: persona system_prompt inject and obsidian bridge commands

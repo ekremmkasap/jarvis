@@ -1,0 +1,257 @@
+{
+  "tools": [
+    {
+      "id": "hooks_mastery",
+      "label": "Claude Hooks Mastery",
+      "repo": "disler/claude-code-hooks-mastery",
+      "path": "external-repos/claude-code-hooks-mastery",
+      "category": "hooks",
+      "tier": "core",
+      "status": "integrated_foundation",
+      "why": "PreToolUse, UserPromptSubmit ve SessionStart mantigi icin referans",
+      "jarvis_use": "hook sinir sistemi"
+    },
+    {
+      "id": "codex_subagents",
+      "label": "Awesome Codex Subagents",
+      "repo": "VoltAgent/awesome-codex-subagents",
+      "path": "external-repos/awesome-codex-subagents",
+      "category": "subagents",
+      "tier": "core",
+      "status": "integrated_mapping",
+      "why": "Rol bazli uzman subagent shortlist cikarildi",
+      "jarvis_use": "recommended_subagents metadata"
+    },
+    {
+      "id": "paperclip",
+      "label": "Paperclip",
+      "repo": "paperclipai/paperclip",
+      "path": "external-repos/paperclip",
+      "category": "company_layer",
+      "tier": "core",
+      "status": "integrated_foundation",
+      "why": "Org chart, budget pressure, governance, lineage mantigi",
+      "jarvis_use": "company layer foundation"
+    },
+    {
+      "id": "spec_kit",
+      "label": "Spec Kit",
+      "repo": "github/spec-kit",
+      "path": "external-repos/spec-kit",
+      "category": "workflow",
+      "tier": "core",
+      "status": "integrated_foundation",
+      "why": "specify -> plan -> tasks -> implement disiplini",
+      "jarvis_use": "spec workflow"
+    },
+    {
+      "id": "prompts_chat",
+      "label": "prompts.chat",
+      "repo": "f/prompts.chat",
+      "path": "external-repos/prompts-chat",
+      "category": "prompt_library",
+      "tier": "core",
+      "status": "reference_only",
+      "why": "Prompt ve pattern havuzu",
+      "jarvis_use": "prompt/reference"
+    },
+    {
+      "id": "awesome_agent_skills",
+      "label": "Awesome Agent Skills",
+      "repo": "VoltAgent/awesome-agent-skills",
+      "path": "external-repos/awesome-agent-skills",
+      "category": "skills",
+      "tier": "core",
+      "status": "reference_only",
+      "why": "Genis skill havuzu",
+      "jarvis_use": "secili capability transfer"
+    },
+    {
+      "id": "claude_skills",
+      "label": "Claude Skills",
+      "repo": "alirezarezvani/claude-skills",
+      "path": "external-repos/claude-skills",
+      "category": "skills",
+      "tier": "core",
+      "status": "partially_integrated",
+      "why": "marketing, business-growth, review ve autoresearch skill'leri",
+      "jarvis_use": ".claude/skills"
+    },
+    {
+      "id": "slavingia_skills",
+      "label": "Sahil Lavingia Skills",
+      "repo": "slavingia/skills",
+      "path": "external-repos/skills",
+      "category": "business_skills",
+      "tier": "core",
+      "status": "partially_integrated",
+      "why": "validate-idea, mvp, first-customers, pricing, marketing-plan",
+      "jarvis_use": ".claude/skills"
+    },
+    {
+      "id": "claw_router",
+      "label": "ClawRouter",
+      "repo": "BlockRunAI/ClawRouter",
+      "path": "external-repos/ClawRouter",
+      "category": "routing",
+      "tier": "core",
+      "status": "reference_only",
+      "why": "ucuz model -> pahali model routing mantigi",
+      "jarvis_use": "provider routing ilhami"
+    },
+    {
+      "id": "octogent",
+      "label": "Octogent",
+      "repo": "hesamsheikh/octogent",
+      "path": "external-repos/octogent",
+      "category": "orchestration",
+      "tier": "core",
+      "status": "integrated_optional",
+      "why": "Claude Code terminal orkestrasyonu, tentacle todo modeli, yerel API/UI",
+      "jarvis_use": "Sabrican secondary runtime / multi-agent ops surface"
+    },
+    {
+      "id": "swarms",
+      "label": "Swarms",
+      "repo": "kyegomez/swarms",
+      "path": "external-repos/swarms",
+      "category": "orchestration",
+      "tier": "core",
+      "status": "reference_only",
+      "why": "hierarchical swarm runtime patternleri",
+      "jarvis_use": "future orchestration"
+    },
+    {
+      "id": "crewai",
+      "label": "crewAI",
+      "repo": "crewAIInc/crewAI",
+      "path": "external-repos/crewAI",
+      "category": "orchestration",
+      "tier": "core",
+      "status": "reference_only",
+      "why": "research -> execute -> review rol modeli",
+      "jarvis_use": "role design referansi"
+    },
+    {
+      "id": "cline",
+      "label": "Cline",
+      "repo": "cline/cline",
+      "path": "external-repos/cline",
+      "category": "coding_agent",
+      "tier": "core",
+      "status": "reference_only",
+      "why": "IDE ajan davranisi ve tool use patternleri",
+      "jarvis_use": "agent UX referansi"
+    },
+    {
+      "id": "aider",
+      "label": "Aider",
+      "repo": "paul-gauthier/aider",
+      "path": "external-repos/aider",
+      "category": "coding_agent",
+      "tier": "core",
+      "status": "reference_only",
+      "why": "terminal coding agent patternleri",
+      "jarvis_use": "CLI workflow referansi"
+    },
+    {
+      "id": "openhands",
+      "label": "OpenHands",
+      "repo": "All-Hands-AI/OpenHands",
+      "path": "external-repos/OpenHands",
+      "category": "autonomous_engineer",
+      "tier": "core",
+      "status": "reference_only",
+      "why": "sandboxed autonomous engineering akisi",
+      "jarvis_use": "future agent runner ilhami"
+    },
+    {
+      "id": "devika",
+      "label": "Devika",
+      "repo": "stitionai/devika",
+      "path": "external-repos/devika",
+      "category": "autonomous_engineer",
+      "tier": "core",
+      "status": "reference_only",
+      "why": "planlama + web research + execution patternleri",
+      "jarvis_use": "future planning engine"
+    },
+    {
+      "id": "claude_code_mirror",
+      "label": "Claude Code Mirror",
+      "repo": "tanbiralam/claude-code",
+      "path": "external-repos/claude-code",
+      "category": "runtime_reference",
+      "tier": "reference",
+      "status": "reference_only",
+      "why": "yarim milyon satir sinifinda agent runtime/orchestration referansi",
+      "jarvis_use": "architecture lessons"
+    },
+    {
+      "id": "claude_code_new_features",
+      "label": "Claude Code New Features 2026",
+      "repo": "coleam00/claude-code-new-features-early-2026",
+      "path": "external-repos/claude-code-new-features-early-2026",
+      "category": "feature_reference",
+      "tier": "reference",
+      "status": "reference_only",
+      "why": "remote execution, session continuation, parallel agents desenleri",
+      "jarvis_use": "future roadmap"
+    },
+    {
+      "id": "claw_code",
+      "label": "claw-code",
+      "repo": "instructkr/claw-code",
+      "path": "external-repos/claw-code-old",
+      "category": "runtime_reference",
+      "tier": "reference",
+      "status": "reference_backup_local",
+      "why": "Claude benzeri execution core mimarisi icin referans",
+      "jarvis_use": "execution engine lessons"
+    },
+    {
+      "id": "cli_anything",
+      "label": "CLI-Anything",
+      "repo": "HKUDS/CLI-Anything",
+      "path": "external-repos/CLI-Anything",
+      "category": "desktop_control",
+      "tier": "reference",
+      "status": "reference_only",
+      "why": "desktop/cli kontrol patternleri",
+      "jarvis_use": "computer mode referansi"
+    },
+    {
+      "id": "mcp_youtube_transcript",
+      "label": "MCP YouTube Transcript",
+      "repo": "mcp-server-youtube-transcript",
+      "path": "external-repos/mcp-server-youtube-transcript",
+      "category": "content_ingest",
+      "tier": "reference",
+      "status": "reference_only",
+      "why": "YouTube transcript alma patternleri",
+      "jarvis_use": "video transcript tooling"
+    },
+    {
+      "id": "youtube_mcp_server",
+      "label": "YouTube MCP Server",
+      "repo": "youtube-mcp-server",
+      "path": "external-repos/youtube-mcp-server",
+      "category": "content_ingest",
+      "tier": "reference",
+      "status": "reference_only",
+      "why": "YouTube MCP entegrasyon deseni",
+      "jarvis_use": "future ingestion reference"
+    },
+    {
+      "id": "youtube_transcript_api",
+      "label": "YouTube Transcript API",
+      "repo": "youtube-transcript-api",
+      "path": "external-repos/youtube-transcript-api",
+      "category": "content_ingest",
+      "tier": "reference",
+      "status": "reference_only",
+      "why": "transcript retrieval fallback mantigi",
+      "jarvis_use": "subtitle/transcript fallback"
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+# Codex Swarm Slots Configuration
+
+slots:
+  forge:
+    personas: ["seda"]
+    domain: "internal code/debug/PR review"
+    quota_daily: 100
+    timeout_seconds: 120
+    priority_weight: 1.0
+  
+  nexus:
+    personas: ["mert", "deniz", "sabrican"]
+    domain: "deep research/e-commerce/internal ops"
+    quota_daily: 100
+    timeout_seconds: 120
+    priority_weight: 0.9
+  
+  spark:
+    personas: ["buse", "eren"]
+    domain: "social media/YouTube/video analytics"
+    quota_daily: 100
+    timeout_seconds: 120
+    priority_weight: 0.9
+  
+  atlas:
+    personas: ["sabri"]
+    domain: "ad agency/strategy/planning"
+    quota_daily: 100
+    timeout_seconds: 120
+    priority_weight: 0.8
+  
+  shield:
+    personas: ["luna", "zeynep"]
+    domain: "cyber/offensive lab + defensive compliance"
+    quota_daily: 100
+    timeout_seconds: 120
+    priority_weight: 1.0
+    restricted: true
+
+task_decomposition:
+  max_tasks: 5
+  model_route: "reasoning"  # qwen-qwq-32b via Groq
+  timeout_seconds: 30
+  language: "turkish"
+
+quota_limits:
+  daily_per_slot: 100
+  burst_limit: 5  # max consecutive calls
+  rate_limit_backoff_base: 2  # exponential: 2^n seconds
+  cooldown_min_seconds: 60
+  cooldown_max_seconds: 3600
+
+monitoring:
+  heartbeat_interval: 10  # seconds
+  state_persistence: "state/codex_quotas.json"
+  log_level: "INFO"
+  

@@ -1,0 +1,160 @@
+==============================================================
+JARVIS — SPARK LANE — Voice Identity + Hologram Color Transition
+Branch: 004-dijital-ajan-v3-persona-swarm
+==============================================================
+
+ÇALIŞMA DİZİNİ:
+C:\Users\sergen\Desktop\jarvis-mission-control
+
+ÖNCE OKU (sırayla):
+1. specs/004-dijital-ajan-v3-persona-swarm/plan.md  (Slice 5 + 6)
+2. hey_jarvis.py  (tüm dosya — persona voice kısmını bul)
+3. apps/desktop-hologram/renderer.js
+4. apps/desktop-hologram/styles.css
+5. server/persona_manager.py  (get_active_persona fonksiyonu)
+
+ASLA DOKUNMA:
+- server/bridge.py
+- server/persona_manager.py  (okuyabilirsin, değiştirme)
+- config/agents.yaml
+- server/services/persona_swarm.py
+
+==============================================================
+SLICE 5 — hey_jarvis.py: Persona voice identity + greeting
+==============================================================
+
+HEDEF:
+Persona değiştiğinde (active_agent.json güncellenir) hey_jarvis.py:
+  1. Yeni voice değerini okur
+  2. TTS sesini günceller
+  3. Persona greeting'ini sesli okur (SADECE BİR KEZ — debounce)
+
+YAPILACAK:
+
+A) Mevcut voice override kodunu bul. Çalışmıyorsa şu mantığı uygula:
+
+   import json, time
+   from pathlib import Path
+
+   ACTIVE_AGENT_PATH = Path("state/active_agent.json")
+   _last_greeted_persona = None
+   _last_greeting_time = 0
+   GREETING_DEBOUNCE_SEC = 4
+
+   def get_active_persona_voice() -> str:
+       try:
+           data = json.loads(ACTIVE_AGENT_PATH.read_text(encoding="utf-8"))
+           return data.get("voice", "AhmetNeural")
+       except Exception:
+           return "AhmetNeural"
+
+   def maybe_play_greeting():
+       global _last_greeted_persona, _last_greeting_time
+       try:
+           data = json.loads(ACTIVE_AGENT_PATH.read_text(encoding="utf-8"))
+           persona_id = data.get("id", "jarvis")
+           greeting = data.get("greeting", "")
+           now = time.time()
+           if persona_id != _last_greeted_persona and greeting:
+               if now - _last_greeting_time > GREETING_DEBOUNCE_SEC:
+                   _last_greeted_persona = persona_id
+                   _last_greeting_time = now
+                   # TTS ile greeting'i oku
+                   speak(greeting)  # mevcut speak() fonksiyonunu kullan
+       except Exception:
+           pass
+
+B) Polling loop içinde (varsa) veya her TTS öncesinde maybe_greeting() çağır.
+
+C) Persona switch olduğunda "Jarvis'ten [name]'a bağlanıyorum" geçiş cümlesi:
+   transition_text = f"Jarvis'ten {data.get('name', '')}a bağlanıyorum."
+   speak(transition_text)
+   (Bu da debounce kapsamında — greeting'den önce söylenir)
+
+==============================================================
+SLICE 6 — apps/desktop-hologram/: Persona renk geçişi
+==============================================================
+
+HEDEF:
+Persona değiştiğinde hologram:
+  - 0.6s CSS transition ile yeni renge geçer
+  - Active persona name + role gösterir
+
+A) apps/desktop-hologram/renderer.js
+
+/api/persona/active polling kodu bul (3 saniyede bir çalışıyor).
+Oraya ekle:
+
+   // persona rengi uygula
+   if (data.color) {
+     document.documentElement.style.setProperty('--persona-color', data.color);
+   }
+
+   // persona adı ve rolü göster (varsa DOM element'i)
+   const nameEl = document.getElementById('persona-name');
+   const roleEl = document.getElementById('persona-role');
+   if (nameEl && data.name) nameEl.textContent = data.name;
+   if (roleEl && data.role) roleEl.textContent = data.role;
+
+B) apps/desktop-hologram/styles.css
+
+Dosyaya ekle/güncelle:
+
+   :root {
+     --persona-color: #00d4ff;
+   }
+
+   /* Tüm renk geçişleri için smooth transition */
+   * {
+     transition: color 0.6s ease, background-color 0.6s ease, box-shadow 0.6s ease, border-color 0.6s ease;
+   }
+
+   /* Glow effect persona rengine göre */
+   .jarvis-orb,
+   .hologram-container,
+   .glow-element {
+     box-shadow: 0 0 20px var(--persona-color), 0 0 40px var(--persona-color);
+     border-color: var(--persona-color);
+   }
+
+   /* Accent renkler */
+   .accent {
+     color: var(--persona-color);
+   }
+
+C) HTML'de (index.html veya renderer içinde) varsa şu elementleri ekle:
+   <div id="persona-name">Jarvis</div>
+   <div id="persona-role">Ana Sistem</div>
+   (zaten varsa değiştirme, sadece ID'leri doğru set et)
+
+==============================================================
+TESTLER
+==============================================================
+
+1. Mevcut testleri çalıştır:
+   python -m pytest tests/test_persona_manager.py -v --tb=short
+
+2. Yeni test yaz: tests/test_hey_jarvis_persona_voice.py
+   - active_agent.json değiştirilince yeni voice okunuyor mu
+   - greeting debounce: 4s içinde ikinci kez çağrılmıyor mu
+   - Jarvis'e dönünce AhmetNeural seçiliyor mu
+
+3. Manuel hologram testi:
+   - Bridge üzerinden "Buse ile konuş" → hologram #ff69b4 → geçiş var mı
+   - "Jarvis'e dön" → hologram #00d4ff
+
+==============================================================
+TESLİM FORMATI
+==============================================================
+
+1. Değişen dosyalar listesi
+2. Voice override çalışıyor mu (hangi satırda, nasıl)
+3. Greeting debounce çalışıyor mu
+4. Hologram renk geçişi var mı (manuel test sonucu)
+5. CSS transition uygulandı mı
+6. Test sonuçları
+7. Kalan UX eksikleri
+8. Commit hash
+
+Önerilen commit mesajı:
+feat: persona voice identity greeting and hologram color transition
