@@ -1,0 +1,18 @@
+# Jarvis Yeni Yetenek ve Entegrasyon Listesi (Backlog)
+
+1. **Dosya Yönetimi ve Not Alma (Core Skill)**
+   - Masaüstünde veya belirlenen dizinde sorunsuz bir şekilde `.txt` (not defteri) vb. dosyalar oluşturma.
+   - Söylenenleri veya verilen görev çıktılarını eksiksiz olarak bu dosyalara yazma. (Jarvis'in şu anki dosya yazamama sorununun çözülmesi)
+
+2. **WhatsApp Otomasyonu (WhatsApp Skill)**
+   - WhatsApp'ı (web veya masaüstü) açma, kişilerde arama yapma ve mesaj yazıp gönderebilme yeteneği.
+
+3. **Web ve Google Entegrasyonu (Browser Skill)**
+   - İnternet tarayıcısı üzerinden Google aramaları yapabilme, sitelerde gezinebilme ve detaylı web araştırması yapabilme (tarayıcı kontrol yeteneği).
+
+4. **Çift Monitör Ekran Analizi (Vision Skill Update)**
+   - Mevcut ekran analiz yeteneğinin sadece tek ekranı değil, sistemdeki mevcut iki monitörü de okuyup analiz edebilecek şekilde genişletilmesi.
+
+5. **Arayüz ve Deneyim Güncellemesi (Hologram UI & Copilot Modu)**
+   - Hologram (masaüstü arayüzü) kısmının eski, tüm bilgilerin tek bir yerde olduğu kompakt versiyona döndürülmesi.
+   - "Hey Jarvis" denildiğinde (sesle tetiklendiğinde) tıpkı Windows Copilot gibi anında ekranda beliren, pratik bir asistan penceresine sahip olması.

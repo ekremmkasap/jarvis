@@ -1,0 +1,15 @@
+auto_approved_task_types:
+  - read_file
+  - list_files
+  - grep
+  - run_tests
+  - check_format
+  - docstring_generation
+
+blocked_patterns:
+  - "git_commit*"
+  - "git_push*"
+  - "*deploy*"
+  - "*.env*"
+  - "*state/codex-accounts/*/auth.json*"
+  - "*auth.json*"

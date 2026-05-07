@@ -1,0 +1,274 @@
+================================================================================
+JARVIS MISSION CONTROL — CODEX SPRINT 3+4+5 BİRLEŞİK
+KONU: TÜM PASİF REPOLAR + GEMİNİ SESLI + HOLOGRAM + MODEL ROUTER
+TARIH: 2026-04-10
+================================================================================
+
+SPRINT 3 TAMAMLANDI (bunlara dokunma):
+[X] /gor komutu → vision_skill bridge'e bağlandı
+[X] /swarm komutu → swarm_skill bridge'e bağlandı
+[X] /youtube komutu → youtube_skill bridge'e bağlandı
+[X] /arastir komutu → autoresearch_skill bridge'e bağlandı
+[X] /skills komutu → skill_registry_skill.py oluşturuldu
+[X] /transkript komutu → whisper_skill bridge'e bağlandı
+[X] config/skill_registry.json oluşturuldu
+[X] Fotoğraf mesajı → vision_skill yönlendirmesi
+
+GENEL KURALLAR:
+- Ana yapiyi ASLA silme (bridge.py, server/, apps/web-ui/)
+- Her degisiklikten once mevcut dosyayi oku
+- 248 mevcut testi bozma
+- Her gorev sonrasi git commit at
+- Hata olursa logla, devam et
+
+================================================================================
+SPRINT 4 — PASSİF REPOLAR AKTİVASYONU (19 repo → bridge'e bağla)
+================================================================================
+
+Dosya: server/bridge.py
+ONCE MEVCUT DOSYAYI OKU, sonra ekle. Her skill icin:
+1. Dosyayı oku (server/skills/<skill>.py)
+2. Ana fonksiyon/sınıf adını bul
+3. bridge.py ye handler fonksiyonu ekle
+4. Telegram komutunu elif bloğuna ekle
+5. /help metnine komut satırı ekle
+
+AKTIVASYON LİSTESİ:
+
+--- GRUP A: AI AGENT ARAÇLARI ---
+
+crewai_skill.py → /crew [gorev]
+  Dosyayi oku, ana fonksiyonu bul
+  CrewAI ile multi-agent gorev calistir
+  Ornek: /crew "pazarlama stratejisi hazirla"
+
+openhands_skill.py → /openhands [gorev]
+  Dosyayi oku, ana fonksiyonu bul
+  OpenHands sandboxed engineer ile gorev calistir
+
+devika_skill.py → /devika [gorev]
+  Dosyayi oku, ana fonksiyonu bul
+  Devika ile planlama + web arastirma + uygulama
+
+aider_skill.py → /aider [aciklama]
+  Dosyayi oku, ana fonksiyonu bul
+  Terminal AI pair programmer
+
+cline_skill.py → /cline [gorev]
+  Dosyayi oku, ana fonksiyonu bul
+  VSCode AI agent gorevi
+
+--- GRUP B: MODEL VE ROUTING ---
+
+clawrouter_skill.py → /route [model] [soru]
+  Dosyayi oku, ana fonksiyonu bul
+  LLM router - hangi modele gidecegini belirle
+
+cli_anything_skill.py → /cli [komut]
+  Dosyayi oku, ana fonksiyonu bul
+  Herhangi bir CLI aracini agent-native calistir
+  Guvenlik: Sadece ADMIN_CHAT_ID
+
+--- GRUP C: KATALOG VE SKILL YONETİMİ ---
+
+claude_skills_skill.py → /claude_skills [kategori]
+  Dosyayi oku, ana fonksiyonu bul
+  223 Claude skill listesi ve calistirma
+
+agent_catalog_skill.py → /catalog [arama]
+  Dosyayi oku, ana fonksiyonu bul
+  Tum agent katalogu listele/ara
+
+prompts_skill.py → /prompt [kategori]
+  Dosyayi oku, ana fonksiyonu bul
+  Hazir prompt kutuphanesi
+
+speckit_skill.py → /spec [komut]
+  Dosyayi oku, ana fonksiyonu bul
+  Spec-driven gelistirme akisi
+
+paperclip_skill.py → /sirket [komut]
+  Dosyayi oku, ana fonksiyonu bul
+  Sirket/governance katmani
+
+--- GRUP D: VIDEO VE İÇERİK ---
+
+youtube_unified_skill.py → /ytunified [url]
+  Dosyayi oku, ana fonksiyonu bul
+  Gelismis YouTube analiz
+
+claw_code_skill.py → /clawcode [gorev]
+  Dosyayi oku, ana fonksiyonu bul
+  Claw-code execution core
+
+swarms_skill.py → /swarms [gorev]
+  Dosyayi oku, ana fonksiyonu bul
+  Enterprise swarms framework
+
+--- GRUP E: GÜVENLİK ---
+
+hooks_skill.py → /hooks [komut]
+  Dosyayi oku, ana fonksiyonu bul
+  Hook sistemi yonetimi
+  Guvenlik: Sadece ADMIN_CHAT_ID
+
+Her komut icin bridge.py de bu pattern:
+
+def _handle_XXX_command(chat_id: int, args: str) -> str:
+    try:
+        from XXX_skill import main_function
+        return main_function(args.strip())
+    except Exception as exc:
+        return f"Hata: {exc}"
+
+elif command == "/xxx":
+    return _handle_XXX_command(chat_id, args)
+
+================================================================================
+SPRINT 5 — GEMİNİ SESLİ ASISTAN + HOLOGRAM + MODEL ROUTER
+================================================================================
+
+--- GOREV 5.1: MODEL ROUTER GEMINI EKLE ---
+
+Dosya: server/model_router.py
+ONCE TAMAMEN OKU, sonra ekle:
+
+- Gemini 2.0 Flash destegi:
+  if GEMINI_API_KEY: google-generativeai ile gemini-2.0-flash-exp
+  else: mevcut ollama fallback devreye girer
+
+- Yeni route kurallari (mevcutlara EKLE, silme):
+  "gemini"  → gemini-2.0-flash-exp
+  "vision"  → moondream:latest
+  "fast"    → qwen3:4b
+
+- Loglama: Her model cagrisi ms olarak logla
+  import time; t=time.time(); ... ; log.info(f"Model:{model} {(time.time()-t)*1000:.0f}ms")
+
+- Fallback zinciri: gemini → ollama llama3.2 → basit cevap
+
+- requirements.txt e ekle: google-generativeai>=0.8.0
+
+- bridge.py ye ekle:
+  /gemini [soru] → model_router.route("gemini", soru)
+  /deepseek [soru] → model_router.route("deep", soru)
+
+--- GOREV 5.2: HEY_JARVIS.PY GEMİNİ ENTEGRASYONU ---
+
+Dosya: hey_jarvis.py
+ONCE TAMAMEN OKU, mevcut yapıyı anla, SONRA guncelle (silme!)
+
+Referans: external-repos/Mark-XXXV/main.py (oku, ilham al, kopyalama)
+Referans: server/voice/gemini_simple_chat.py (mevcut, kullan)
+Referans: server/voice/gemini_chat.py (mevcut, kullan)
+
+Yapilacaklar:
+- Mevcut ask_llm() fonksiyonunu bul
+- Gemini 2.0 Flash'i birinci secenek olarak ekle:
+  GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+  if GEMINI_API_KEY:
+      # google-generativeai ile Gemini
+  else:
+      # mevcut Ollama fallback koru
+
+- Mevcut speak() ve STT akisini KORU
+- Mevcut F4 mute mekanizmasini KORU
+- Mevcut jarvis_konusmalar.txt logging'i KORU
+- Sadece LLM backend'i Gemini ile guclendir
+
+--- GOREV 5.3: HOLOGRAM BRIDGE BAĞLANTISI ---
+
+Klasor: apps/desktop-hologram/
+ONCE TUM DOSYALARI OKU
+
+1. Hangi dosyalar var? Ne calistiriyor?
+2. Bridge'den durum okuma var mi?
+   GET http://127.0.0.1:8081/health → voice_state alani
+3. Eksikse ekle:
+   - Her 3 saniyede bridge /health endpoint'ini cek
+   - voice_state: LISTENING/THINKING/SPEAKING/MUTED/IDLE
+   - Duruma gore UI guncelle
+
+4. master_launcher.py oku, hologram baslatma satirini bul ve aktif et
+
+5. Hologram baslamazsa tkinter fallback:
+   Dosya: server/ui/hologram_ui.py (yoksa olustur)
+   - tkinter Canvas, siyah arkaplan
+   - Mavi donen halka animasyonu (canvas.after ile)
+   - Durum yazisi: LISTENING/THINKING/SPEAKING/MUTED
+   - pystray ile sistem tepsisi
+   - Bridge'den 3 saniyede bir durum cek (threading)
+
+--- GOREV 5.4: WIKI SAYFALARI ---
+
+wiki/ klasorune yaz (varsa guncelle):
+  wiki/mark-xxxv.md       — FatihMakes analizi, Gemini entegrasyon notlari
+  wiki/swarms.md          — swarms framework ozet
+  wiki/model-karsilastirma.md — Ollama vs Gemini vs Qwen hiz/kalite tablosu
+  wiki/repos-haritasi.md  — 26 repo, durum, skill eslesmesi
+  wiki/index.md           — tum sayfalarin listesi
+  wiki/hot.md             — guncel sprint ozeti (~500 kelime)
+
+--- GOREV 5.5: OBSIDIAN SYNC SKILL ---
+
+Dosya: server/skills/obsidian_sync_skill.py (yoksa olustur)
+- wiki/ klasorunu yonet
+- Sayfa arasi [[baglanti]] olustur
+- Telegram: /wiki [konu] → ilgili wiki sayfasini don
+- Telegram: /wiki ekle [baslik] | [icerik] → yeni sayfa olustur
+- bridge.py ye /wiki komutunu ekle
+
+================================================================================
+GOREV 6 — TEST VE COMMIT
+================================================================================
+
+1. Testleri calistir:
+   python -m pytest tests -v --tb=short
+   248'den az geciyorsa neden bak, duzelt
+
+2. Yeni testler yaz:
+   tests/test_sprint4_skill_activation.py
+     - Her yeni komut icin mock ile test
+     - /crew, /openhands, /devika, /aider, /cline, /route komutlari
+
+   tests/test_model_router_gemini.py
+     - GEMINI_API_KEY yokken ollama fallback test
+     - GEMINI_API_KEY varken Gemini secimi test
+
+   tests/test_hologram_bridge.py
+     - Bridge /health endpoint mock
+     - voice_state parsing test
+
+3. python -m py_compile server/skills/skill_registry_skill.py
+   python -m py_compile server/skills/obsidian_sync_skill.py
+
+4. DEVLOG.md guncelle:
+   ## 2026-04-10 - Sprint 3+4+5
+   Tamamlananlar listesi
+
+5. git commit:
+   git add -A
+   git commit -m "feat: sprint4+5 - pasif repo aktivasyon + Gemini sesli + hologram + model router"
+
+================================================================================
+YASAK:
+================================================================================
+X bridge.py yi silme veya sifirlama
+X Mevcut 248 testi bozma
+X .env dosyasini degistirme
+X state/codex-accounts/ disinda yeni account registry olusturma
+X force push
+
+================================================================================
+HEDEF:
+================================================================================
+Bu sprint sonunda:
+- 19 pasif repodan 19'u bridge'e bagli
+- Gemini 2.0 Flash sesli asistan aktif
+- Hologram bridge'den durum okuyor
+- Model router: Gemini + Ollama + fallback
+- Wiki sayfalari guncellendi
+- Tum testler geciyor
+
+BASLA! Grup A'dan baslayip sirayla ilerle.
+================================================================================

@@ -1,0 +1,360 @@
+================================================================================
+CODEX TAB-3 — JARVIS AGENTS.MD 9-AGENT CANONICAL IMPLEMENTATION
+FINAL HARDCORE EXECUTION PROMPT
+Repo: C:\Users\sergen\Desktop\jarvis-mission-control
+Mode: PLAN-FIRST -> AUTO-EXECUTE -> VALIDATE -> CLAUDE.MD UPDATE
+================================================================================
+
+YOU ARE: Elite AI Software Engineer + Systems Architect + Implementer
+LANGUAGE: Turkish for user output, English for code/paths/configs
+REPO: C:\Users\sergen\Desktop\jarvis-mission-control
+
+================================================================================
+ABSOLUTE RULES
+================================================================================
+
+1.  READ AGENTS.md FIRST — it is the canonical spec, do not deviate from it
+2.  PLAN FIRST — create OPS/ artifacts before any code
+3.  EXECUTE AUTONOMOUSLY — implement all 9 agents + bridge routing + voice hook
+4.  VALIDATE — pytest after every agent batch
+5.  CLAUDE.MD UPDATE — after every phase, update CLAUDE.md, commit separately
+6.  NEVER expose API keys or tokens in logs or stdout
+7.  NEVER break existing bridge.py endpoints (backward-safe only)
+8.  NEVER touch master_launcher.py without explicit user approval
+9.  NEVER claim success without passing tests
+10. COMMIT after every implementation batch
+
+================================================================================
+CLAUDE.MD UPDATE RULE — NON-NEGOTIABLE
+================================================================================
+
+After every phase:
+  1. Read CLAUDE.md
+  2. Find or create: ### AGENTS.md 9-Agent Canonical (Tab-3 Codex Sprint)
+  3. Update: status, completed agents, remaining, next step
+  4. Commit: "chore: update CLAUDE.md — agents.md canonical phase N progress"
+
+================================================================================
+AGENTS.MD SPEC — READ THIS FIRST
+================================================================================
+
+Read AGENTS.md fully before writing any code.
+The 9 canonical agents defined there are:
+  1. PlannerAgent         — Goal -> structured plan, agent assignment
+  2. RepoAnalystAgent     — git log + file scan -> health report
+  3. DeveloperAgent       — Feature/bug -> code change via Claude Code CLI
+  4. ReviewerAgent        — git diff -> review report (read-only)
+  5. DebugAgent           — Error message -> root cause analysis
+  6. ReleaseAgent         — git log -> changelog + semver suggestion
+  7. DocsAgent            — Code/command -> documentation update
+  8. VoiceNarratorAgent   — Technical output -> 2-3 sentence TTS text
+  9. MissionControlAgent  — Monitor all agents, detect stuck tasks
+
+These 9 agents are THE spec. Do not add, remove, or rename them.
+
+================================================================================
+EXISTING CODE — READ BEFORE TOUCHING
+================================================================================
+
+  AGENTS.md                    canonical spec (read-only reference)
+  server/bridge.py             command router (backward-safe only)
+  server/agent_loop.py         existing agent loop
+  server/model_router.py       LLM routing (use this for all LLM calls)
+  hey_jarvis.py                voice assistant (add voice hook here)
+  server/agents/               existing agent directory
+  server/agents/clones/        7-agent swarm (different from these 9 canonical)
+  config/model_router.yml      model routing config
+  .env                         API keys (never log)
+
+NOTE: The 9 canonical agents are DIFFERENT from the 7 swarm clone agents.
+  - Swarm clones (seda/mert/buse/etc): dialogue agents, voice conversation
+  - Canonical agents (planner/developer/etc): task execution agents
+  Do not confuse or merge them.
+
+================================================================================
+PHASE 1 — PLAN MODE
+================================================================================
+
+STEP 1.1: Read AGENTS.md fully — extract spec for all 9 agents
+STEP 1.2: Read server/agent_loop.py — understand current agent execution pattern
+STEP 1.3: Read server/model_router.py — understand how LLM calls are made
+STEP 1.4: Read server/bridge.py — find existing /agent endpoint or Telegram routing
+STEP 1.5: Read hey_jarvis.py — find TTS function signature for voice hook
+STEP 1.6: Check server/agents/canonical/ — does it exist? If yes, what is there?
+STEP 1.7: Check tests/ for existing agent tests
+
+CREATE PLANNING ARTIFACTS:
+
+  OPS/300_AGENTS_AUDIT.md
+    - AGENTS.md spec summary per agent
+    - What already exists in server/agents/
+    - Gap per agent: missing implementation
+    - bridge.py current /agent routing state
+
+  OPS/301_AGENTS_IMPLEMENTATION_PLAN.md
+    - Base class design (SubAgent pattern)
+    - Per-agent: file path, run() signature, LLM prompt strategy
+    - Voice hook design (VoiceNarratorAgent -> hey_jarvis.py)
+    - Bridge routing design (/agent endpoint + keyword map)
+    - Test strategy per agent
+
+  OPS/302_AGENTS_ROLLOUT_PLAN.md
+    - Batch 1: Core agents (Planner, RepoAnalyst, Developer)
+    - Batch 2: Review/Debug agents (Reviewer, DebugAgent)
+    - Batch 3: Output agents (Release, Docs, VoiceNarrator)
+    - Batch 4: Control (MissionControl) + bridge routing + voice hook
+
+After OPS/ artifacts: SWITCH TO BUILD MODE.
+
+================================================================================
+PHASE 2 — BUILD MODE
+================================================================================
+
+---  BASE CLASS: server/agents/canonical/__init__.py + base.py  ---
+
+  Base class CanonicalAgent:
+    agent_id: str           (matches AGENTS.md ID)
+    name: str
+    role: str
+    model_preference: str   (from config, default "groq/llama-3.3-70b")
+
+    async def run(task: str, context: dict = {}) -> dict:
+      Returns: {agent_id, output, status: ok|error, timestamp}
+      All LLM calls go through server/model_router.py
+
+    def _call_llm(prompt: str, system: str, max_tokens: int) -> str:
+      Uses model_router — never calls API directly
+
+    def _log_result(result: dict):
+      Appends to server/logs/canonical_agents.jsonl
+      NEVER logs API keys or sensitive context fields
+
+  Commit: "feat: CanonicalAgent base class in server/agents/canonical/"
+  CLAUDE.md update.
+
+---  BATCH 1: PlannerAgent, RepoAnalystAgent, DeveloperAgent  ---
+
+  server/agents/canonical/planner.py
+    PlannerAgent(CanonicalAgent)
+    agent_id = "planner"
+    run(task, context) -> structured plan dict:
+      {goals, agents_needed, steps, estimated_complexity, priority}
+    LLM prompt: structured JSON output, Türkçe description
+    Uses: model_router Groq/Gemini
+
+  server/agents/canonical/repo_analyst.py
+    RepoAnalystAgent(CanonicalAgent)
+    agent_id = "repo_analyst"
+    run(task, context) -> repo health dict:
+      {recent_commits, changed_files, health_score, warnings, recommendations}
+    Uses: subprocess git log, git diff --stat (read-only)
+    Never writes to repo
+
+  server/agents/canonical/developer.py
+    DeveloperAgent(CanonicalAgent)
+    agent_id = "developer"
+    run(task, context) -> implementation result:
+      {files_changed, description, status}
+    Strategy: generate code via LLM, write to specific target files
+    Context must include: target_file, change_description
+    Safety: only writes to files explicitly in context["target_file"]
+
+  Add: tests/test_canonical_batch1.py
+  Commit: "feat: PlannerAgent, RepoAnalystAgent, DeveloperAgent"
+  CLAUDE.md update.
+
+---  BATCH 2: ReviewerAgent, DebugAgent  ---
+
+  server/agents/canonical/reviewer.py
+    ReviewerAgent(CanonicalAgent)
+    agent_id = "reviewer"
+    run(task, context) -> review report:
+      {issues, suggestions, severity_counts, overall_verdict}
+    Uses: git diff (read-only subprocess) + LLM analysis
+    Never modifies code
+
+  server/agents/canonical/debug_agent.py
+    DebugAgent(CanonicalAgent)
+    agent_id = "debug"
+    run(task, context) -> root cause analysis:
+      {error_type, likely_cause, affected_files, suggested_fix, confidence}
+    Input: context["error_message"] or context["stack_trace"]
+    Uses: LLM with error analysis prompt
+
+  Add: tests/test_canonical_batch2.py
+  Commit: "feat: ReviewerAgent, DebugAgent"
+  CLAUDE.md update.
+
+---  BATCH 3: ReleaseAgent, DocsAgent, VoiceNarratorAgent  ---
+
+  server/agents/canonical/release_agent.py
+    ReleaseAgent(CanonicalAgent)
+    agent_id = "release"
+    run(task, context) -> release info:
+      {changelog_entries, suggested_version, breaking_changes, highlights}
+    Uses: git log --oneline -20 (subprocess) + LLM
+    Suggests semver bump based on commit types
+
+  server/agents/canonical/docs_agent.py
+    DocsAgent(CanonicalAgent)
+    agent_id = "docs"
+    run(task, context) -> documentation:
+      {doc_type, content, target_file_suggestion}
+    Input: context["code"] or context["command"] or context["description"]
+    Generates markdown documentation
+
+  server/agents/canonical/voice_narrator.py
+    VoiceNarratorAgent(CanonicalAgent)
+    agent_id = "voice_narrator"
+    run(task, context) -> TTS-ready text:
+      {tts_text, original_length, compressed_length}
+    Input: any raw technical output
+    Output: 2-3 Turkish sentences, max 200 chars, spoken-language style
+    No jargon, no code blocks, no markdown in output
+
+  Add: tests/test_canonical_batch3.py
+  Commit: "feat: ReleaseAgent, DocsAgent, VoiceNarratorAgent"
+  CLAUDE.md update.
+
+---  BATCH 4: MissionControlAgent  ---
+
+  server/agents/canonical/mission_control.py
+    MissionControlAgent(CanonicalAgent)
+    agent_id = "mission_control"
+    run(task, context) -> system health report:
+      {
+        agents: {agent_id: status},
+        stuck_tasks: [],
+        last_activity_per_agent: {},
+        overall_health: ok|degraded|critical,
+        recommendations: []
+      }
+    Reads: server/logs/canonical_agents.jsonl for recent activity
+    Detects stuck: agent with no activity > 10 min = stuck warning
+    Detects failed: agent with 3+ consecutive errors = critical
+
+  Add: tests/test_canonical_batch4.py
+  Commit: "feat: MissionControlAgent"
+  CLAUDE.md update.
+
+---  BRIDGE ROUTING: POST /agent endpoint  ---
+
+  Read server/bridge.py fully.
+  Add POST /agent endpoint (if not exists, backward-safe):
+
+    POST /agent
+    Body: {agent: "planner", task: "...", context: {...}}
+    Response: canonical agent run() output as JSON
+
+    Handler:
+      from agents.canonical import CANONICAL_AGENTS
+      agent = CANONICAL_AGENTS.get(body["agent"])
+      if not agent: return 404
+      result = asyncio.run(agent.run(body["task"], body.get("context", {})))
+      return 200, result
+
+  AGENT_KEYWORDS for Telegram auto-routing:
+    "planner":       ["plan yap", "hedef", "gorev olustur", "ne yapayim"]
+    "repo_analyst":  ["repo analiz", "saglik raporu", "git durum", "kod durumu"]
+    "developer":     ["kod yaz", "implement", "feature ekle", "degistir"]
+    "reviewer":      ["review", "incele", "pr kontrol", "kod incele"]
+    "debug":         ["hata", "debug", "neden calısmiyor", "fix"]
+    "release":       ["release", "changelog", "versiyon", "ne degisti"]
+    "docs":          ["dokumantasyon", "readme guncelle", "acikla"]
+    "mission_control": ["sistem durumu", "agent saglik", "ne calisiyor"]
+    "voice_narrator": []  # internal only
+
+  Add Telegram routing: if message matches keyword -> dispatch to agent -> TTS if available
+
+  Commit: "feat: /agent endpoint + keyword routing in bridge.py"
+  CLAUDE.md update.
+
+---  VOICE HOOK: VoiceNarrator -> hey_jarvis.py  ---
+
+  Read hey_jarvis.py — find TTS function (likely tts_speak or piper_speak).
+  After any command produces output, pipe to VoiceNarratorAgent:
+
+    # Add to hey_jarvis.py
+    from server.agents.canonical.voice_narrator import VoiceNarratorAgent
+
+    _narrator = VoiceNarratorAgent()
+
+    async def speak_agent_result(raw_output: str):
+        result = await _narrator.run(raw_output, {})
+        tts_text = result.get("tts_text", raw_output[:200])
+        await tts_speak(tts_text)  # existing TTS function
+
+  Add: import guard (try/except ImportError) — if narrator fails, fallback to raw output[:200]
+  Commit: "feat: VoiceNarratorAgent hook in hey_jarvis.py"
+  CLAUDE.md update.
+
+---  FINAL: Integration test + handoff  ---
+
+  Run:
+    python -m pytest tests/test_canonical_batch1.py \
+      tests/test_canonical_batch2.py \
+      tests/test_canonical_batch3.py \
+      tests/test_canonical_batch4.py \
+      -v --tb=short
+
+  Run smoke test:
+    python -c "
+    import sys, asyncio
+    sys.path.insert(0, '.')
+    from server.agents.canonical import CANONICAL_AGENTS
+    print('Registered agents:', list(CANONICAL_AGENTS.keys()))
+    assert len(CANONICAL_AGENTS) == 9, f'Expected 9, got {len(CANONICAL_AGENTS)}'
+    async def test():
+        planner = CANONICAL_AGENTS['planner']
+        r = await planner.run('Jarvis sistemini test et', {})
+        print('Planner result status:', r['status'])
+        narrator = CANONICAL_AGENTS['voice_narrator']
+        r2 = await narrator.run('Test sonucu: 5 ajan calisiyor, 1 hata', {})
+        print('Narrator TTS:', r2['tts_text'])
+        mc = CANONICAL_AGENTS['mission_control']
+        r3 = await mc.run('sistem durumu', {})
+        print('MissionControl health:', r3['overall_health'])
+    asyncio.run(test())
+    print('ALL SMOKE TESTS PASSED')
+    "
+
+  Bridge smoke:
+    curl -s -X POST http://localhost:8081/agent \
+      -H Content-Type:application/json \
+      -d '{\"agent\":\"planner\",\"task\":\"Jarvis durumunu raporla\"}' | python -m json.tool
+
+  Write OPS/308_HANDOFF.md:
+    - 9 agents: list, file, method signature
+    - bridge /agent endpoint: request/response format
+    - Telegram keyword routing table
+    - Voice hook: how to test
+    - How to add a new canonical agent
+    - Known limitations
+
+  Final CLAUDE.md update:
+    ### AGENTS.md 9-Agent Canonical (Tab-3 Codex Sprint)
+    - Durum: TAMAMLANDI
+    - Ajanlar: planner, repo_analyst, developer, reviewer, debug, release, docs, voice_narrator, mission_control
+    - Bridge: POST /agent endpoint aktif
+    - Voice: VoiceNarrator hook hey_jarvis.py icinde
+    - Tests: pytest N passed
+    - Handoff: OPS/308_HANDOFF.md
+
+  Final commit: "feat: AGENTS.md 9-agent canonical implementation — bridge routing + voice hook"
+
+================================================================================
+ANTI-HALLUCINATION RULES
+================================================================================
+
+- Do NOT rename or merge the 9 AGENTS.md canonical agents
+- Do NOT confuse canonical agents with swarm clone agents (seda/mert/etc)
+- Do NOT call LLM APIs directly — always use model_router.py
+- Do NOT expose API keys
+- Do NOT modify swarm clone agents (server/agents/clones/)
+- Do NOT break existing bridge.py endpoints
+- Do NOT claim success without passing tests
+- Do NOT add npm/pip packages not already present
+
+================================================================================
+GO. READ AGENTS.MD. PLAN. EXECUTE. TEST. COMMIT. UPDATE CLAUDE.MD. HANDOFF.
+================================================================================

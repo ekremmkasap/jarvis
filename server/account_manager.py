@@ -363,6 +363,9 @@ class AccountManager:
             return [self._redact_sensitive(item) for item in data]
         return data
 
+    def _redact_secrets(self, data: Any) -> Any:
+        return self._redact_sensitive(data)
+
     def _build_slot_payload(self, slot_id: str, account: Account | None) -> dict[str, Any]:
         slot_name = str(slot_id or "").strip().lower()
         runtime_path = self._runtime_slot_path(slot_name)
@@ -447,6 +450,53 @@ class AccountManager:
         account = self.get_codex_account_by_slot(slot_name)
         if account is not None:
             account.status = str(runtime_data["status"])
+        return True
+
+    def set_operator_status(self, slot_id: str, status: str) -> bool:
+        slot_name = str(slot_id or "").strip().lower()
+        account = self.get_codex_account_by_slot(slot_name)
+        if not slot_name or account is None:
+            return False
+
+        normalized_status = str(status or "").strip().lower()
+        account.operator_status = normalized_status
+
+        registry = self._load_json(self.PUBLIC_REGISTRY_PATH)
+        accounts = registry.get("accounts")
+        updated = False
+        if isinstance(accounts, list):
+            account_ids = {
+                str(account.operator_account_id or "").strip().lower(),
+                f"slot_{slot_name}",
+                slot_name,
+            }
+            runtime_ids = {
+                str(account.runtime_account_id or "").strip().lower(),
+                f"acc-{slot_name}",
+            }
+            for item in accounts:
+                if not isinstance(item, dict):
+                    continue
+                candidate_slot = str(
+                    item.get("execution_slot")
+                    or item.get("runtime_slot")
+                    or ""
+                ).strip().lower()
+                candidate_id = str(item.get("id") or "").strip().lower()
+                candidate_runtime_id = str(
+                    item.get("runtime_account_id")
+                    or item.get("account_id")
+                    or ""
+                ).strip().lower()
+                if candidate_slot == slot_name or candidate_id in account_ids or candidate_runtime_id in runtime_ids:
+                    item["status"] = normalized_status
+                    updated = True
+
+        if updated:
+            self.PUBLIC_REGISTRY_PATH.write_text(
+                json.dumps(registry, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
         return True
 
     def get_quota_estimate(self, slot_id: str) -> Any:

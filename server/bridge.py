@@ -3523,6 +3523,12 @@ refreshRuntimeStatus();
             self._handle_codex_queue_endpoint()
         elif path == "/api/codex/health":
             self._handle_codex_health_endpoint()
+        elif path == "/api/codex/auth-status":
+            self._handle_codex_auth_status_endpoint()
+        elif path == "/api/codex/bus":
+            self._handle_codex_bus_endpoint(query)
+        elif path == "/api/autonomous/status":
+            self._handle_autonomous_status_endpoint()
         elif path == "/api/agents/health":
             self._handle_agents_health_endpoint()
         elif path == "/api/codex/audit":
@@ -3610,6 +3616,12 @@ refreshRuntimeStatus();
             self._handle_codex_dispatch_endpoint()
         elif path == "/api/codex/control":
             self._handle_codex_control_endpoint()
+        elif path == "/api/codex/bus":
+            self._handle_codex_bus_post_endpoint()
+        elif path == "/api/autonomous/pause":
+            self._handle_autonomous_pause_endpoint()
+        elif path == "/api/autonomous/resume":
+            self._handle_autonomous_resume_endpoint()
         else:
             self.send_error(404)
 
@@ -3942,6 +3954,31 @@ refreshRuntimeStatus();
             log.error(f"codex/health error: {e}")
             self._json({"error": "internal error"}, 500)
 
+    def _handle_codex_auth_status_endpoint(self):
+        try:
+            self._json(_build_codex_auth_status_payload())
+        except Exception as e:
+            log.error(f"codex/auth-status error: {e}")
+            self._json({"error": "internal error"}, 500)
+
+    def _handle_codex_bus_endpoint(self, query: dict[str, list[str]]):
+        try:
+            slot_id = (query.get("slot_id") or [None])[0]
+            since = (query.get("since") or [None])[0]
+            limit_raw = (query.get("limit") or ["50"])[0]
+            limit = int(limit_raw or 50)
+            self._json(_build_codex_bus_payload(slot_id=slot_id, since=since, limit=limit))
+        except Exception as e:
+            log.error(f"codex/bus error: {e}")
+            self._json({"error": "internal error"}, 500)
+
+    def _handle_autonomous_status_endpoint(self):
+        try:
+            self._json(_build_autonomous_status_payload())
+        except Exception as e:
+            log.error(f"autonomous/status error: {e}")
+            self._json({"error": "internal error"}, 500)
+
     def _handle_agents_health_endpoint(self):
         try:
             self._json(_build_agents_health_payload())
@@ -4041,6 +4078,44 @@ refreshRuntimeStatus();
             self._json(result, 200 if result.get("ok") else 400)
         except Exception as e:
             log.error(f"codex/control error: {e}")
+            self._json({"ok": False, "error": "internal error"}, 500)
+
+    def _handle_codex_bus_post_endpoint(self):
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length) or b"{}")
+            slot = str(body.get("slot") or "").strip().lower()
+            event_type = str(body.get("event_type") or "").strip()
+            payload = body.get("payload") if isinstance(body.get("payload"), dict) else {}
+            job_id = str(body.get("job_id") or "").strip() or None
+            event_id = str(body.get("event_id") or "").strip() or None
+            if not slot or not event_type:
+                self._json({"ok": False, "error": "slot and event_type required"}, 400)
+                return
+            result = _post_codex_bus_payload(
+                slot=slot,
+                event_type=event_type,
+                payload=payload,
+                job_id=job_id,
+                event_id=event_id,
+            )
+            self._json(result, 200)
+        except Exception as e:
+            log.error(f"codex/bus POST error: {e}")
+            self._json({"ok": False, "error": "internal error"}, 500)
+
+    def _handle_autonomous_pause_endpoint(self):
+        try:
+            self._json(_set_autonomous_runner_state("pause"))
+        except Exception as e:
+            log.error(f"autonomous/pause error: {e}")
+            self._json({"ok": False, "error": "internal error"}, 500)
+
+    def _handle_autonomous_resume_endpoint(self):
+        try:
+            self._json(_set_autonomous_runner_state("resume"))
+        except Exception as e:
+            log.error(f"autonomous/resume error: {e}")
             self._json({"ok": False, "error": "internal error"}, 500)
 
     def _handle_cloud_ec2_endpoint(self):
@@ -4387,6 +4462,57 @@ def _build_codex_health_payload() -> dict[str, object]:
     return _redact_codex_payload({"slots": health_slots, "stuck_jobs": stuck_jobs, "cooldowns": cooldowns})
 
 
+def _build_codex_auth_status_payload() -> dict[str, object]:
+    try:
+        from codex_auth_refresher import get_auth_status_payload
+    except Exception:
+        from server.codex_auth_refresher import get_auth_status_payload  # type: ignore
+
+    return _redact_codex_payload({"slots": get_auth_status_payload()})
+
+
+def _build_codex_bus_payload(
+    *,
+    slot_id: str | None = None,
+    since: str | None = None,
+    limit: int = 50,
+) -> dict[str, object]:
+    normalized_limit = min(max(int(limit or 0), 0), 200)
+    try:
+        from codex_bus import get_bus, read_bus_events
+    except Exception:
+        from server.codex_bus import get_bus, read_bus_events  # type: ignore
+
+    if slot_id:
+        events = get_bus().read_for_slot(str(slot_id).strip().lower(), limit=normalized_limit)
+    else:
+        events = read_bus_events(since=since, limit=normalized_limit)
+    return _redact_codex_payload({"events": events})
+
+
+def _post_codex_bus_payload(
+    *,
+    slot: str,
+    event_type: str,
+    payload: dict[str, object],
+    job_id: str | None = None,
+    event_id: str | None = None,
+) -> dict[str, object]:
+    try:
+        from codex_bus import post_bus_event
+    except Exception:
+        from server.codex_bus import post_bus_event  # type: ignore
+
+    event = post_bus_event(
+        str(slot or "").strip().lower(),
+        str(event_type or "").strip(),
+        dict(payload or {}),
+        job_id=job_id,
+        event_id=event_id,
+    )
+    return _redact_codex_payload({"ok": True, "event": event})
+
+
 def _build_codex_audit_payload(limit: int = 50) -> dict[str, object]:
     try:
         from codex_orchestrator import read_dispatch_audit
@@ -4477,6 +4603,32 @@ def _build_codex_status_payload(limit: int = 10) -> dict[str, object]:
     payload["runtime_slots"] = _build_codex_runtime_slots()
     payload["workspaces"] = WorkspaceManager().status()
     return payload
+
+
+def _build_autonomous_status_payload() -> dict[str, object]:
+    try:
+        from codex_autonomous_runner import get_status_payload
+    except Exception:
+        from server.codex_autonomous_runner import get_status_payload  # type: ignore
+
+    payload = get_status_payload()
+    return _redact_codex_payload(payload)
+
+
+def _set_autonomous_runner_state(action: str) -> dict[str, object]:
+    normalized = str(action or "").strip().lower()
+    try:
+        from codex_autonomous_runner import pause_runner, resume_runner
+    except Exception:
+        from server.codex_autonomous_runner import pause_runner, resume_runner  # type: ignore
+
+    if normalized == "pause":
+        payload = pause_runner()
+    elif normalized == "resume":
+        payload = resume_runner()
+    else:
+        return {"ok": False, "message": "unsupported action"}
+    return _redact_codex_payload({"ok": True, "status": payload})
 
 
 def _build_codex_result_payload(job_id: str) -> tuple[dict[str, object], int]:
@@ -4669,6 +4821,58 @@ def _handle_codex_result_command(chat_id: int, args: str) -> str:
         return f"Job bulunamadi: {job_id}"
     result = str(payload.get("result") or payload.get("summary") or "Sonuc yok.")
     return f"Job {job_id}\n{result}".strip()
+
+
+def _handle_autonomous_status_command(chat_id: int) -> str:
+    payload = _build_autonomous_status_payload()
+    enabled = bool(payload.get("enabled"))
+    pending = int(payload.get("pending") or 0)
+    in_flight = payload.get("in_flight", {}) if isinstance(payload.get("in_flight"), dict) else {}
+    recent = payload.get("recent_decisions", []) if isinstance(payload.get("recent_decisions"), list) else []
+    lines = [
+        "Otonom durum",
+        f"Durum: {'aktif' if enabled else 'duraklatildi'}",
+        f"Pending: {pending}",
+        f"In-flight: {len(in_flight)}",
+        f"Son tick: {payload.get('last_tick') or '-'}",
+    ]
+    if recent:
+        lines.append("")
+        lines.append("Son kararlar:")
+        for item in recent[:5]:
+            if not isinstance(item, dict):
+                continue
+            lines.append(
+                f"- {item.get('job_id') or '-'} | {item.get('decision') or '-'} | {item.get('slot') or item.get('reason') or '-'}"
+            )
+    return _truncate_telegram("\n".join(lines), limit=1200)
+
+
+def _handle_autonomous_pause_command(chat_id: int) -> str:
+    payload = _set_autonomous_runner_state("pause")
+    if payload.get("ok"):
+        return "Autonomous runner duraklatildi."
+    return _truncate_telegram(str(payload.get("message") or "Autonomous runner duraklatilamadi."))
+
+
+def _handle_autonomous_resume_command(chat_id: int) -> str:
+    payload = _set_autonomous_runner_state("resume")
+    if payload.get("ok"):
+        return "Autonomous runner yeniden etkinlestirildi."
+    return _truncate_telegram(str(payload.get("message") or "Autonomous runner baslatilamadi."))
+
+
+def _handle_octogent_command(chat_id: int, args: str) -> str:
+    try:
+        from skills.octogent_skill import run_octogent
+    except Exception:
+        from server.skills.octogent_skill import run_octogent  # type: ignore
+
+    return _truncate_telegram(run_octogent(args), limit=1600)
+
+
+def _handle_octogent_health_command(chat_id: int) -> str:
+    return _handle_octogent_command(chat_id, "durum")
 
 
 def _handle_devika_command(chat_id: int, args: str) -> str:

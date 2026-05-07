@@ -483,6 +483,9 @@ class CodexJobManager:
                 break
         return filtered
 
+    def list_pending_jobs(self, limit: int = 100) -> list[dict[str, Any]]:
+        return self.list_jobs(status="pending", limit=limit)
+
     def list_recent_jobs(self, limit: int = 10) -> list[dict[str, Any]]:
         jobs = self.list_jobs(limit=max(int(limit or 0), 0))
         recent: list[dict[str, Any]] = []

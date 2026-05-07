@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import shutil
 import subprocess
@@ -64,6 +65,7 @@ AGENT_PROFILES: dict[str, str] = {
 _jobs: dict[str, dict[str, Any]] = load_job_map()
 _processes: dict[tuple[str, str], subprocess.Popen[str]] = {}
 _lock = threading.RLock()
+log = logging.getLogger(__name__)
 
 
 def _now() -> datetime:
@@ -162,10 +164,56 @@ def _emit_codex_event(event_name: str, payload: dict[str, Any]) -> None:
         pass
 
 
+def _post_bus_event(agent: str, event_type: str, payload: dict[str, Any], *, job_id: str | None = None) -> None:
+    try:
+        from codex_bus import post_bus_event
+    except Exception:
+        try:
+            from server.codex_bus import post_bus_event  # type: ignore
+        except Exception:
+            post_bus_event = None  # type: ignore[assignment]
+    if callable(post_bus_event):
+        try:
+            post_bus_event(agent, event_type, payload, job_id=job_id)
+        except Exception:
+            pass
+
+
+def _build_peer_context(agent: str, limit: int = 10) -> str:
+    try:
+        from codex_bus import build_peer_context_block
+    except Exception:
+        try:
+            from server.codex_bus import build_peer_context_block  # type: ignore
+        except Exception:
+            build_peer_context_block = None  # type: ignore[assignment]
+    if not callable(build_peer_context_block):
+        return ""
+    try:
+        return str(build_peer_context_block(agent, limit=limit) or "").strip()
+    except Exception:
+        return ""
+
+
 def _clean_codex_output(text: str) -> str:
     if not text:
         return ""
     return "\n".join(line for line in text.splitlines() if "could not update PATH" not in line).strip()
+
+
+def _terminate_process(proc: subprocess.Popen[str], *, grace_seconds: int = 10) -> tuple[str, str]:
+    try:
+        proc.terminate()
+    except Exception:
+        pass
+    try:
+        proc.wait(timeout=grace_seconds)
+    except subprocess.TimeoutExpired:
+        try:
+            proc.kill()
+        except Exception:
+            pass
+    return proc.communicate()
 
 
 def _load_cooldown_payload() -> dict[str, Any]:
@@ -566,13 +614,15 @@ def _failover_job(job_id: str, failed_slot: str, reason: str, task_text: str) ->
 
 def _run_codex_task(job_id: str, agent: str, task: str) -> None:
     profile = _load_profile(agent)
-    full_prompt = f"{profile}\n\n---\n\nGOREV:\n{task}"
+    peer_context = _build_peer_context(agent, limit=10)
+    full_prompt = f"{profile}\n\n{peer_context}\n\n---\n\nGOREV:\n{task}" if peer_context else f"{profile}\n\n---\n\nGOREV:\n{task}"
     proc: subprocess.Popen[str] | None = None
     last_message_path: str | None = None
     execution = _resolve_execution_context(agent)
     job_manager = get_job_manager()
 
     get_quota_tracker().record_dispatch(agent)
+    _post_bus_event(agent, "job_started", {"summary": task[:220]}, job_id=job_id)
 
     try:
         fd, last_message_path = tempfile.mkstemp(prefix=f"codex_{job_id}_{agent}_", suffix=".txt", dir=LOG_DIR)
@@ -580,6 +630,13 @@ def _run_codex_task(job_id: str, agent: str, task: str) -> None:
         env = {**os.environ, "CODEX_HOME": execution["codex_home"]}
         if execution.get("worktree"):
             env["GIT_WORK_TREE"] = execution["worktree"]
+        log.info(
+            "[codex-dispatch] job=%s slot=%s codex_home=%s cwd=%s",
+            job_id,
+            agent,
+            execution["codex_home"],
+            execution["cwd"],
+        )
         proc = subprocess.Popen(
             [*_resolve_codex_command(), "exec", "--full-auto", "--color", "never", "--output-last-message", last_message_path, full_prompt],
             cwd=execution["cwd"],
@@ -590,17 +647,16 @@ def _run_codex_task(job_id: str, agent: str, task: str) -> None:
         )
         with _lock:
             _processes[(job_id, agent)] = proc
-        stdout, stderr = proc.communicate(timeout=300)
+        stdout, stderr = proc.communicate(timeout=600)
         last_message = Path(last_message_path).read_text(encoding="utf-8", errors="replace").strip() if last_message_path and Path(last_message_path).exists() else ""
         output = last_message or _clean_codex_output(stdout or "") or _clean_codex_output(stderr or "") or "(cikti yok)"
         status = "done" if proc.returncode == 0 else "failed"
     except subprocess.TimeoutExpired:
         tail = ""
         if proc is not None:
-            proc.kill()
-            stdout, stderr = proc.communicate()
+            stdout, stderr = _terminate_process(proc, grace_seconds=10)
             tail = _clean_codex_output(stdout or "") or _clean_codex_output(stderr or "")
-        output = "Zaman asimi (300s)"
+        output = "Zaman asimi (600s)"
         if tail:
             output = f"{output}\n\nSon cikti:\n{tail[:1200]}"
         status = "failed"
@@ -622,6 +678,21 @@ def _run_codex_task(job_id: str, agent: str, task: str) -> None:
     get_quota_tracker().record_completion(agent, status)
     job_manager.update_agent_state(job_id, agent, status=status, output=output[:2000], finished_at=_now_iso())
     _sync_job_cache()
+
+    if status == "done":
+        _post_bus_event(
+            agent,
+            "job_completed",
+            {"summary": output[:280], "files_touched": []},
+            job_id=job_id,
+        )
+    else:
+        _post_bus_event(
+            agent,
+            "job_failed",
+            {"error": output[:280], "retry_possible": True},
+            job_id=job_id,
+        )
 
     if status != "done":
         failover_slot = _failover_job(job_id, agent, f"{agent}_execution_failed", task)

@@ -1,0 +1,1250 @@
+================================================================================
+TAB-6 — Multi-Repo Manager + Codex Worktree Activation
+Repo: C:\Users\sergen\Desktop\jarvis-mission-control
+Branch: 004-multi-repo-worktree  (yoksa oluştur)
+Mode: PLAN-FIRST -> AUTO-EXECUTE -> VALIDATE -> COMMIT -> CLAUDE.MD
+================================================================================
+
+YOU ARE: Elite AI Software Engineer + DevOps Architect
+LANGUAGE: Turkish for user output, English for code/paths
+REPO: C:\Users\sergen\Desktop\jarvis-mission-control
+
+================================================================================
+ABSOLUTE RULES
+================================================================================
+
+1. CLAUDE.md oku — mevcut yapıyı anla, mevcut dosyaları bozma
+2. server/bridge.py BACKWARD-SAFE — mevcut endpoint'ler bozulmaz
+3. git worktree komutları yalnızca local repo üzerinde çalışır
+4. NEVER push to main/master
+5. NEVER hardcode credentials veya tokens
+6. Her slice sonrası pytest + commit + CLAUDE.md update
+7. Tüm subprocess çağrıları try/except ile wrap'le
+8. Windows path uyumluluğu — forward slash ve Path() kullan
+
+================================================================================
+GENEL MİMARİ
+================================================================================
+
+BÖLÜM A — MULTI-REPO MANAGER
+  config/repos.yaml           — yönetilecek repo listesi
+  server/repo_manager.py      — klonlama, pull, durum takibi
+  state/repos/                — her repo'nun durum dosyası
+  server/logs/repo_manager.log — işlem logları
+  bridge.py /api/repos/*      — REST API
+  Telegram /repo-*            — Telegram komutları
+
+BÖLÜM B — CODEX WORKTREE ACTIVATION
+  worktrees/atlas/            — atlas slot worktree
+  worktrees/forge/            — forge slot worktree
+  worktrees/nexus/            — nexus slot worktree
+  worktrees/shield/           — shield slot worktree
+  worktrees/spark/            — spark slot worktree
+  server/codex_workspace.py   — mevcut, genişletilecek
+  state/worktree_status.json  — slot sağlık durumu
+  bridge.py /api/worktrees/*  — REST API
+
+================================================================================
+BÖLÜM A — SLICE A1: config/repos.yaml
+================================================================================
+
+config/repos.yaml dosyasını oluştur.
+Eğer zaten varsa oku ve eksik alanları ekle:
+
+repos:
+  - id: jarvis-mission-control
+    url: https://github.com/ekremmkasap/jarvis-mission-control
+    branch: main
+    local_path: .
+    description: "Ana Jarvis reposu"
+    auto_pull: false
+    tags: [core, backend]
+    active: true
+
+  - id: jarvis-web-ui
+    url: ""
+    branch: main
+    local_path: repos/jarvis-web-ui
+    description: "Web UI ayrı repo (gelecekte)"
+    auto_pull: false
+    tags: [frontend]
+    active: false
+
+  - id: jarvis-skills
+    url: ""
+    branch: main
+    local_path: repos/jarvis-skills
+    description: "Skills koleksiyonu (gelecekte)"
+    auto_pull: false
+    tags: [skills]
+    active: false
+
+  - id: jarvis-agents
+    url: ""
+    branch: main
+    local_path: repos/jarvis-agents
+    description: "Agent sistemi (gelecekte)"
+    auto_pull: false
+    tags: [agents]
+    active: false
+
+  - id: codex-lb
+    url: https://github.com/Soju06/codex-lb
+    branch: main
+    local_path: repos/codex-lb
+    description: "Codex load balancer — multi-account proxy"
+    auto_pull: false
+    tags: [codex, proxy, multi-account]
+    active: false
+
+  - id: cc-switch-cli
+    url: https://github.com/SaladDay/cc-switch-cli
+    branch: main
+    local_path: repos/cc-switch-cli
+    description: "Claude Code hesap switcher CLI"
+    auto_pull: false
+    tags: [codex, switcher, cli]
+    active: false
+
+settings:
+  base_dir: repos
+  log_file: server/logs/repo_manager.log
+  status_dir: state/repos
+  clone_timeout_seconds: 120
+  pull_timeout_seconds: 60
+
+Commit: "feat: config/repos.yaml — multi-repo config"
+CLAUDE.md update.
+
+================================================================================
+BÖLÜM A — SLICE A2: server/repo_manager.py
+================================================================================
+
+server/repo_manager.py dosyasını YAZ:
+
+from __future__ import annotations
+
+import json
+import logging
+import os
+import subprocess
+import threading
+from datetime import datetime, timezone
+from pathlib import Path
+from tempfile import NamedTemporaryFile
+from typing import Any
+
+import yaml
+
+log = logging.getLogger("repo_manager")
+
+ROOT = Path(__file__).resolve().parent.parent
+CONFIG_PATH = ROOT / "config" / "repos.yaml"
+STATUS_DIR = ROOT / "state" / "repos"
+LOG_FILE = ROOT / "server" / "logs" / "repo_manager.log"
+
+_lock = threading.RLock()
+
+
+# ─────────────────── helpers ───────────────────
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _write_atomic(path: Path, data: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with NamedTemporaryFile("w", encoding="utf-8", delete=False,
+                            dir=str(path.parent), suffix=".tmp") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+        tmp = Path(f.name)
+    tmp.replace(path)
+
+
+def _load_config() -> dict:
+    if not CONFIG_PATH.exists():
+        return {"repos": [], "settings": {}}
+    try:
+        with CONFIG_PATH.open(encoding="utf-8") as f:
+            return yaml.safe_load(f) or {}
+    except Exception as e:
+        log.error(f"repos.yaml read error: {e}")
+        return {"repos": [], "settings": {}}
+
+
+def _status_path(repo_id: str) -> Path:
+    return STATUS_DIR / f"{repo_id}.json"
+
+
+def _load_status(repo_id: str) -> dict:
+    path = _status_path(repo_id)
+    if not path.exists():
+        return {"id": repo_id, "cloned": False, "last_pull": None,
+                "last_error": None, "branch": None, "commit": None}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {"id": repo_id, "cloned": False, "last_pull": None,
+                "last_error": None, "branch": None, "commit": None}
+
+
+def _save_status(repo_id: str, data: dict) -> None:
+    _write_atomic(_status_path(repo_id), data)
+
+
+def _run_git(args: list[str], cwd: Path,
+             timeout: int = 120) -> tuple[bool, str]:
+    try:
+        result = subprocess.run(
+            ["git"] + args,
+            cwd=str(cwd),
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+        if result.returncode == 0:
+            return True, result.stdout.strip()
+        return False, result.stderr.strip() or result.stdout.strip()
+    except subprocess.TimeoutExpired:
+        return False, f"git timeout ({timeout}s)"
+    except FileNotFoundError:
+        return False, "git bulunamadi. PATH kontrolu yap."
+    except Exception as e:
+        return False, str(e)
+
+
+def _get_current_commit(repo_path: Path) -> str:
+    ok, out = _run_git(["rev-parse", "--short", "HEAD"], repo_path)
+    return out if ok else "unknown"
+
+
+def _get_current_branch(repo_path: Path) -> str:
+    ok, out = _run_git(["branch", "--show-current"], repo_path)
+    return out if ok else "unknown"
+
+
+# ─────────────────── public API ───────────────────
+
+def list_repos() -> list[dict]:
+    config = _load_config()
+    repos = config.get("repos") or []
+    result = []
+    for repo in repos:
+        if not isinstance(repo, dict):
+            continue
+        repo_id = str(repo.get("id") or "").strip()
+        local_path = ROOT / str(repo.get("local_path") or f"repos/{repo_id}")
+        status = _load_status(repo_id)
+        cloned = local_path.exists() and (local_path / ".git").exists()
+        result.append({
+            "id": repo_id,
+            "url": repo.get("url") or "",
+            "branch": repo.get("branch") or "main",
+            "local_path": str(local_path),
+            "description": repo.get("description") or "",
+            "tags": repo.get("tags") or [],
+            "active": bool(repo.get("active")),
+            "cloned": cloned,
+            "last_pull": status.get("last_pull"),
+            "last_error": status.get("last_error"),
+            "current_branch": status.get("branch"),
+            "current_commit": status.get("commit"),
+        })
+    return result
+
+
+def get_repo(repo_id: str) -> dict | None:
+    for repo in list_repos():
+        if repo["id"] == repo_id:
+            return repo
+    return None
+
+
+def clone_repo(repo_id: str) -> dict:
+    config = _load_config()
+    repos = config.get("repos") or []
+    repo_conf = next((r for r in repos if r.get("id") == repo_id), None)
+
+    if not repo_conf:
+        return {"ok": False, "error": f"Repo bulunamadi: {repo_id}"}
+
+    url = str(repo_conf.get("url") or "").strip()
+    if not url:
+        return {"ok": False, "error": f"{repo_id} icin URL tanimlanmamis."}
+
+    local_path = ROOT / str(repo_conf.get("local_path") or f"repos/{repo_id}")
+
+    if local_path.exists() and (local_path / ".git").exists():
+        return {"ok": True, "message": f"{repo_id} zaten klonlanmis.", "path": str(local_path)}
+
+    local_path.parent.mkdir(parents=True, exist_ok=True)
+    branch = str(repo_conf.get("branch") or "main")
+    log.info(f"Cloning {repo_id} from {url}...")
+
+    ok, out = _run_git(
+        ["clone", "--branch", branch, "--depth", "1", url, str(local_path)],
+        cwd=ROOT,
+        timeout=120,
+    )
+
+    status = _load_status(repo_id)
+    if ok:
+        status.update({
+            "cloned": True,
+            "last_pull": _now_iso(),
+            "last_error": None,
+            "branch": _get_current_branch(local_path),
+            "commit": _get_current_commit(local_path),
+        })
+        _save_status(repo_id, status)
+        log.info(f"Clone OK: {repo_id}")
+        return {"ok": True, "message": f"{repo_id} basariyla klonlandi.", "path": str(local_path)}
+    else:
+        status["last_error"] = out
+        _save_status(repo_id, status)
+        log.error(f"Clone FAIL: {repo_id} — {out}")
+        return {"ok": False, "error": out}
+
+
+def pull_repo(repo_id: str) -> dict:
+    repo = get_repo(repo_id)
+    if not repo:
+        return {"ok": False, "error": f"Repo bulunamadi: {repo_id}"}
+
+    local_path = Path(repo["local_path"])
+    if not local_path.exists() or not (local_path / ".git").exists():
+        return {"ok": False, "error": f"{repo_id} klonlanmamis. Once clone et."}
+
+    log.info(f"Pulling {repo_id}...")
+    ok, out = _run_git(["pull", "--ff-only"], cwd=local_path, timeout=60)
+
+    status = _load_status(repo_id)
+    if ok:
+        status.update({
+            "last_pull": _now_iso(),
+            "last_error": None,
+            "branch": _get_current_branch(local_path),
+            "commit": _get_current_commit(local_path),
+        })
+        _save_status(repo_id, status)
+        return {"ok": True, "message": f"{repo_id} guncellendi.", "output": out[:200]}
+    else:
+        status["last_error"] = out
+        _save_status(repo_id, status)
+        return {"ok": False, "error": out[:200]}
+
+
+def pull_all_active() -> list[dict]:
+    results = []
+    for repo in list_repos():
+        if repo["active"] and repo["cloned"]:
+            results.append({"id": repo["id"], **pull_repo(repo["id"])})
+    return results
+
+
+def get_repo_status_summary() -> dict:
+    repos = list_repos()
+    cloned = [r for r in repos if r["cloned"]]
+    active = [r for r in repos if r["active"]]
+    errors = [r for r in repos if r.get("last_error")]
+    return {
+        "total": len(repos),
+        "cloned": len(cloned),
+        "active": len(active),
+        "errors": len(errors),
+        "repos": repos,
+    }
+
+
+def activate_repo(repo_id: str) -> dict:
+    """repos.yaml'da active: true yap."""
+    try:
+        config = _load_config()
+        repos = config.get("repos") or []
+        for repo in repos:
+            if repo.get("id") == repo_id:
+                repo["active"] = True
+                with CONFIG_PATH.open("w", encoding="utf-8") as f:
+                    yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
+                return {"ok": True, "message": f"{repo_id} aktive edildi."}
+        return {"ok": False, "error": f"Repo bulunamadi: {repo_id}"}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+def deactivate_repo(repo_id: str) -> dict:
+    try:
+        config = _load_config()
+        repos = config.get("repos") or []
+        for repo in repos:
+            if repo.get("id") == repo_id:
+                repo["active"] = False
+                with CONFIG_PATH.open("w", encoding="utf-8") as f:
+                    yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
+                return {"ok": True, "message": f"{repo_id} deaktive edildi."}
+        return {"ok": False, "error": f"Repo bulunamadi: {repo_id}"}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+Commit: "feat: server/repo_manager.py — clone, pull, list, activate"
+CLAUDE.md update.
+
+================================================================================
+BÖLÜM A — SLICE A3: Bridge /api/repos/* Endpoints
+================================================================================
+
+server/bridge.py GET handler'a ekle:
+
+  elif path == "/api/repos":
+      self._handle_repos_list_endpoint()
+  elif path == "/api/repos/status":
+      self._handle_repos_status_endpoint()
+
+POST handler'a ekle:
+
+  elif path == "/api/repos/clone":
+      self._handle_repos_clone_endpoint()
+  elif path == "/api/repos/pull":
+      self._handle_repos_pull_endpoint()
+  elif path == "/api/repos/pull-all":
+      self._handle_repos_pull_all_endpoint()
+  elif path == "/api/repos/activate":
+      self._handle_repos_activate_endpoint()
+
+Handler fonksiyonları:
+
+  def _handle_repos_list_endpoint(self):
+      try:
+          import sys as _sys; _sys.path.insert(0, "server")
+          from repo_manager import list_repos
+          self._json({"repos": list_repos()})
+      except Exception as e:
+          self._json({"error": str(e)}, 500)
+
+  def _handle_repos_status_endpoint(self):
+      try:
+          import sys as _sys; _sys.path.insert(0, "server")
+          from repo_manager import get_repo_status_summary
+          self._json(get_repo_status_summary())
+      except Exception as e:
+          self._json({"error": str(e)}, 500)
+
+  def _handle_repos_clone_endpoint(self):
+      try:
+          import sys as _sys; _sys.path.insert(0, "server")
+          from repo_manager import clone_repo
+          length = int(self.headers.get("Content-Length", 0))
+          body = json.loads(self.rfile.read(length) or b"{}")
+          repo_id = str(body.get("repo_id") or "").strip()
+          if not repo_id:
+              self._json({"ok": False, "error": "repo_id required"}, 400)
+              return
+          self._json(clone_repo(repo_id))
+      except Exception as e:
+          self._json({"ok": False, "error": str(e)}, 500)
+
+  def _handle_repos_pull_endpoint(self):
+      try:
+          import sys as _sys; _sys.path.insert(0, "server")
+          from repo_manager import pull_repo
+          length = int(self.headers.get("Content-Length", 0))
+          body = json.loads(self.rfile.read(length) or b"{}")
+          repo_id = str(body.get("repo_id") or "").strip()
+          if not repo_id:
+              self._json({"ok": False, "error": "repo_id required"}, 400)
+              return
+          self._json(pull_repo(repo_id))
+      except Exception as e:
+          self._json({"ok": False, "error": str(e)}, 500)
+
+  def _handle_repos_pull_all_endpoint(self):
+      try:
+          import sys as _sys; _sys.path.insert(0, "server")
+          from repo_manager import pull_all_active
+          self._json({"results": pull_all_active()})
+      except Exception as e:
+          self._json({"ok": False, "error": str(e)}, 500)
+
+  def _handle_repos_activate_endpoint(self):
+      try:
+          import sys as _sys; _sys.path.insert(0, "server")
+          from repo_manager import activate_repo, deactivate_repo
+          length = int(self.headers.get("Content-Length", 0))
+          body = json.loads(self.rfile.read(length) or b"{}")
+          repo_id = str(body.get("repo_id") or "").strip()
+          action = str(body.get("action") or "activate").strip()
+          if not repo_id:
+              self._json({"ok": False, "error": "repo_id required"}, 400)
+              return
+          if action == "deactivate":
+              self._json(deactivate_repo(repo_id))
+          else:
+              self._json(activate_repo(repo_id))
+      except Exception as e:
+          self._json({"ok": False, "error": str(e)}, 500)
+
+Commit: "feat: bridge /api/repos/* endpoints — list, clone, pull, activate"
+CLAUDE.md update.
+
+================================================================================
+BÖLÜM A — SLICE A4: Telegram /repo-* Komutları
+================================================================================
+
+bridge.py Telegram handler'a ekle:
+
+  /repo-liste
+    -> repo_manager.list_repos()
+    -> Türkçe özet: "Repolar:\n- jarvis-mission-control (aktif, klonlu)\n- codex-lb (klonlanmamis)"
+    -> max 400 karakter
+
+  /repo-durum
+    -> repo_manager.get_repo_status_summary()
+    -> "Toplam: N | Klonlu: N | Aktif: N | Hata: N"
+
+  /repo-clone <repo_id>
+    -> repo_manager.clone_repo(repo_id)
+    -> "Klonlaniyor: codex-lb..." veya hata
+
+  /repo-guncelle <repo_id>
+    -> repo_manager.pull_repo(repo_id)
+    -> "Guncellendi: codex-lb (abc1234)" veya hata
+
+  /repo-hepsini-guncelle
+    -> repo_manager.pull_all_active()
+    -> "N repo guncellendi."
+
+Handler kodu:
+
+  def _truncate_telegram(text, limit=400):
+      # zaten bridge.py'de var, kullan
+
+  def _handle_repo_liste_command(chat_id):
+      from repo_manager import list_repos
+      repos = list_repos()
+      lines = ["Repolar:"]
+      for r in repos[:8]:
+          status = "aktif+klonlu" if r["active"] and r["cloned"] else                    "klonlu" if r["cloned"] else                    "aktif" if r["active"] else "pasif"
+          lines.append(f"- {r['id']} ({status})")
+      return _truncate_telegram("\n".join(lines))
+
+  def _handle_repo_durum_command(chat_id):
+      from repo_manager import get_repo_status_summary
+      s = get_repo_status_summary()
+      return f"Toplam: {s['total']} | Klonlu: {s['cloned']} | Aktif: {s['active']} | Hata: {s['errors']}"
+
+  def _handle_repo_clone_command(chat_id, args):
+      from repo_manager import clone_repo
+      repo_id = args.strip()
+      if not repo_id:
+          return "Kullanim: /repo-clone <repo_id>"
+      r = clone_repo(repo_id)
+      return _truncate_telegram(r.get("message") or r.get("error") or "Islem tamamlandi.")
+
+  def _handle_repo_guncelle_command(chat_id, args):
+      from repo_manager import pull_repo
+      repo_id = args.strip()
+      if not repo_id:
+          return "Kullanim: /repo-guncelle <repo_id>"
+      r = pull_repo(repo_id)
+      return _truncate_telegram(r.get("message") or r.get("error") or "Islem tamamlandi.")
+
+  def _handle_repo_hepsini_guncelle_command(chat_id):
+      from repo_manager import pull_all_active
+      results = pull_all_active()
+      ok = sum(1 for r in results if r.get("ok"))
+      fail = len(results) - ok
+      return f"{ok} repo guncellendi, {fail} hata."
+
+Test: tests/test_repo_manager.py yaz:
+  - test_list_repos_returns_list
+  - test_clone_missing_url_returns_error
+  - test_pull_not_cloned_returns_error
+  - test_activate_deactivate_repo
+  - test_get_status_summary_counts
+
+python -m pytest tests/test_repo_manager.py -v --tb=short
+
+Commit: "feat: Telegram /repo-* commands + tests"
+CLAUDE.md update.
+
+================================================================================
+BÖLÜM A — SLICE A5: Web UI /repos Sayfası
+================================================================================
+
+apps/web-ui/src/app/repos/page.tsx YAZ:
+
+'use client';
+import { useEffect, useState } from 'react';
+
+const BRIDGE = process.env.NEXT_PUBLIC_BRIDGE_API || 'http://127.0.0.1:8081';
+
+interface RepoRecord {
+  id: string;
+  url: string;
+  branch: string;
+  local_path: string;
+  description: string;
+  tags: string[];
+  active: boolean;
+  cloned: boolean;
+  last_pull: string | null;
+  last_error: string | null;
+  current_branch: string | null;
+  current_commit: string | null;
+}
+
+function statusColor(repo: RepoRecord): string {
+  if (repo.last_error) return 'border-red-500/40 bg-red-500/10 text-red-300';
+  if (repo.active && repo.cloned) return 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300';
+  if (repo.cloned) return 'border-sky-500/40 bg-sky-500/10 text-sky-300';
+  return 'border-neutral-700 bg-neutral-800/50 text-neutral-400';
+}
+
+function statusLabel(repo: RepoRecord): string {
+  if (repo.last_error) return 'HATA';
+  if (repo.active && repo.cloned) return 'AKTİF';
+  if (repo.cloned) return 'KLONLU';
+  return 'PASİF';
+}
+
+export default function ReposPage() {
+  const [repos, setRepos] = useState<RepoRecord[]>([]);
+  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  async function refresh() {
+    const r = await fetch(`${BRIDGE}/api/repos`, { cache: 'no-store' });
+    const data = await r.json();
+    setRepos(data.repos || []);
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    refresh();
+    const t = setInterval(refresh, 10000);
+    return () => clearInterval(t);
+  }, []);
+
+  async function action(endpoint: string, body: object) {
+    const r = await fetch(`${BRIDGE}${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await r.json();
+    setMessage(data.message || data.error || JSON.stringify(data));
+    await refresh();
+  }
+
+  return (
+    <div className="min-h-screen bg-neutral-950 px-6 py-6 font-mono text-neutral-100">
+      <div className="mx-auto max-w-6xl space-y-6">
+        <header className="border-b border-neutral-800 pb-4">
+          <a href="/" className="text-xs text-neutral-500 hover:text-neutral-300 uppercase tracking-widest">Dashboard</a>
+          <h1 className="mt-2 text-2xl font-semibold">Repo Manager</h1>
+          <p className="mt-1 text-sm text-neutral-400">Multi-repo klonlama, güncelleme ve durum takibi.</p>
+          {message && <p className="mt-2 text-sm text-emerald-400">{message}</p>}
+        </header>
+
+        <div className="flex gap-3">
+          <button onClick={() => action('/api/repos/pull-all', {})}
+            className="border border-neutral-700 px-3 py-1 text-xs uppercase tracking-widest text-neutral-200 rounded hover:bg-neutral-800">
+            Hepsini Güncelle
+          </button>
+        </div>
+
+        {loading ? (
+          <p className="text-neutral-500">Yükleniyor...</p>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {repos.map(repo => (
+              <div key={repo.id} className="border border-neutral-800 bg-neutral-900 p-4 rounded-md space-y-3">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="text-sm font-semibold text-white">{repo.id}</div>
+                    <div className="text-xs text-neutral-500 mt-1">{repo.description}</div>
+                  </div>
+                  <span className={`text-[10px] px-2 py-1 rounded border uppercase tracking-widest ${statusColor(repo)}`}>
+                    {statusLabel(repo)}
+                  </span>
+                </div>
+
+                <div className="text-xs text-neutral-400 space-y-1">
+                  <div>branch: {repo.current_branch || repo.branch}</div>
+                  <div>commit: {repo.current_commit || '-'}</div>
+                  <div>son güncelleme: {repo.last_pull ? new Date(repo.last_pull).toLocaleString('tr-TR') : '-'}</div>
+                  {repo.last_error && <div className="text-red-400">hata: {repo.last_error.slice(0, 80)}</div>}
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {(repo.tags || []).map(tag => (
+                      <span key={tag} className="border border-neutral-700 px-1 text-[10px] text-neutral-500 rounded">{tag}</span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {!repo.cloned && repo.url && (
+                    <button onClick={() => action('/api/repos/clone', { repo_id: repo.id })}
+                      className="border border-emerald-700 px-2 py-1 text-[10px] uppercase tracking-widest text-emerald-300 rounded hover:bg-emerald-950/30">
+                      Clone
+                    </button>
+                  )}
+                  {repo.cloned && (
+                    <button onClick={() => action('/api/repos/pull', { repo_id: repo.id })}
+                      className="border border-sky-700 px-2 py-1 text-[10px] uppercase tracking-widest text-sky-300 rounded hover:bg-sky-950/30">
+                      Pull
+                    </button>
+                  )}
+                  <button onClick={() => action('/api/repos/activate', {
+                    repo_id: repo.id, action: repo.active ? 'deactivate' : 'activate'
+                  })}
+                    className="border border-neutral-700 px-2 py-1 text-[10px] uppercase tracking-widest text-neutral-300 rounded hover:bg-neutral-800">
+                    {repo.active ? 'Deaktive' : 'Aktive'}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+TypeScript validation:
+  apps/web-ui/node_modules/.bin/tsc.cmd --noEmit
+
+Commit: "feat: /repos Web UI — clone, pull, activate paneli"
+CLAUDE.md update.
+
+================================================================================
+BÖLÜM B — SLICE B1: Codex Worktree Status Tracking
+================================================================================
+
+server/codex_workspace.py dosyasını oku (zaten var).
+Mevcut WorkspaceManager class'ını genişlet:
+
+state/worktree_status.json dosyası yapısı:
+{
+  "atlas":    {"exists": false, "branch": null, "last_used": null, "last_error": null, "healthy": false},
+  "forge":    {"exists": false, "branch": null, "last_used": null, "last_error": null, "healthy": false},
+  "nexus":    {"exists": false, "branch": null, "last_used": null, "last_error": null, "healthy": false},
+  "shield":   {"exists": false, "branch": null, "last_used": null, "last_error": null, "healthy": false},
+  "spark":    {"exists": false, "branch": null, "last_used": null, "last_error": null, "healthy": false}
+}
+
+server/codex_workspace.py içine ekle:
+
+WORKTREE_STATUS_PATH = ROOT / "state" / "worktree_status.json"
+SLOTS = ("atlas", "forge", "nexus", "shield", "spark")
+
+def _load_wt_status() -> dict:
+    if not WORKTREE_STATUS_PATH.exists():
+        return {s: {"exists": False, "branch": None, "last_used": None,
+                    "last_error": None, "healthy": False} for s in SLOTS}
+    try:
+        return json.loads(WORKTREE_STATUS_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+def _save_wt_status(data: dict) -> None:
+    WORKTREE_STATUS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with NamedTemporaryFile("w", encoding="utf-8", delete=False,
+                            dir=str(WORKTREE_STATUS_PATH.parent), suffix=".tmp") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+        Path(f.name).replace(WORKTREE_STATUS_PATH)
+
+def get_worktree_status() -> dict:
+    status = _load_wt_status()
+    manager = WorkspaceManager()
+    for slot in SLOTS:
+        path = manager.get_path(slot)
+        exists = path.exists() and (path / ".git").exists()
+        entry = status.setdefault(slot, {})
+        entry["exists"] = exists
+        if exists:
+            ok, branch = True, manager.get_branch(slot)
+            entry["branch"] = branch
+            entry["healthy"] = True
+        else:
+            entry["healthy"] = False
+    _save_wt_status(status)
+    return status
+
+def activate_all_worktrees() -> dict:
+    """Tüm 5 slot için worktree oluştur. Varsa atla."""
+    results = {}
+    manager = WorkspaceManager()
+    status = _load_wt_status()
+    for slot in SLOTS:
+        try:
+            path = manager.ensure(slot)
+            status[slot] = {
+                "exists": True,
+                "branch": manager.get_branch(slot),
+                "last_used": _now_iso(),
+                "last_error": None,
+                "healthy": True,
+            }
+            results[slot] = {"ok": True, "path": str(path)}
+        except Exception as e:
+            status[slot] = {
+                "exists": False,
+                "branch": None,
+                "last_used": None,
+                "last_error": str(e),
+                "healthy": False,
+            }
+            results[slot] = {"ok": False, "error": str(e)}
+    _save_wt_status(status)
+    return results
+
+def deactivate_worktree(slot: str) -> dict:
+    """Worktree'yi kaldır (git worktree remove)."""
+    manager = WorkspaceManager()
+    path = manager.get_path(slot)
+    if not path.exists():
+        return {"ok": True, "message": f"{slot} zaten yok."}
+    try:
+        result = subprocess.run(
+            ["git", "worktree", "remove", "--force", str(path)],
+            cwd=manager.ROOT_DIR,
+            capture_output=True, text=True, timeout=30
+        )
+        if result.returncode == 0:
+            status = _load_wt_status()
+            status[slot] = {"exists": False, "branch": None,
+                            "last_used": None, "last_error": None, "healthy": False}
+            _save_wt_status(status)
+            return {"ok": True, "message": f"{slot} worktree kaldirildi."}
+        return {"ok": False, "error": result.stderr.strip()}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+def worktree_health_check() -> dict:
+    """Tüm worktree'lerin sağlık raporu."""
+    status = get_worktree_status()
+    healthy = sum(1 for s in status.values() if s.get("healthy"))
+    return {
+        "total": len(SLOTS),
+        "healthy": healthy,
+        "unhealthy": len(SLOTS) - healthy,
+        "slots": status,
+    }
+
+Commit: "feat: codex_workspace — worktree status tracking + activate_all + health check"
+CLAUDE.md update.
+
+================================================================================
+BÖLÜM B — SLICE B2: Bridge /api/worktrees/* Endpoints
+================================================================================
+
+bridge.py GET handler'a ekle:
+
+  elif path == "/api/worktrees":
+      self._handle_worktrees_list_endpoint()
+  elif path == "/api/worktrees/health":
+      self._handle_worktrees_health_endpoint()
+
+POST handler'a ekle:
+
+  elif path == "/api/worktrees/activate":
+      self._handle_worktrees_activate_endpoint()
+  elif path == "/api/worktrees/activate-all":
+      self._handle_worktrees_activate_all_endpoint()
+  elif path == "/api/worktrees/deactivate":
+      self._handle_worktrees_deactivate_endpoint()
+
+Handler fonksiyonları:
+
+  def _handle_worktrees_list_endpoint(self):
+      try:
+          import sys as _sys; _sys.path.insert(0, "server")
+          from codex_workspace import get_worktree_status, list_worktrees
+          status = get_worktree_status()
+          paths = list_worktrees()
+          self._json({"slots": status, "paths": paths})
+      except Exception as e:
+          self._json({"error": str(e)}, 500)
+
+  def _handle_worktrees_health_endpoint(self):
+      try:
+          import sys as _sys; _sys.path.insert(0, "server")
+          from codex_workspace import worktree_health_check
+          self._json(worktree_health_check())
+      except Exception as e:
+          self._json({"error": str(e)}, 500)
+
+  def _handle_worktrees_activate_all_endpoint(self):
+      try:
+          import sys as _sys; _sys.path.insert(0, "server")
+          from codex_workspace import activate_all_worktrees
+          results = activate_all_worktrees()
+          ok_count = sum(1 for r in results.values() if r.get("ok"))
+          self._json({
+              "ok": True,
+              "message": f"{ok_count}/5 worktree aktive edildi.",
+              "results": results,
+          })
+      except Exception as e:
+          self._json({"ok": False, "error": str(e)}, 500)
+
+  def _handle_worktrees_activate_endpoint(self):
+      try:
+          import sys as _sys; _sys.path.insert(0, "server")
+          from codex_workspace import ensure_worktree
+          length = int(self.headers.get("Content-Length", 0))
+          body = json.loads(self.rfile.read(length) or b"{}")
+          slot = str(body.get("slot") or "").strip().lower()
+          if not slot:
+              self._json({"ok": False, "error": "slot required"}, 400)
+              return
+          path = ensure_worktree(slot)
+          self._json({"ok": True, "slot": slot, "path": str(path)})
+      except Exception as e:
+          self._json({"ok": False, "error": str(e)}, 500)
+
+  def _handle_worktrees_deactivate_endpoint(self):
+      try:
+          import sys as _sys; _sys.path.insert(0, "server")
+          from codex_workspace import deactivate_worktree
+          length = int(self.headers.get("Content-Length", 0))
+          body = json.loads(self.rfile.read(length) or b"{}")
+          slot = str(body.get("slot") or "").strip().lower()
+          if not slot:
+              self._json({"ok": False, "error": "slot required"}, 400)
+              return
+          self._json(deactivate_worktree(slot))
+      except Exception as e:
+          self._json({"ok": False, "error": str(e)}, 500)
+
+Commit: "feat: bridge /api/worktrees/* endpoints — list, health, activate, deactivate"
+CLAUDE.md update.
+
+================================================================================
+BÖLÜM B — SLICE B3: Telegram /worktree-* Komutları
+================================================================================
+
+bridge.py Telegram handler'a ekle:
+
+  /worktree-durum
+    -> worktree_health_check()
+    -> "Worktree Sağlık: 3/5 aktif\n- atlas: OK\n- forge: HATA"
+    -> max 400 karakter
+
+  /worktree-hepsini-aktive
+    -> activate_all_worktrees()
+    -> "N/5 worktree oluşturuldu."
+
+  /worktree-aktive <slot>
+    -> ensure_worktree(slot)
+    -> "forge worktree aktive edildi: worktrees/forge"
+
+  /worktree-kaldir <slot>
+    -> deactivate_worktree(slot)
+    -> "forge worktree kaldırıldı."
+
+Handler kodu:
+
+  def _handle_worktree_durum_command(chat_id):
+      from codex_workspace import worktree_health_check
+      health = worktree_health_check()
+      lines = [f"Worktree: {health['healthy']}/{health['total']} aktif"]
+      for slot, info in (health.get("slots") or {}).items():
+          icon = "OK" if info.get("healthy") else "HATA"
+          branch = info.get("branch") or "-"
+          lines.append(f"- {slot}: {icon} ({branch})")
+      return _truncate_telegram("\n".join(lines))
+
+  def _handle_worktree_activate_all_command(chat_id):
+      from codex_workspace import activate_all_worktrees
+      results = activate_all_worktrees()
+      ok = sum(1 for r in results.values() if r.get("ok"))
+      fail = len(results) - ok
+      return f"{ok}/5 worktree olusturuldu. {fail} hata."
+
+  def _handle_worktree_activate_command(chat_id, args):
+      from codex_workspace import ensure_worktree
+      slot = args.strip().lower()
+      if not slot:
+          return "Kullanim: /worktree-aktive <slot>"
+      try:
+          path = ensure_worktree(slot)
+          return f"{slot} worktree aktive edildi: {path}"
+      except Exception as e:
+          return f"Hata: {e}"
+
+  def _handle_worktree_remove_command(chat_id, args):
+      from codex_workspace import deactivate_worktree
+      slot = args.strip().lower()
+      if not slot:
+          return "Kullanim: /worktree-kaldir <slot>"
+      r = deactivate_worktree(slot)
+      return r.get("message") or r.get("error") or "Islem tamamlandi."
+
+Test: tests/test_codex_workspace.py içine ekle:
+  - test_activate_all_worktrees_returns_dict
+  - test_worktree_health_check_structure
+  - test_deactivate_nonexistent_returns_ok
+  - test_get_worktree_status_all_slots_present
+
+python -m pytest tests/test_codex_workspace.py -v --tb=short
+
+Commit: "feat: Telegram /worktree-* commands"
+CLAUDE.md update.
+
+================================================================================
+BÖLÜM B — SLICE B4: Web UI /worktrees Sayfası
+================================================================================
+
+apps/web-ui/src/app/worktrees/page.tsx YAZ:
+
+'use client';
+import { useEffect, useState } from 'react';
+
+const BRIDGE = process.env.NEXT_PUBLIC_BRIDGE_API || 'http://127.0.0.1:8081';
+const SLOTS = ['atlas', 'forge', 'nexus', 'shield', 'spark'] as const;
+type Slot = typeof SLOTS[number];
+
+interface SlotStatus {
+  exists: boolean;
+  branch: string | null;
+  last_used: string | null;
+  last_error: string | null;
+  healthy: boolean;
+}
+
+interface HealthPayload {
+  total: number;
+  healthy: number;
+  unhealthy: number;
+  slots: Record<Slot, SlotStatus>;
+}
+
+const SLOT_ROLES: Record<string, string> = {
+  atlas: 'Manager/Core',
+  forge: 'Backend Ops',
+  nexus: 'Overflow/Reserve',
+  shield: 'Security/Audit',
+  spark: 'Voice/Video',
+};
+
+function slotColor(slot: string): string {
+  const map: Record<string, string> = {
+    atlas: '#00bfff', forge: '#00ff88', nexus: '#ffdd00',
+    shield: '#9b59b6', spark: '#ff69b4',
+  };
+  return map[slot] || '#888';
+}
+
+export default function WorktreesPage() {
+  const [health, setHealth] = useState<HealthPayload | null>(null);
+  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  async function refresh() {
+    const r = await fetch(`${BRIDGE}/api/worktrees/health`, { cache: 'no-store' });
+    setHealth(await r.json());
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    refresh();
+    const t = setInterval(refresh, 5000);
+    return () => clearInterval(t);
+  }, []);
+
+  async function action(endpoint: string, body: object) {
+    const r = await fetch(`${BRIDGE}${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await r.json();
+    setMessage(data.message || data.error || 'Tamamlandi.');
+    await refresh();
+  }
+
+  const slots = health?.slots || {} as Record<string, SlotStatus>;
+
+  return (
+    <div className="min-h-screen bg-neutral-950 px-6 py-6 font-mono text-neutral-100">
+      <div className="mx-auto max-w-5xl space-y-6">
+        <header className="border-b border-neutral-800 pb-4">
+          <a href="/" className="text-xs text-neutral-500 hover:text-neutral-300 uppercase tracking-widest">Dashboard</a>
+          <h1 className="mt-2 text-2xl font-semibold">Codex Worktrees</h1>
+          <p className="mt-1 text-sm text-neutral-400">5 slot worktree yönetimi.</p>
+          {health && (
+            <p className="mt-2 text-sm text-neutral-400">
+              {health.healthy}/{health.total} aktif
+              {message && <span className="ml-4 text-emerald-400">{message}</span>}
+            </p>
+          )}
+        </header>
+
+        <div className="flex gap-3">
+          <button onClick={() => action('/api/worktrees/activate-all', {})}
+            className="border border-emerald-700 px-3 py-1 text-xs uppercase tracking-widest text-emerald-300 rounded hover:bg-emerald-950/30">
+            Hepsini Aktive Et
+          </button>
+        </div>
+
+        {loading ? (
+          <p className="text-neutral-500">Yükleniyor...</p>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-5">
+            {SLOTS.map(slot => {
+              const info: SlotStatus = slots[slot] || {
+                exists: false, branch: null, last_used: null, last_error: null, healthy: false
+              };
+              return (
+                <div key={slot} className="border border-neutral-800 bg-neutral-900 p-4 rounded-md space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-3 w-3 rounded-full" style={{ backgroundColor: slotColor(slot), boxShadow: info.healthy ? `0 0 8px ${slotColor(slot)}` : 'none' }} />
+                    <div className="text-sm font-semibold text-white uppercase">{slot}</div>
+                  </div>
+                  <div className="text-[10px] text-neutral-500 uppercase tracking-widest">{SLOT_ROLES[slot]}</div>
+                  <div className="space-y-1 text-xs text-neutral-400">
+                    <div>durum: <span className={info.healthy ? 'text-emerald-400' : 'text-red-400'}>{info.healthy ? 'AKTİF' : 'PASİF'}</span></div>
+                    <div>branch: {info.branch || '-'}</div>
+                    <div>son: {info.last_used ? new Date(info.last_used).toLocaleString('tr-TR', { hour12: false }) : '-'}</div>
+                    {info.last_error && <div className="text-red-400 text-[10px]">{info.last_error.slice(0, 60)}</div>}
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {!info.exists ? (
+                      <button onClick={() => action('/api/worktrees/activate', { slot })}
+                        className="border border-emerald-700 px-2 py-1 text-[10px] uppercase tracking-widest text-emerald-300 rounded hover:bg-emerald-950/30">
+                        Aktive Et
+                      </button>
+                    ) : (
+                      <button onClick={() => action('/api/worktrees/deactivate', { slot })}
+                        className="border border-red-800 px-2 py-1 text-[10px] uppercase tracking-widest text-red-300 rounded hover:bg-red-950/30">
+                        Kaldır
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+TypeScript validation:
+  apps/web-ui/node_modules/.bin/tsc.cmd --noEmit
+
+Commit: "feat: /worktrees Web UI — 5 slot görsel panel"
+CLAUDE.md update.
+
+================================================================================
+FINAL: Integration Test + Handoff
+================================================================================
+
+1. Full test suite:
+   python -m pytest tests/test_repo_manager.py tests/test_codex_workspace.py -v --tb=short
+
+2. Final smoke:
+   python -c "
+   import sys; sys.path.insert(0, 'server')
+   from repo_manager import list_repos, get_repo_status_summary
+   from codex_workspace import worktree_health_check, get_worktree_status
+
+   repos = list_repos()
+   print(f'Repos: {len(repos)} tanimli')
+
+   summary = get_repo_status_summary()
+   print(f'Repo summary: {summary["total"]} total, {summary["cloned"]} cloned')
+
+   health = worktree_health_check()
+   print(f'Worktree health: {health["healthy"]}/{health["total"]}')
+
+   status = get_worktree_status()
+   print(f'Worktree slots: {list(status.keys())}')
+
+   print('ALL TAB-6 SMOKE TESTS PASSED')
+   "
+
+3. OPS/601_MULTI_REPO_WORKTREE_HANDOFF.md yaz:
+   # Multi-Repo Manager + Codex Worktree — Handoff
+
+   ## Bölüm A: Multi-Repo Manager
+   ### Dosyalar
+   - config/repos.yaml — repo listesi
+   - server/repo_manager.py — clone, pull, activate logic
+   - state/repos/ — per-repo durum dosyaları
+
+   ### Bridge Endpoints
+   GET  /api/repos          — repo listesi
+   GET  /api/repos/status   — özet durum
+   POST /api/repos/clone    — {repo_id}
+   POST /api/repos/pull     — {repo_id}
+   POST /api/repos/pull-all — tüm aktif repoları güncelle
+   POST /api/repos/activate — {repo_id, action: activate|deactivate}
+
+   ### Telegram Komutları
+   /repo-liste, /repo-durum, /repo-clone, /repo-guncelle, /repo-hepsini-guncelle
+
+   ### Web UI
+   http://127.0.0.1:3000/repos
+
+   ### Yeni Repo Ekleme (2 Adım)
+   1. config/repos.yaml'a yeni giriş ekle
+   2. /repo-clone <repo_id> ile klonla
+
+   ## Bölüm B: Codex Worktree Activation
+   ### Dosyalar
+   - server/codex_workspace.py — WorkspaceManager + helpers
+   - state/worktree_status.json — slot sağlık durumu
+
+   ### Bridge Endpoints
+   GET  /api/worktrees          — slot listesi + paths
+   GET  /api/worktrees/health   — sağlık raporu
+   POST /api/worktrees/activate-all   — 5 slot hepsini oluştur
+   POST /api/worktrees/activate       — {slot}
+   POST /api/worktrees/deactivate     — {slot}
+
+   ### Telegram Komutları
+   /worktree-durum, /worktree-hepsini-aktive, /worktree-aktive, /worktree-kaldir
+
+   ### Web UI
+   http://127.0.0.1:3000/worktrees
+
+   ## Bilinen Limitasyonlar
+   - Repo clone için URL gerekli (repos.yaml'a ekle)
+   - git worktree için mevcut repo'da en az 1 commit olmalı
+   - Windows'ta git path'i system PATH'de olmalı
+
+4. CLAUDE.md FINAL güncelle:
+   ### Multi-Repo Manager + Codex Worktree (Tab-6)
+   - Durum: TAMAMLANDI
+   - Repo manager: server/repo_manager.py
+   - Config: config/repos.yaml (N repo)
+   - Worktree: server/codex_workspace.py (5 slot)
+   - Bridge: /api/repos/* + /api/worktrees/*
+   - Telegram: /repo-* + /worktree-*
+   - Web UI: /repos + /worktrees sayfaları
+   - Tests: pytest N passed
+   - Handoff: OPS/601_MULTI_REPO_WORKTREE_HANDOFF.md
+
+5. Final commit:
+   "feat: Multi-Repo Manager + Codex Worktree Activation complete"
+
+================================================================================
+ANTI-HALLUCINATION RULES
+================================================================================
+
+- config/repos.yaml'daki URL boş repoları clone etmeye çalışma
+- git worktree komutları ROOT dir'den çalışır
+- subprocess timeout her zaman belirt
+- NEVER log git credentials veya tokens
+- Windows path separator: Path() kullan, string concat yapma
+- Test olmadan slice tamamlandı deme
+- bridge.py mevcut endpoint'leri silme
+
+================================================================================
+GO. A1 -> A2 -> A3 -> A4 -> A5 -> B1 -> B2 -> B3 -> B4 -> FINAL
+HER SLICE SONRASI COMMIT + CLAUDE.MD UPDATE
+================================================================================

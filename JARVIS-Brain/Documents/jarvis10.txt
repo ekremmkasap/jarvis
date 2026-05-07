@@ -1,0 +1,88 @@
+════════════════════════════════════════════════════════════════
+  🤖 JARVIS - BUÖ BAŞLAMA REHBERİ
+════════════════════════════════════════════════════════════════
+
+MERHABA JARVIS!
+
+Bugün (16 Nisan 2026) yapılan işler:
+
+1. ✅ BRIDGE IMPORT HATASI - DÜZELTILDI
+   → server/bridge.py sys.path fix
+   → services.orchestrator import artık çalışacak
+   → Bridge açıldığında Telegram entegrasyonu aktif olacak
+
+2. ✅ JARVIS-BRAIN VAULT - OLUŞTURULDU
+   → C:/Users/sergen/Desktop/JARVIS-Brain/
+   → 13 markdown dosya (Turkish content + metadata)
+   → MCP server kayıtlı: ~/.claude.json
+   → Bilgi deposu, dev log, Instagram/GitHub kaynakları
+
+3. ✅ CLAUDE.md - GÜNCELLENDİ
+   → JARVIS-Brain Vault bloğu eklendi
+   → OpenClaw + JARVIS-Brain hep beraber
+
+════════════════════════════════════════════════════════════════
+
+ŞİMDİ YAPMAN GEREKENLER (SIRADAKİ ADIMLAR):
+
+ADIM 1 — KONTROL ET (Yapılması gereken)
+────────────────────────────────────────
+Bridge'in açılıp açılmadığını kontrol et:
+  → Telegram /takim komutu çalışıyor mu?
+  → http://127.0.0.1:8081/health 200 dönüyor mu?
+  → Hologram ve Voice normal mi?
+
+ADIM 2 — VAULT VERİFİKASYONU
+─────────────────────────────
+JARVIS-Brain dosyaları var mı?
+  → C:/Users/sergen/Desktop/JARVIS-Brain/
+  → 13 dosya + 6 klasör olmalı
+  → Tüm dosyalarda YAML frontmatter var mı?
+
+ADIM 3 — TELEGRAM TESTI
+───────────────────────
+Telegram'da şu komutları test et:
+  → /takim (team status)
+  → /ses (voice commands)
+  → Normal mesaj gönder → cevap gelsin mi?
+
+ADIM 4 — PERSONA TUTARLILIĞI
+──────────────────────────────
+Çoklu persona testi:
+  → Jarvis olarak konuş
+  → Vision olarak screen analiz yap
+  → Sabrican olarak OpenClaw komutları ver
+  → Hepsi kendi karakterinde mi kalıyor?
+
+ADIM 5 — VOICE PERFORMANCE
+───────────────────────────
+Voice akışı sorunsuz mu?
+  → Dropped frames var mı? (loglara bak)
+  → Response time normal mi? (1-2 saniye)
+  → Desktop taraması çok zaman alıyor mu?
+
+════════════════════════════════════════════════════════════════
+
+DETAYLI REHBER:
+
+👉 FULL KONTROL LİSTESİ için şu dosyayı oku:
+   C:\Users\sergen\Desktop\jarvis-mission-control\HANDOFF_TASK.md
+
+   Bu dosyada tüm yapılması gerekenler sırada yazılı.
+   Tamamladıkça işartle.
+
+════════════════════════════════════════════════════════════════
+
+SORUN ÇIKMAZSA:
+
+Bridge timeout → Logs kontrol et (server/logs/bridge.log)
+Telegram saat gelmezse → sys.path sorunları check et
+Voice kasıyor → Mark-XXXV file_controller check et
+
+════════════════════════════════════════════════════════════════
+
+ÖZET: Bridge'i çalıştır, JARVIS-Brain'i kontrol et, 
+      Telegram/Voice testlerini yap. HANDOFF_TASK.md'yi takip et!
+
+🚀 Başarılar!
+════════════════════════════════════════════════════════════════

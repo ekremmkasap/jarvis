@@ -1,0 +1,263 @@
+================================================================================
+JARVIS MISSION CONTROL — CODEX 5 SAATLIK OTONOM BUILD PROMPT
+VERSION: ULTRA-FINAL v1.0 | TARIH: 2026-04-10
+================================================================================
+
+GENEL KURALLAR:
+- Ana yapiyi (bridge.py, server/, apps/web-ui/) ASLA silme veya sifirlama
+- Her degisiklikten once mevcut dosyayi oku
+- Her gorev bittikten sonra git commit at
+- Hata olursa dur, raporla, sonraki goreve gec
+- Tum loglar: server/logs/ altina
+- Test yoksa yaz, test varsa calistir
+- Python: server/ altinda | TypeScript: src/ | Next.js: apps/web-ui/
+
+PROJE:
+- Konum: C:/Users/sergen/Desktop/jarvis-mission-control
+- Platform: Windows 11, Python 3.11, Node.js
+- Ana beyin: server/bridge.py (v2.3)
+- Web UI: apps/web-ui/ (Next.js 14)
+- Telegram botu aktif
+- Ollama: llama3.2, qwen2.5-coder, deepseek-r1:8b, moondream, qwen3:4b
+
+REFERANS REPOLAR (external-repos/ klasorunde):
+- Mark-XXXV (FatihMakes): Gemini tabanli sesli asistan, PC kontrolu, ekran gorme
+  Kaynak: external-repos/Mark-XXXV/main.py — oku, ilham al
+  Model: Gemini 2.0 Flash (ucretsiz API key)
+  STT: SpeechRecognition + Google STT
+  TTS: Google TTS veya piper
+- swarms (kyegomez): Enterprise multi-agent orchestration
+- crewAI: Rol tabanli multi-agent framework
+- OpenHands: AI-driven development (SWE-bench 77.6%)
+- devika: Agentic AI software engineer
+- ClawRouter: Agent-native LLM router
+- claude-skills: 223 Claude Code skill
+- awesome-codex-subagents: 136+ Codex subagent
+
+MEVCUT TAMAMLANANLAR (BUNLARI BOZMA):
+[X] Gmail skill
+[X] Google Calendar skill
+[X] Notion skill
+[X] Stripe webhook + onboarding
+[X] Multi-tenant musteri yonetimi
+[X] Landing page (Turkce SaaS)
+[X] Admin dashboard
+[X] BridgeSkill TypeScript
+[X] Semantic memory
+[X] 248 test geciyor
+
+================================================================================
+FAZ 1 (0-60dk): TEMEL ALTYAPI
+================================================================================
+
+GOREV 1.1 — MODEL ROUTER GENISLET
+Dosya: server/model_router.py
+ONCE MEVCUT DOSYAYI OKU, sonra ekle:
+- Gemini 2.0 Flash (google-generativeai, GEMINI_API_KEY env ile)
+- Gemma 3 4B (Ollama: gemma3:4b)
+- Route kurallari:
+  "vision"  → moondream:latest
+  "fast"    → gemma3:4b
+  "gemini"  → gemini-2.0-flash
+  "deep"    → deepseek-r1:8b
+  "code"    → qwen2.5-coder:7b (mevcut)
+- Fallback: cloud → ollama → basit cevap
+- Her model cagrisi ms olarak logla
+
+GOREV 1.2 — MODEL HEALTH SKILL
+Dosya: server/skills/model_health_skill.py
+- Ollama API: GET http://127.0.0.1:11434/api/tags
+- Her modele test prompt gonder, sure olc
+- Yavas model (>10sn) → log uyari
+- Telegram: /modeller → tum model durumlari
+
+GOREV 1.3 — EKRAN GORME SKILL
+Dosya: server/skills/vision_skill.py
+- mss veya PIL.ImageGrab ile ekran goruntusu
+- Ollama moondream:latest e gonder
+- Prompt: "Bu ekran goruntusunu Turkce olarak kisaca acikla"
+- Telegram: /gor komutu
+
+================================================================================
+FAZ 2 (60-120dk): SESLI ASISTAN + HOLOGRAM
+================================================================================
+
+GOREV 2.1 — GEMINI SESLI ASISTAN
+Dosya: server/voice/gemini_voice_assistant.py
+Referans: external-repos/Mark-XXXV/main.py (oku, ilham al)
+- google-generativeai ile Gemini 2.0 Flash
+- Fallback: Ollama llama3.2, sonra qwen3:4b
+- SpeechRecognition + Google STT
+- Piper TTS: C:/Users/sergen/AppData/Local/piper-models/tr_TR-dfki-medium.onnx
+- Wake word: "Hey Jarvis" veya "Jarvis"
+- Durumlar: LISTENING / THINKING / SPEAKING / MUTED
+- F4 tusu ile mute toggle
+- Konusma kaydi: jarvis_konusmalar.txt e append
+
+GOREV 2.2 — HEY_JARVIS.PY GUNCELLE
+Dosya: hey_jarvis.py
+ONCE MEVCUT DOSYAYI OKU, silme, genislet:
+- gemini_voice_assistant.py i import et
+- Hologram UI ile entegre et
+- Mevcut islev korunsun
+
+GOREV 2.3 — HOLOGRAM UI
+Dosya: server/ui/hologram_ui.py
+- tkinter Canvas, siyah arkaplan, yuvarlak pencere
+- Mavi donen halka animasyonu
+- Durum yazisi (LISTENING / THINKING / SPEAKING / MUTED)
+- Ses dalgasi animasyonu
+- pystray ile sistem tepsisinde calis
+- threading.Event ile durum guncelleme
+
+GOREV 2.4 — PC KONTROL SKILL
+Dosya: server/skills/pc_control_skill.py
+- pyautogui ile mouse/keyboard kontrolu
+- subprocess ile uygulama acma
+- Komutlar: ##TIKLA:x,y## ##YAZ:metin## ##TUS:enter## ##KOMUT:cmd##
+- Guvenlik: Sadece ADMIN_CHAT_ID
+- Telegram: /pc [komut]
+
+================================================================================
+FAZ 3 (120-180dk): MULTI-AGENT SWARM
+================================================================================
+
+GOREV 3.1 — TASK BUS
+Dosya: server/swarm/task_bus.py
+- SQLite: server/data/tasks.db
+- Tablo: tasks(id, agent, payload, status, priority, created_at, updated_at)
+- Status: pending / running / completed / failed
+- Metodlar: enqueue(), dequeue(), update_status(), list_tasks()
+
+GOREV 3.2 — SWARM ORKESTRATOR
+Dosya: server/swarm/orchestrator.py
+Referans: external-repos/swarms/ ve external-repos/crewAI/
+- Agent pool:
+  * ResearchAgent → Perplexica skill
+  * CodeAgent → qwen2.5-coder
+  * CreativeAgent → llama3.2
+  * AnalysisAgent → deepseek-r1:8b
+  * VisionAgent → moondream
+- asyncio ile paralel (max 3 agent)
+- Sonuclari birlestir ve ozet yaz
+- Telegram: /swarm [gorev]
+
+GOREV 3.3 — CODEX LOAD BALANCER
+Dosya: server/skills/codex_lb_skill.py
+Referans: Soju06/codex-lb, ndycode/oc-codex-multi-auth
+- 6 hesap icin round-robin
+- Kota takibi (SQLite)
+- Kota dolunca otomatik gecis
+- config/codex_accounts.json sablon olustur (bos, kullanici dolduracak)
+  Format: {"accounts": [{"id":1,"email":"","token":"","quota_used":0,"quota_limit":100}]}
+- Telegram: /codex [gorev]
+
+================================================================================
+FAZ 4 (180-240dk): TELEGRAM + WEB UI
+================================================================================
+
+GOREV 4.1 — BRIDGE.PY YENİ KOMUTLAR
+Dosya: server/bridge.py
+ONCE MEVCUT DOSYAYI OKU, EKLE (silme, bozma):
+  /gor              → VisionSkill
+  /pc [komut]       → PCControlSkill (sadece admin)
+  /swarm [gorev]    → SwarmOrchestrator
+  /codex [gorev]    → CodexLBSkill
+  /modeller         → ModelHealthSkill
+  /gemini [soru]    → Gemini 2.0 Flash
+  /qwen [soru]      → qwen2.5-coder
+  /deepseek [soru]  → deepseek-r1:8b
+  /hologram         → hologram UI ac/kapat
+  /hafiza ara [q]   → semantic memory search
+  /wiki [konu]      → wiki sayfasi
+
+GOREV 4.2 — TELEGRAM INLINE KEYBOARD
+Dosya: server/telegram/telegram_intelligence.py (oku, genislet)
+- /basla → inline butonlu menu
+- Butonlar: [Ara] [PC] [Swarm] [Analiz] [Icerik] [Gmail] [Takvim] [Wiki]
+
+GOREV 4.3 — WEBSOCKET SUNUCU
+Dosya: server/websocket_server.py
+- websockets kutuphanesi, Port: 8082
+- Events: {type, data, timestamp}
+- Types: model_call, task_start, task_end, voice_state
+
+GOREV 4.4 — WEB UI GUNCELLE
+Dosya: apps/web-ui/src/app/page.tsx (oku, genislet)
+- WebSocket baglantisi ws://localhost:8082
+- Model durumu widget
+- Ses asistan durumu ikonu
+- Son 5 swarm gorevi
+
+================================================================================
+FAZ 5 (240-300dk): WIKI + SAAS + TEST
+================================================================================
+
+GOREV 5.1 — WIKI SAYFALARI OLUSTUR
+wiki/ klasorune yaz:
+  wiki/mark-xxxv.md           → FatihMakes JARVIS analizi, alinacak dersler
+  wiki/swarms.md              → swarms framework notlari
+  wiki/model-karsilastirma.md → Ollama vs Gemini vs Qwen
+  wiki/codex-lb.md            → Codex load balancer kurulum rehberi
+  wiki/saas-yol-haritasi.md   → 20 musteri hedefi, paketler, fiyatlar
+  wiki/index.md               → tum sayfalarin listesi
+  wiki/hot.md                 → guncel ozet (~500 kelime)
+
+GOREV 5.2 — STRIPE WEBHOOK TAMAMLA
+Dosya: server/skills/stripe_webhook_skill.py (oku, tamamla)
+- checkout.session.completed → create_tenant() + Telegram bildir
+- customer.subscription.deleted → deactivate_tenant()
+- config/soul_template.md yoksa olustur
+
+GOREV 5.3 — OBSIDIAN SYNC SKILL
+Dosya: server/skills/obsidian_sync_skill.py
+- wiki/ yonet
+- [[baglanti]] olustur
+- /wiki [konu] → sayfa don
+- /wiki ekle [baslik] | [icerik] → yeni sayfa
+
+GOREV 5.4 — GUVENLIK AUDIT
+- Tum /admin komutlari ADMIN_CHAT_ID kontrolu var mi?
+- SQLite sorgulari parametreli mi?
+- .env .gitignore da mi?
+- Logda token/key var mi? Redact et.
+
+GOREV 5.5 — TESTLER
+Yeni testler yaz (248 mevcut testi BOZMA):
+  tests/test_voice_skill.py
+  tests/test_vision_skill.py
+  tests/test_pc_control_skill.py (mock pyautogui)
+  tests/test_swarm_orchestrator.py
+  tests/test_model_router_extended.py
+
+Calistir: python -m pytest tests -v --tb=short
+
+GOREV 5.6 — DEVLOG + GIT
+- DEVLOG.md e 2026-04-10 sprint ekle
+- git add -A
+- git commit -m "feat: Mark-XXXV sesli asistan + swarm + multi-model + hologram"
+
+================================================================================
+YASAK ISLEMLER:
+================================================================================
+X bridge.py silme veya sifirlama
+X Mevcut 248 testi bozma
+X .env dosyasini degistirme (sadece .env.example)
+X main branch e force push
+X Calisan komutlari kaldirma
+X Production deploy
+
+================================================================================
+HEDEF — 5 SAAT SONUNDA JARVIS:
+================================================================================
+- Mark-XXXV seviyesinde sesli + gorsel + PC kontrollü
+- Gemini 2.0 Flash + Ollama multi-model router
+- 5 agent swarm destekli
+- 6 hesap Codex load-balanced
+- Obsidian wiki entegrasyonlu
+- Hologram UI aktif
+- Turkce SaaS platformu calisıyor
+- Tum testler geciyor
+
+BASLA!
+================================================================================

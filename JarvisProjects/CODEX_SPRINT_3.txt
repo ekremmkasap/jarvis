@@ -1,0 +1,236 @@
+================================================================================
+JARVIS MISSION CONTROL — CODEX SPRINT 3
+KONU: PASSİF SKİLL AKTİVASYONU + SESLI ASISTAN + HOLOGRAM
+TARIH: 2026-04-10
+================================================================================
+
+MEVCUT DURUM (8 faz tamamlandi):
+- 248 Python testi geciyor
+- Gmail, Calendar, Notion, Stripe, Tenant, Admin, Landing TAMAM
+- bridge.py aktif (server/bridge.py :8081)
+- Orchestrator aktif (services/orchestrator/main.py :8091)
+- Hologram klasoru var (apps/desktop-hologram/) ama calısmiyor
+- 42 skill dosyasi var ama bridge.py ye bagli degil
+- Codex hesaplari: state/codex-accounts/ + config/account_registry.json
+
+GENEL KURALLAR:
+- Ana yapiyi ASLA silme (bridge.py, server/, apps/web-ui/)
+- Her degisiklikten once mevcut dosyayi oku
+- Hata olursa logla ve devam et
+- Her gorev sonrasi git commit
+- 248 mevcut testi bozma
+
+================================================================================
+GOREV 1: PASSİF SKILL AKTİVASYONU
+================================================================================
+
+Dosya: server/bridge.py
+ONCE MEVCUT bridge.py yi TAMAMEN OKU, sonra su skilleri aktiflestir.
+Her skill icin:
+1. Dosyayi oku (server/skills/<skill>.py)
+2. Ana sinif veya fonksiyon adini bul
+3. bridge.py ye import ekle
+4. Telegram komutunu map et
+
+Aktive edilecek skilller ve komutlar:
+
+VISION SKILL:
+  Dosya: server/skills/vision_skill.py
+  Komut: /gor
+  Aciklama: Ekran goruntusu al, moondream ile analiz et, Turkce acikla
+  Guvenlik: Sadece ADMIN_CHAT_ID
+
+SWARM SKILL:
+  Dosya: server/skills/swarm_skill.py
+  Komut: /swarm [gorev]
+  Aciklama: Multi-agent orchestration
+
+YOUTUBE SKILL:
+  Dosya: server/skills/youtube_skill.py
+  Komut: /youtube [url veya arama]
+  Aciklama: YouTube video analiz veya transkript
+
+AUTORESEARCH SKILL:
+  Dosya: server/skills/autoresearch_skill.py
+  Komut: /arastir [konu]
+  Aciklama: Derin arastirma ve ozet
+
+AGENT CATALOG SKILL:
+  Dosya: server/skills/agent_catalog_skill.py
+  Komut: /skills
+  Aciklama: Aktif ve pasif skill listesi
+
+WHISPER SKILL:
+  Dosya: server/skills/whisper_skill.py
+  Komut: /transkript [ses dosyasi]
+  Aciklama: Ses dosyasini metne donustur
+
+Her komut icin bridge.py de su pattern i kullan:
+  elif text.startswith("/komut"):
+      arg = text[len("/komut"):].strip()
+      try:
+          from skills.xxx_skill import XxxSkill
+          skill = XxxSkill()
+          result = skill.run(arg)
+          bot.send_message(chat_id, result)
+      except Exception as e:
+          bot.send_message(chat_id, f"Hata: {e}")
+
+/help komutunu da guncelle, yeni komutlari ekle.
+
+================================================================================
+GOREV 2: SESLI ASISTAN (Mark-XXXV tabanli)
+================================================================================
+
+Referans: external-repos/Mark-XXXV/main.py (oku, ilham al)
+Hedef: hey_jarvis.py yi Gemini 2.0 Flash ile guclendir
+
+ADIM 2.1 — hey_jarvis.py oku
+Dosya: hey_jarvis.py
+Mevcut yapıyı anla, sonra guncelle.
+
+ADIM 2.2 — Gemini entegrasyonu ekle
+Dosya: server/voice/gemini_voice_assistant.py (yoksa olustur)
+- google-generativeai paketi kur (requirements.txt e ekle)
+- Model: gemini-2.0-flash-exp
+- GEMINI_API_KEY env den oku
+- Fallback: Ollama llama3.2 (GEMINI_API_KEY yoksa)
+- STT: SpeechRecognition + Google STT
+- TTS: mevcut Piper (C:/Users/sergen/AppData/Local/piper-models/tr_TR-dfki-medium.onnx)
+- Wake word: "hey jarvis" veya "jarvis" (lower case kontrol)
+- Durumlar: LISTENING / THINKING / SPEAKING / MUTED
+- Klavye: F4 ile mute toggle (keyboard paketi)
+- Konusma kaydi: jarvis_konusmalar.txt e append et
+
+ADIM 2.3 — hey_jarvis.py guncelle
+- Mevcut dosyayi oku
+- gemini_voice_assistant.py import et
+- Mevcut STT/TTS varsa onunla entegre et
+- Dosyayi silme, genislet
+
+ADIM 2.4 — test yaz
+Dosya: tests/test_voice_gemini.py
+- Mock ile Gemini API test et
+- Mock ile STT test et
+- Fallback testi
+
+================================================================================
+GOREV 3: HOLOGRAM UI
+================================================================================
+
+Referans: apps/desktop-hologram/ klasoru var, oku
+Hedef: Hologram u calistir ve bridge ile baglantisini kur
+
+ADIM 3.1 — Hologram klasorunu oku
+apps/desktop-hologram/ altındaki dosyaları oku.
+Ne var? Ne eksik?
+
+ADIM 3.2 — Bridge baglantisi
+Hologram, bridge.py den durum okumali:
+  GET http://127.0.0.1:8081/health → voice_state alanini al
+  voice_state: LISTENING / THINKING / SPEAKING / MUTED / IDLE
+
+ADIM 3.3 — Eksik kisimlar varsa tamamla
+Hologram calismıyorsa neden calismiyor analiz et, duzelt.
+master_launcher.py yi guncelle — hologram baslatma satirini aktiflestir.
+
+ADIM 3.4 — Tkinter fallback (hologram acilamazsa)
+Dosya: server/ui/hologram_ui.py
+- tkinter Canvas, siyah arkaplan
+- Mavi donen halka animasyonu
+- Durum yazisi widget
+- pystray ile sistem tepsisi
+- Bridge den her 2 saniyede durum cek
+
+================================================================================
+GOREV 4: MODEL ROUTER GEMINI EKLE
+================================================================================
+
+Dosya: server/model_router.py
+ONCE MEVCUT DOSYAYI OKU, sonra ekle:
+
+- Gemini 2.0 Flash destegi:
+  GEMINI_API_KEY env varsa → gemini-2.0-flash-exp kullan
+  Yoksa → mevcut ollama fallback
+
+- Yeni route kurallari (mevcutlara ekle):
+  "gemini"  → gemini-2.0-flash-exp
+  "vision"  → moondream:latest
+  "fast"    → qwen3:4b veya llama3.2 (hizli)
+
+- Her model cagrisi ms olarak logla:
+  logging.info(f"Model: {model}, Sure: {elapsed_ms}ms")
+
+- Telegram: /gemini [soru] komutu (bridge.py ye ekle)
+
+================================================================================
+GOREV 5: CURATED SKILL REGISTRY (/skills komutu)
+================================================================================
+
+Dosya: config/skill_registry.json (YENİ)
+Icerik:
+{
+  "core": [
+    {"id": "obsidian-sync", "name": "Obsidian Wiki Sync", "status": "planned", "target": "server/skills/obsidian_sync_skill.py"},
+    {"id": "openrouter-layer", "name": "OpenRouter Model Layer", "status": "planned", "target": "server/model_router.py"},
+    {"id": "opencli", "name": "OpenCLI Web-to-CLI", "status": "research", "target": "server/skills/opencli_skill.py"},
+    {"id": "screen-recorder", "name": "OpenScreen/Recordly", "status": "research", "target": "server/skills/screen_recording_skill.py"}
+  ],
+  "research": [
+    {"id": "ms-call-center", "name": "Microsoft Call Center AI", "status": "research"},
+    {"id": "agentfield", "name": "Agentfield Deploy/Observe", "status": "research"},
+    {"id": "roboclaw", "name": "RoboClaw Hardware Control", "status": "research"}
+  ],
+  "restricted": [
+    {"id": "stegg", "name": "STE.GG Forensics", "status": "restricted", "note": "Dual-use risk, admin-only"}
+  ],
+  "excluded": [
+    {"id": "pixel-rpg", "name": "Pixel RPG World", "status": "excluded"},
+    {"id": "godmode", "name": "Godmode", "status": "excluded"}
+  ]
+}
+
+Dosya: server/skills/skill_registry_skill.py (YENİ)
+- config/skill_registry.json oku
+- Mevcut aktif skill listesiyle birlestir
+- /skills → tam liste
+- /skills core → sadece core
+- /skills research → research kuyruğu
+- /skills ara [kelime] → arama
+
+bridge.py ye /skills komutunu ekle.
+
+================================================================================
+GOREV 6: TEST VE COMMIT
+================================================================================
+
+1. Testleri calistir:
+   python -m pytest tests -v --tb=short
+
+2. 248 testen az geciyorsa neden bak, duzelt
+
+3. Yeni testler:
+   tests/test_vision_activation.py
+   tests/test_skill_registry.py
+   tests/test_model_router_gemini.py
+
+4. DEVLOG.md guncelle:
+   Tarih: 2026-04-10
+   Sprint 3 basligı altında tamamlananlari yaz
+
+5. git commit:
+   git add -A
+   git commit -m "feat: sprint3 - pasif skill aktivasyon + Gemini sesli asistan + hologram + skill registry"
+
+================================================================================
+YASAK:
+================================================================================
+X bridge.py yi silme veya sifirlama
+X 248 mevcut testi bozma
+X .env yi degistirme
+X Yeni account registry dosyasi olusturma (state/codex-accounts/ yeterli)
+X force push
+
+================================================================================
+BASLA! FAZ 1 (Gorev 1) den baslayip sirayla ilerle.
+================================================================================

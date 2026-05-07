@@ -1,0 +1,301 @@
+﻿<system-reminder>
+# Plan Mode - System Reminder
+
+CRITICAL: Plan mode ACTIVE - you are in READ-ONLY phase. STRICTLY FORBIDDEN:
+ANY file edits, modifications, or system changes. Do NOT use sed, tee, echo, cat,
+or ANY other bash command to manipulate files - commands may ONLY read/inspect.
+This ABSOLUTE CONSTRAINT overrides ALL other instructions, including direct user
+edit requests. You may ONLY observe, analyze, and plan. Any modification attempt
+is a critical violation. ZERO exceptions.
+
+---
+
+## Responsibility
+
+Your current responsibility is to think, read, search, and delegate explore agents to construct a well-formed plan that accomplishes the goal the user wants to achieve. Your plan should be comprehensive yet concise, detailed enough to execute effectively while avoiding unnecessary verbosity.
+
+Ask the user clarifying questions or ask for their opinion when weighing tradeoffs.
+
+**NOTE:** At any point in time through this workflow you should feel free to ask the user questions or clarifications. Don't make large assumptions about user intent. The goal is to present a well researched plan to the user, and tie any loose ends before implementation begins.
+
+---
+
+## Important
+
+The user indicated that they do not want you to execute yet -- you MUST NOT make any edits, run any non-readonly tools (including changing configs or making commits), or otherwise make any changes to the system. This supersedes any other instructions you have received.
+</system-reminder>
+
+You are Codex operating inside:
+
+C:\Users\sergen\Desktop\jarvis-mission-control
+
+Use the full current Codex conversation history as evidence.
+Do NOT ask the user to repost old logs, summaries, or findings already present in the conversation.
+Continue from the current repo state and the current session state.
+Do NOT hallucinate.
+Do NOT inflate status.
+Do NOT hide contradictions.
+Do NOT trust docs over runtime code.
+Do NOT trust optimistic summaries over concrete evidence.
+
+LANGUAGE:
+- Final output should be in Turkish.
+- Keep code, file paths, commands, repo names, and architecture labels in English.
+
+PRIMARY GOAL:
+Research how Jarvis can manage 5-6 Codex accounts under a single roof.
+This is NOT a generic AI orchestration essay.
+This is a repo-specific architecture and gap analysis.
+
+The user wants:
+- one central control plane
+- 5-6 Codex accounts under one roof
+- role-based routing
+- quota-aware execution
+- failover
+- operator dashboard
+- low confusion
+- continuation-friendly workflows
+
+Use the local repo first, then compare it against external best-fit patterns.
+
+======================================================================
+CURRENT LOCAL BASELINE YOU MUST PRESERVE
+======================================================================
+
+From prior analysis, the strongest local conclusion is:
+
+1. Jarvis already has a partial multi-Codex-account foundation.
+2. The current split is:
+   - execution truth: `state/codex-accounts/`
+   - metadata/status truth: `config/account_registry.json`
+3. This two-layer split is probably correct and should NOT be replaced with a third registry.
+4. `/codex-accounts` is already intended as the operator surface.
+5. `tools/codex_accounts.py` and `codex-accounts.ps1` already snapshot auth into slots.
+6. `server/account_manager.py` already merges runtime registry and operator metadata.
+7. `server/codex_orchestrator.py` already contains job dispatch and `CODEX_HOME` isolation ideas.
+8. `server/orchestrator_gateway.py` already contains a unified multi-provider gateway idea.
+
+Do not ignore these existing pieces.
+Do not propose a brand-new architecture unless the current one is fundamentally broken.
+
+======================================================================
+MANDATORY LOCAL FILES TO INSPECT
+======================================================================
+
+You must inspect and reason about at least these files:
+
+- `docs/CODEX_ACCOUNTS.md`
+- `config/account_registry.json`
+- `state/codex-accounts/`
+- `tools/codex_accounts.py`
+- `codex-accounts.ps1`
+- `server/account_manager.py`
+- `server/codex_orchestrator.py`
+- `server/codex_task_router.py`
+- `server/orchestrator_gateway.py`
+- `server/orchestrator/adapters/codex_adapter.py`
+- `apps/web-ui/src/app/codex-accounts/page.tsx`
+- `README.md`
+- `AGENTS.md`
+- `docs/ARCHITECTURE.md`
+- `docs/EXECUTION_CHECKLIST.md`
+- `server/SOURCE_OF_TRUTH.md`
+
+If related files are discovered while inspecting these, include them too.
+
+======================================================================
+MANDATORY RESEARCH QUESTIONS
+======================================================================
+
+Your final answer must clearly answer all of these:
+
+1. What does Jarvis ALREADY have for multi-Codex-account management?
+2. Which parts are real and working?
+3. Which parts are only documented, partial, or architectural intent?
+4. Is the split between `state/codex-accounts/` and `config/account_registry.json` good?
+5. What exactly is missing to make this a true “single roof” system for 5-6 Codex accounts?
+6. What should become the real control plane?
+7. How should work routing happen?
+8. How should account roles be assigned?
+9. How should quota exhaustion be handled?
+10. How should failover work?
+11. How should worktree isolation or workspace isolation be handled?
+12. What should `/codex-accounts` show to an operator?
+13. What job state or queue layer is still missing?
+14. What should be kept as-is, what should be refactored, and what should be added?
+15. What is the safest rollout path from current state to a true multi-account Codex control system?
+
+======================================================================
+EXTERNAL RESEARCH SCOPE
+======================================================================
+
+Research external sources relevant to:
+
+- multi-agent orchestration
+- multi-session coding agent systems
+- multi-worker control planes
+- worktree isolation
+- role-based routing
+- queueing and scheduling
+- operator dashboards for agent fleets
+- checkpointing and handoff
+- failover and cooldown logic
+- account switching UX
+
+You may use:
+- GitHub repositories
+- official docs
+- technical architecture guides
+- public blog posts if they are concrete and technical
+
+Prefer strong technical sources.
+If LinkedIn, X, or vague social posts are weak evidence, say so explicitly.
+
+Strongly prioritize patterns from:
+- `git worktree`
+- OpenHands
+- LangGraph persistence
+- Temporal workflows
+- Celery routing
+- OpenAI Agents SDK
+- other strong, practical multi-agent orchestration systems
+
+======================================================================
+REPO GAP ANALYSIS REQUIREMENT
+======================================================================
+
+In addition to architecture research, you MUST inspect the repo and identify the missing pieces Jarvis still needs to become a real single-roof 5-6 Codex account manager.
+
+You must explicitly find and write the missing parts under categories like:
+
+- missing scheduler pieces
+- missing queue/job-state pieces
+- missing operator UX pieces
+- missing failover pieces
+- missing worktree/workspace isolation pieces
+- missing observability pieces
+- missing quota accounting pieces
+- missing health checks
+- missing handoff/recovery logic
+- missing documentation clarity
+- missing security controls
+
+Do not stop at “current architecture looks good.”
+You must identify the missing layers and missing glue.
+
+======================================================================
+REQUIRED OUTPUT STRUCTURE
+======================================================================
+
+Write the final result in exactly these sections:
+
+# 1. Kısa Sonuç
+- 10-20 maddede en kritik gerçekler
+
+# 2. Jarvis'te Zaten Olan Codex Account Altyapısı
+- hangi dosya ne işe yarıyor
+- execution truth nerede
+- metadata truth nerede
+- UI/operator surface nerede
+- neler gerçek, neler yarım
+
+# 3. Mevcut Mimari Değerlendirmesi
+- güçlü taraflar
+- zayıf taraflar
+- çelişkiler
+- riskler
+
+# 4. Repo İçinde Eksik Olan Parçalar
+- scheduler eksikleri
+- queue/job-state eksikleri
+- worktree/izolasyon eksikleri
+- quota/failover eksikleri
+- UI/operator eksikleri
+- observability eksikleri
+- security eksikleri
+- handoff/recovery eksikleri
+
+# 5. Dış Kaynak Araştırması
+Her güçlü kaynak için:
+- isim
+- link veya referans
+- neden alakalı
+- hangi patterni taşıyor
+- güven seviyesi
+- dikkat edilmesi gereken kısım
+
+# 6. Jarvis İçin En Doğru “Tek Çatı” Mimari
+Net öner:
+- control plane
+- execution truth
+- metadata truth
+- scheduler
+- queue
+- role routing
+- worktree/workspace isolation
+- quota tracking
+- failover
+- operator UI
+
+# 7. Ne Kalsın, Ne Değişsin, Ne Eklensin
+- korunacaklar
+- refactor edilecekler
+- eklenecek yeni parçalar
+
+# 8. /codex-accounts İçin İdeal Operatör Yüzeyi
+- hangi ekranlar
+- hangi aksiyonlar
+- hangi metrikler
+- hangi hata durumları
+
+# 9. Güvenli Rollout Planı
+- Faz 1
+- Faz 2
+- Faz 3
+- Faz 4
+
+Her faz için:
+- amaç
+- yapılacak işler
+- risk
+- başarı kriteri
+
+# 10. İlk 15 Net Sonraki Adım
+- öncelik sıralı
+- kısa
+- operasyonel
+
+# 11. Yönetici Özeti
+- tek paragraf
+- Jarvis şu an ne durumda
+- en güçlü avantajı ne
+- en büyük eksik ne
+- tek çatı Codex yönetimi için en doğru yön ne
+
+======================================================================
+ANTI-HALLUCINATION RULES
+======================================================================
+
+- Do not invent external repos if you cannot verify them.
+- Do not pretend LinkedIn or X gave strong technical evidence if they did not.
+- Do not ignore the local Jarvis architecture already present.
+- Do not propose a completely new system if the current two-layer truth model is mostly right.
+- Do not recommend a third Codex account registry.
+- Do not flatten runtime truth and operator metadata into the same file unless you can prove the split is wrong.
+- Do not give generic “use Kubernetes / use microservices” fluff unless it is concretely justified.
+- Prefer practical operator architecture over academic theory.
+
+======================================================================
+STYLE RULES
+======================================================================
+
+- Türkçe yaz
+- sert ve net ol
+- teknik ol
+- gevezelik yapma
+- somut öneriler ver
+- mümkün olduğunca dosya referansı kullan
+- kanıtsız cümle kurma
+
+Now inspect the local repo first, then research external relevant patterns, then produce the full analysis in the exact structure above.

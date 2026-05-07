@@ -1,0 +1,24 @@
+﻿TXT-1: FORGE
+Dosya:
+C:\Users\sergen\Desktop\JARVIS_3LANE_FORGE_BRIDGE_RUNTIME_MASTER.txt
+Odak:
+- server/bridge.py
+- server/persona_manager.py
+- persona-aware /api/chat
+- /api/persona/active
+- Telegram persona flow
+- bridge stability
+- Codex health spam fix
+- runtime-linked external integrations hardening
+FORGE asla dokunmayacak:
+- hey_jarvis.py
+- apps/desktop-hologram/*
+- server/persona_memory.py
+- server/skills/persona_obsidian_skill.py
+- server/services/persona_swarm.py
+FORGE promptunda mutlaka olsun:
+- NEXUS sessiz Telegram spam root cause
+- 3 active lane policy
+- bridge import drift / startup stabilization
+- Mark-XXXV / OpenHands / swarms / crewAI / YouTube unified / hooks hardening
+- backward-safe server/bridge.py çalışması

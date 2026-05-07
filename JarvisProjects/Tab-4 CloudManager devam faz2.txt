@@ -1,0 +1,521 @@
+================================================================================
+CODEX TAB-4 CloudManager Devam Faz2 — Production Hardening + Advanced Features
+Repo: C:\Users\sergen\Desktop\jarvis-mission-control
+Branch: 002-autonomous-research-agent
+Mode: PLAN-FIRST -> AUTO-EXECUTE -> VALIDATE -> COMMIT -> CLAUDE.MD
+================================================================================
+
+YOU ARE: Elite AI Software Engineer + Cloud Architect
+LANGUAGE: Turkish for user output, English for code/paths
+REPO: C:\Users\sergen\Desktop\jarvis-mission-control
+
+================================================================================
+ABSOLUTE RULES
+================================================================================
+
+1. CLAUDE.md oku — mevcut durumu anla, tamamlananları atla
+2. Her slice sonrası pytest çalıştır, fail varsa düzelt
+3. Her slice sonrası commit + CLAUDE.md güncelle
+4. server/bridge.py BACKWARD-SAFE — mevcut endpoint'ler bozulmaz
+5. NEVER push to main/master
+6. NEVER log AWS_ACCESS_KEY_ID veya herhangi bir credential
+7. NEVER call real AWS in tests — always mock boto3
+8. NEVER claim success without passing tests
+
+================================================================================
+MEVCUT DURUM (CLAUDE.md'den oku, doğrula)
+================================================================================
+
+Tamamlananlar (dokunma):
+  - server/skills/aws_ec2_skill.py        — list/start/stop instances
+  - server/skills/aws_s3_skill.py         — bucket/object management
+  - server/skills/aws_cost_skill.py       — monthly cost + budget alerts
+  - server/skill_registry.py              — SkillRegistry base class
+  - server/skills/registry_entries/cloud_entries.py
+  - server/skills/registry_entries/help_entries.py
+  - server/skills/registry_entries/ops_entries.py
+  - apps/web-ui/src/app/cloud/page.tsx    — /cloud dashboard UI
+  - server/bridge.py /cloud-* Telegram komutları
+  - server/bridge.py /api/cloud/* endpoints
+  - OPS/408_CLOUDMANAGER_HANDOFF.md
+  - tests/test_aws_ec2_skill.py           — passed
+  - tests/test_aws_s3_skill.py            — passed
+  - tests/test_aws_cost_skill.py          — passed
+  - tests/test_skill_registry.py          — passed
+
+Eksik (bunları yapacaksın):
+  A. EC2 instance monitoring — CPU/network metrics
+  B. S3 presigned URL üretimi
+  C. Cost alerting — threshold aşıldığında Telegram bildirimi
+  D. SkillRegistry'ye 5 yeni komut (ec2-izle, s3-url, maliyet-uyari, ec2-yeniden-baslat, cloud-ozet)
+  E. /cloud UI'a EC2 metrics paneli + cost trend chart
+  F. Scheduled cost check — günlük otomatik maliyet raporu
+  G. Production hardening — retry logic, better error messages
+  H. Full test suite + final handoff güncelleme
+
+================================================================================
+SLICE A: EC2 Instance Monitoring (Metrics)
+================================================================================
+
+server/skills/aws_ec2_skill.py içine ekle:
+
+  def get_instance_metrics(instance_id: str, hours: int = 1) -> dict:
+      """
+      CloudWatch'tan CPU, NetworkIn, NetworkOut metriklerini çeker.
+      Returns: {
+          ok: bool,
+          instance_id: str,
+          cpu_avg: float,
+          network_in_mb: float,
+          network_out_mb: float,
+          period_hours: int
+      }
+      """
+      try:
+          import boto3, os
+          from datetime import datetime, timedelta, timezone
+          cw = boto3.client(
+              "cloudwatch",
+              aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+              aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+              region_name=os.getenv("AWS_DEFAULT_REGION", "us-east-1"),
+          )
+          end = datetime.now(timezone.utc)
+          start = end - timedelta(hours=hours)
+
+          def _get_metric(metric_name, unit):
+              resp = cw.get_metric_statistics(
+                  Namespace="AWS/EC2",
+                  MetricName=metric_name,
+                  Dimensions=[{"Name": "InstanceId", "Value": instance_id}],
+                  StartTime=start,
+                  EndTime=end,
+                  Period=3600,
+                  Statistics=["Average"],
+                  Unit=unit,
+              )
+              points = resp.get("Datapoints", [])
+              if not points:
+                  return 0.0
+              return round(sum(p["Average"] for p in points) / len(points), 2)
+
+          cpu = _get_metric("CPUUtilization", "Percent")
+          net_in = round(_get_metric("NetworkIn", "Bytes") / (1024*1024), 3)
+          net_out = round(_get_metric("NetworkOut", "Bytes") / (1024*1024), 3)
+
+          return {
+              "ok": True,
+              "instance_id": instance_id,
+              "cpu_avg": cpu,
+              "network_in_mb": net_in,
+              "network_out_mb": net_out,
+              "period_hours": hours,
+          }
+      except Exception as e:
+          return {"ok": False, "error": str(e)}
+
+  def reboot_instance(instance_id: str) -> dict:
+      """Instance'ı yeniden başlatır. Returns: {ok, message}"""
+      try:
+          import boto3, os
+          ec2 = boto3.client(
+              "ec2",
+              aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+              aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+              region_name=os.getenv("AWS_DEFAULT_REGION", "us-east-1"),
+          )
+          ec2.reboot_instances(InstanceIds=[instance_id])
+          return {"ok": True, "message": f"{instance_id} yeniden baslatildi."}
+      except Exception as e:
+          return {"ok": False, "error": str(e)}
+
+Test: tests/test_aws_ec2_skill.py içine ekle:
+  - test_get_instance_metrics_returns_format (mock CloudWatch)
+  - test_reboot_instance_returns_ok (mock EC2)
+  - test_metrics_exception_returns_error_dict
+
+python -m pytest tests/test_aws_ec2_skill.py -v --tb=short
+
+Commit: "feat: aws_ec2_skill — instance metrics (CloudWatch) + reboot"
+CLAUDE.md update.
+
+================================================================================
+SLICE B: S3 Presigned URL
+================================================================================
+
+server/skills/aws_s3_skill.py içine ekle:
+
+  def generate_presigned_url(bucket: str, key: str, expires_in: int = 3600) -> dict:
+      """
+      S3 objesi için geçici indirme URL'i üretir.
+      Returns: {ok, url, expires_in, bucket, key}
+      """
+      try:
+          import boto3, os
+          s3 = boto3.client(
+              "s3",
+              aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+              aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+              region_name=os.getenv("AWS_DEFAULT_REGION", "us-east-1"),
+          )
+          url = s3.generate_presigned_url(
+              "get_object",
+              Params={"Bucket": bucket, "Key": key},
+              ExpiresIn=expires_in,
+          )
+          return {"ok": True, "url": url, "expires_in": expires_in, "bucket": bucket, "key": key}
+      except Exception as e:
+          return {"ok": False, "error": str(e)}
+
+  def get_object_metadata(bucket: str, key: str) -> dict:
+      """S3 objesinin metadata'sını döner. Returns: {ok, content_type, size_bytes, last_modified}"""
+      try:
+          import boto3, os
+          s3 = boto3.client(
+              "s3",
+              aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+              aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+              region_name=os.getenv("AWS_DEFAULT_REGION", "us-east-1"),
+          )
+          resp = s3.head_object(Bucket=bucket, Key=key)
+          return {
+              "ok": True,
+              "content_type": resp.get("ContentType", "unknown"),
+              "size_bytes": resp.get("ContentLength", 0),
+              "last_modified": str(resp.get("LastModified", "")),
+          }
+      except Exception as e:
+          return {"ok": False, "error": str(e)}
+
+Test: tests/test_aws_s3_skill.py içine ekle:
+  - test_generate_presigned_url_returns_url (mock s3.generate_presigned_url)
+  - test_get_object_metadata_returns_format
+  - test_presigned_url_exception_returns_error
+
+python -m pytest tests/test_aws_s3_skill.py -v --tb=short
+
+Commit: "feat: aws_s3_skill — presigned URL + object metadata"
+CLAUDE.md update.
+
+================================================================================
+SLICE C: Cost Alerting + Telegram Bildirimi
+================================================================================
+
+server/skills/aws_cost_skill.py içine ekle:
+
+  def check_cost_alerts() -> list[dict]:
+      """
+      state/cost_alerts.json'daki threshold'ları kontrol eder.
+      Returns: [{service, limit_usd, current_usd, pct_used, alert: bool}]
+      """
+      import json
+      from pathlib import Path
+      alerts_path = Path(__file__).parent.parent.parent / "state" / "cost_alerts.json"
+      if not alerts_path.exists():
+          return []
+      try:
+          alerts = json.loads(alerts_path.read_text(encoding="utf-8"))
+      except Exception:
+          return []
+      cost_data = get_monthly_cost()
+      by_service = cost_data.get("by_service", {})
+      results = []
+      for alert in (alerts if isinstance(alerts, list) else []):
+          service = alert.get("service", "")
+          limit = float(alert.get("usd_limit", 0))
+          current = float(by_service.get(service, 0))
+          pct = round((current / limit * 100), 1) if limit > 0 else 0
+          results.append({
+              "service": service,
+              "limit_usd": limit,
+              "current_usd": current,
+              "pct_used": pct,
+              "alert": pct >= 80,
+          })
+      return results
+
+  def get_cost_summary_text() -> str:
+      """Telegram için kısa maliyet özeti. Max 300 karakter."""
+      data = get_monthly_cost()
+      total = data.get("total_usd", 0)
+      by_service = data.get("by_service", {})
+      top = sorted(by_service.items(), key=lambda x: x[1], reverse=True)[:3]
+      lines = [f"Bu ay: ${total:.2f}"]
+      for svc, cost in top:
+          lines.append(f"  {svc}: ${cost:.2f}")
+      alerts = check_cost_alerts()
+      triggered = [a for a in alerts if a.get("alert")]
+      if triggered:
+          lines.append(f"⚠ {len(triggered)} uyari esigi asildi!")
+      return "\n".join(lines)[:300]
+
+Test: tests/test_aws_cost_skill.py içine ekle:
+  - test_check_cost_alerts_returns_list
+  - test_check_cost_alerts_alert_flag_set_when_above_80pct
+  - test_get_cost_summary_text_under_300_chars
+
+python -m pytest tests/test_aws_cost_skill.py -v --tb=short
+
+Commit: "feat: aws_cost_skill — cost alerting + summary text"
+CLAUDE.md update.
+
+================================================================================
+SLICE D: SkillRegistry'ye 5 Yeni Komut
+================================================================================
+
+server/skills/registry_entries/cloud_entries.py içine ekle:
+
+  /ec2-izle <instance_id>
+    handler: lambda args, ctx: get_instance_metrics(args.strip())
+    description: "EC2 instance CPU ve network metrikleri"
+    category: "cloud"
+
+  /ec2-yeniden-baslat <instance_id>
+    handler: lambda args, ctx: reboot_instance(args.strip())
+    description: "EC2 instance yeniden baslat"
+    requires_args: True
+    category: "cloud"
+
+  /s3-url <bucket> <key>
+    handler: lambda args, ctx: _s3_url_handler(args)
+    description: "S3 objesi icin gecici URL uret"
+    requires_args: True
+    category: "cloud"
+
+  /maliyet-uyari
+    handler: lambda args, ctx: check_cost_alerts()
+    description: "Maliyet esik uyarilari"
+    category: "cloud"
+
+  /cloud-ozet
+    handler: lambda args, ctx: get_cost_summary_text()
+    description: "Kisa cloud maliyet ozeti"
+    category: "cloud"
+
+  def _s3_url_handler(args: str) -> dict:
+      parts = args.strip().split(maxsplit=1)
+      if len(parts) < 2:
+          return {"ok": False, "error": "Kullanim: /s3-url <bucket> <key>"}
+      return generate_presigned_url(parts[0], parts[1])
+
+bridge.py Telegram handler'a bu komutları ekle:
+  /ec2-izle <id>     -> skill_registry.dispatch("/ec2-izle", args)
+  /ec2-yeniden-baslat <id> -> skill_registry.dispatch("/ec2-yeniden-baslat", args)
+  /s3-url <bucket> <key> -> skill_registry.dispatch("/s3-url", args)
+  /maliyet-uyari     -> skill_registry.dispatch("/maliyet-uyari")
+  /cloud-ozet        -> skill_registry.dispatch("/cloud-ozet")
+
+Test: tests/test_skill_registry.py içine ekle:
+  - test_ec2_izle_registered
+  - test_s3_url_handler_missing_args_returns_error
+  - test_cloud_ozet_returns_string
+
+python -m pytest tests/test_skill_registry.py -v --tb=short
+
+Commit: "feat: SkillRegistry — 5 yeni cloud komutu (ec2-izle, s3-url, maliyet-uyari, cloud-ozet)"
+CLAUDE.md update.
+
+================================================================================
+SLICE E: /cloud UI — EC2 Metrics Panel + Cost Trend
+================================================================================
+
+apps/web-ui/src/app/cloud/page.tsx içine ekle:
+
+1. bridge.py'e yeni endpoint ekle:
+   GET /api/cloud/ec2/metrics?instance_id=i-xxx
+     -> aws_ec2_skill.get_instance_metrics(instance_id)
+
+2. /cloud page.tsx içine EC2 METRICS PANEL ekle:
+   - Instance seçildiğinde metrics fetch et
+   - CPU: progress bar (0-100%)
+   - Network In/Out: MB cinsinden
+   - "Yenile" butonu
+
+3. COST TREND bölümüne son 3 ay ekle:
+   GET /api/cloud/cost/trend
+   -> aws_cost_skill.get_cost_trend(months=3)
+   UI: basit bar chart (CSS ile, npm paketi ekleme)
+   Her ay için: ay adı + $X.XX bar
+
+TypeScript tipler:
+  interface EC2MetricsResponse {
+    ok: boolean;
+    instance_id: string;
+    cpu_avg: number;
+    network_in_mb: number;
+    network_out_mb: number;
+    period_hours: number;
+  }
+
+  interface CostTrendItem {
+    month: string;
+    total_usd: number;
+  }
+
+Validation:
+  apps/web-ui/node_modules/.bin/tsc.cmd --noEmit
+
+Commit: "feat: /cloud UI — EC2 metrics panel + cost trend"
+CLAUDE.md update.
+
+================================================================================
+SLICE F: Scheduled Daily Cost Check
+================================================================================
+
+server/skills/aws_cost_skill.py içine ekle:
+
+  def run_daily_cost_check() -> dict:
+      """
+      Günlük maliyet kontrolü. Threshold aşıldıysa Telegram bildirimi gönderir.
+      bridge.py'den veya scheduler'dan çağrılır.
+      Returns: {checked: bool, alerts_triggered: int, summary: str}
+      """
+      alerts = check_cost_alerts()
+      triggered = [a for a in alerts if a.get("alert")]
+      summary = get_cost_summary_text()
+
+      result = {
+          "checked": True,
+          "alerts_triggered": len(triggered),
+          "summary": summary,
+          "triggered_services": [a["service"] for a in triggered],
+      }
+      return result
+
+bridge.py'e ekle:
+  GET /api/cloud/daily-check
+    -> aws_cost_skill.run_daily_cost_check()
+    -> eğer alerts_triggered > 0: Telegram'a bildirim gönder
+
+  Telegram bildirimi formatı:
+    "⚠ Maliyet Uyarısı!\n" + summary + "\nEsik aşılan: X servis"
+
+Test: tests/test_aws_cost_skill.py içine ekle:
+  - test_run_daily_cost_check_returns_dict
+  - test_run_daily_cost_check_triggered_count
+
+Commit: "feat: daily cost check + Telegram alert trigger"
+CLAUDE.md update.
+
+================================================================================
+SLICE G: Production Hardening
+================================================================================
+
+1. aws_ec2_skill.py, aws_s3_skill.py, aws_cost_skill.py:
+   - Her fonksiyona retry logic ekle (max 2 retry, exponential backoff):
+
+     import time
+
+     def _with_retry(fn, max_retries=2, base_delay=1.0):
+         for attempt in range(max_retries + 1):
+             try:
+                 return fn()
+             except Exception as e:
+                 if attempt == max_retries:
+                     raise
+                 time.sleep(base_delay * (2 ** attempt))
+
+   - list_instances(), list_buckets(), get_monthly_cost() fonksiyonlarına uygula
+
+2. Hata mesajlarını Türkçeleştir:
+   "NoCredentialsError" -> "AWS kimlik bilgileri bulunamadı. .env dosyasını kontrol edin."
+   "EndpointResolutionError" -> "AWS bölge ayarı hatalı. AWS_DEFAULT_REGION kontrol edin."
+   "AccessDenied" -> "AWS izin hatası. IAM politikasını kontrol edin."
+
+3. skill_registry.py dispatch() timeout ekle:
+   - Handler 10 saniyede yanıt vermezse: "Komut zaman aşımına uğradı." döner
+
+   import signal (Unix) veya threading.Timer (Windows):
+   Windows için:
+     import threading
+     result = [None]
+     error = [None]
+     def run():
+         try: result[0] = entry.handler(args, context or {})
+         except Exception as e: error[0] = e
+     t = threading.Thread(target=run)
+     t.start()
+     t.join(timeout=10)
+     if t.is_alive():
+         return "Komut zaman asimina ugradi."
+
+Test: tests/test_skill_registry.py içine ekle:
+  - test_dispatch_timeout_returns_turkish_message (slow handler mock)
+
+python -m pytest tests/test_aws_ec2_skill.py tests/test_aws_s3_skill.py
+  tests/test_aws_cost_skill.py tests/test_skill_registry.py -v --tb=short
+
+Commit: "feat: production hardening — retry logic + Turkish errors + dispatch timeout"
+CLAUDE.md update.
+
+================================================================================
+SLICE H: Full Test Suite + Final Handoff Güncelleme
+================================================================================
+
+1. Full test suite:
+   python -m pytest tests/test_aws_ec2_skill.py tests/test_aws_s3_skill.py
+     tests/test_aws_cost_skill.py tests/test_skill_registry.py -v --tb=short
+
+2. Final smoke test:
+   python -c "
+   import sys; sys.path.insert(0, 'server/skills')
+   from aws_ec2_skill import list_instances, start_instance, stop_instance, get_instance_metrics, reboot_instance
+   from aws_s3_skill import list_buckets, list_objects, generate_presigned_url
+   from aws_cost_skill import get_monthly_cost, check_cost_alerts, get_cost_summary_text, run_daily_cost_check
+   sys.path.insert(0, 'server')
+   from skill_registry import SkillRegistry, SkillEntry
+   print('All imports: OK')
+
+   # Registry smoke
+   r = SkillRegistry()
+   r.register(SkillEntry('/test', lambda a,c: 'ok', 'test', category='test'))
+   assert r.dispatch('/test') == 'ok'
+   print('SkillRegistry: OK')
+
+   # Cost summary
+   summary = get_cost_summary_text()
+   assert len(summary) <= 300
+   print('Cost summary:', summary[:80])
+
+   # Daily check
+   check = run_daily_cost_check()
+   assert check['checked']
+   print('Daily check: OK')
+
+   print('ALL FAZ2 SMOKE TESTS PASSED')
+   "
+
+3. OPS/408_CLOUDMANAGER_HANDOFF.md güncelle — Faz2 bölümü ekle:
+   ## Faz 2 Eklemeleri
+   - EC2 metrics: get_instance_metrics(), reboot_instance()
+   - S3 presigned URL: generate_presigned_url()
+   - Cost alerting: check_cost_alerts(), run_daily_cost_check()
+   - 5 yeni SkillRegistry komutu
+   - /cloud UI: metrics panel + cost trend
+   - Production hardening: retry + timeout + Turkish errors
+
+4. CLAUDE.md FINAL güncelle:
+   ### CloudManagerSystem + Skill Registry (Tab-4 Codex Faz2)
+   - Durum: FAZ2 TAMAMLANDI
+   - Yeni: EC2 metrics, S3 presigned URL, cost alerting, daily check
+   - Registry: toplam 17 komut
+   - Tests: pytest N passed
+   - Handoff: OPS/408_CLOUDMANAGER_HANDOFF.md (Faz2 güncellendi)
+
+5. Final commit:
+   "feat: CloudManagerSystem Faz2 complete — metrics, alerts, hardening"
+
+================================================================================
+ANTI-HALLUCINATION RULES
+================================================================================
+
+- NEVER log AWS_ACCESS_KEY_ID veya AWS_SECRET_ACCESS_KEY
+- NEVER call real AWS in tests — always mock boto3 with unittest.mock.patch
+- NEVER break existing /cloud-* bridge endpoints
+- NEVER add npm packages to web-ui
+- NEVER claim success without passing pytest
+- Windows'ta signal.alarm yok — timeout için threading.Timer kullan
+
+================================================================================
+GO. SLICE A -> B -> C -> D -> E -> F -> G -> H. HER SLICE SONRASI COMMIT.
+================================================================================

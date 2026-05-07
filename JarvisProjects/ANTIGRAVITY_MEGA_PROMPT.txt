@@ -1,0 +1,481 @@
+================================================================================
+ANTIGRAVITY MEGA GOREV — JARVIS MARK-NEXUS LAUNCHER + 8 SESLI AJAN
+REPO: C:\Users\sergen\Desktop\jarvis-mission-control
+TARIH: 2026-04-13
+================================================================================
+
+SEN ELITE BIR AI SOFTWARE ENGINEER'SIN.
+"Anlastik, yapiyorum" zihniyetiyle calis.
+Once design doc yaz, sonra koda gec.
+Hicbir sey atla. Her dosyayi oncelikle oku.
+
+================================================================================
+KRITIK SORUNLAR — ONCE BUNLARI OKU
+================================================================================
+
+SORUN 1: JARVIS.bat CALISMIYOR
+- Masaustunde C:\Users\sergen\Desktop\JARVIS.bat var
+- Kutu cizgi karakterleri (kodlama hatasi) CMD'de calismadi
+- Python yolu bosluklu: "C:\Program Files\Python311\python.exe" — tirmaklar iceride kayiyor
+- REPO degiskeni set edilmis ama cd /d satirinda bozuluyor
+- Simdi bu dosyayi SIFIRDAN yaz — kutu cizgi YOK, sade ASCII
+
+SORUN 2: SWARM CALISMAMIS
+- Kullanici Mark-XXXV gibi calismasini istiyor
+- Mark-XXXV: main.py baslatiyor, Gemini Live Audio ile konusuyor, PC kontrolu yapiyor
+- Biz istiyoruz: JARVIS CEO + 7 alt ajan (Seda/Mert/Buse/Eren/Luna/Sabrican/Sabri)
+- Her ajan sesli konusuyor, kendi API key'i ve sesi var
+- Birbirleriyle konusuyorlar, CEO yonetiyor
+
+SORUN 3: PYTHON YOLU
+- C:\Program Files\Python311\python.exe — bosluk var
+- BAT icerisinde her zaman tam tirmakli kullan: "%PYTHON%"
+- Ya da: where python ile bul
+
+================================================================================
+ONCELIKLE OKU (dokunma):
+================================================================================
+
+- C:\Users\sergen\Desktop\jarvis-mission-control\master_launcher.py
+- C:\Users\sergen\Desktop\jarvis-mission-control\server\bridge.py (ilk 50 satir)
+- C:\Users\sergen\Desktop\jarvis-mission-control\server\jarvis_ceo.py
+- C:\Users\sergen\Desktop\jarvis-mission-control\server\agents\clones\conversation_engine.py
+- C:\Users\sergen\Desktop\jarvis-mission-control\external-repos\Mark-XXXV\main.py (ilk 80 satir)
+- C:\Users\sergen\Desktop\jarvis-mission-control\.env (sadece key isimlerini gör, degerleri loga yazma)
+
+================================================================================
+FAZ 1 — MASAUSTÜ LAUNCHER TAMIRI (EN ACIL)
+================================================================================
+
+DOSYA: C:\Users\sergen\Desktop\JARVIS.bat
+TAMAMEN SIFIRDAN YAZ. Eski icerigi sil.
+
+KURALLAR:
+- Hic kutu cizgi karakteri kullanma (╔ ║ ╚ ═ gibi)
+- Sadece ASCII: = - * | karakterleri
+- Python yolu her zaman tirmakli
+- REPO yolu her zaman tirmakli
+- chcp 65001 en basa
+- Hata ayiklama icin: her goto oncesinde echo yaz
+
+---DOSYA ICERIGI---
+@echo off
+chcp 65001 >nul 2>&1
+setlocal enabledelayedexpansion
+title JARVIS MARK-NEXUS
+
+set "REPO=C:\Users\sergen\Desktop\jarvis-mission-control"
+set "PYTHON=C:\Program Files\Python311\python.exe"
+if not exist "%PYTHON%" (
+    for /f "delims=" %%i in ('where python 2^>nul') do set "PYTHON=%%i"
+)
+if not exist "%PYTHON%" set "PYTHON=python"
+
+:menu
+cls
+echo.
+echo  ================================================
+echo   JARVIS MARK-NEXUS v2.0
+echo   8 Agent AI Operating System
+echo  ================================================
+echo.
+echo   [1] Normal Jarvis     (Mark-XXXV + Hologram)
+echo   [2] Swarm Modu        (CEO + 7 Ajan Sesli)
+echo   [3] Web Only          (Sadece Bridge port 8081)
+echo   [4] Sessiz Mod        (Bridge + Voice, hologram yok)
+echo   [5] Kapat             (Tum Jarvis processleri durdur)
+echo   [0] Cikis
+echo.
+set /p "SECIM=  Seciminiz [0-5]: "
+
+if "!SECIM!"=="1" goto normal
+if "!SECIM!"=="2" goto swarm
+if "!SECIM!"=="3" goto webonly
+if "!SECIM!"=="4" goto silent
+if "!SECIM!"=="5" goto stop
+if "!SECIM!"=="0" exit /b 0
+echo Gecersiz secim, tekrar deneyin.
+timeout /t 2 >nul
+goto menu
+
+:normal
+cls
+echo.
+echo  Jarvis Normal Mod baslatiliyor...
+echo  Python: %PYTHON%
+echo  Repo  : %REPO%
+echo.
+cd /d "%REPO%"
+if errorlevel 1 (
+    echo HATA: Repo klasoru bulunamadi: %REPO%
+    pause
+    goto menu
+)
+set "JARVIS_ENABLE_HOLOGRAM=1"
+set "JARVIS_SWARM_HOLOGRAM=0"
+set "JARVIS_VOICE_RUNTIME=mark_xxxv"
+set "PYTHONIOENCODING=utf-8"
+set "PYTHONUNBUFFERED=1"
+"%PYTHON%" master_launcher.py
+echo.
+echo Jarvis kapandi.
+pause
+goto menu
+
+:swarm
+cls
+echo.
+echo  Swarm Modu baslatiliyor...
+echo  CEO + 7 Ajan: Seda Mert Buse Eren Luna Sabrican Sabri
+echo.
+cd /d "%REPO%"
+if errorlevel 1 (
+    echo HATA: Repo klasoru bulunamadi: %REPO%
+    pause
+    goto menu
+)
+echo  Konu girin (bos birakip Enter = genel toplanti):
+set /p "SWARM_KONU=  Konu: "
+if "!SWARM_KONU!"=="" set "SWARM_KONU=Bugunku gorevleri planla ve paylas"
+echo.
+echo  CEO baslatiliyor: !SWARM_KONU!
+echo.
+set "JARVIS_ENABLE_HOLOGRAM=1"
+set "JARVIS_SWARM_HOLOGRAM=1"
+set "JARVIS_VOICE_RUNTIME=mark_xxxv"
+set "PYTHONIOENCODING=utf-8"
+set "PYTHONUNBUFFERED=1"
+start "" /b "%PYTHON%" "%REPO%\server\jarvis_ceo.py" "!SWARM_KONU!"
+timeout /t 2 >nul
+"%PYTHON%" master_launcher.py
+echo.
+echo Swarm kapandi.
+pause
+goto menu
+
+:webonly
+cls
+echo.
+echo  Web-Only Mod baslatiliyor (port 8081)...
+echo.
+cd /d "%REPO%"
+if errorlevel 1 (
+    echo HATA: Repo klasoru bulunamadi: %REPO%
+    pause
+    goto menu
+)
+set "JARVIS_ENABLE_HOLOGRAM=0"
+set "JARVIS_SWARM_HOLOGRAM=0"
+set "JARVIS_WEB_ONLY=1"
+set "PYTHONIOENCODING=utf-8"
+set "PYTHONUNBUFFERED=1"
+"%PYTHON%" master_launcher.py
+echo.
+pause
+goto menu
+
+:silent
+cls
+echo.
+echo  Sessiz Mod baslatiliyor (hologram yok)...
+echo.
+cd /d "%REPO%"
+if errorlevel 1 (
+    echo HATA: Repo klasoru bulunamadi: %REPO%
+    pause
+    goto menu
+)
+set "JARVIS_ENABLE_HOLOGRAM=0"
+set "JARVIS_SWARM_HOLOGRAM=0"
+set "JARVIS_VOICE_RUNTIME=mark_xxxv"
+set "PYTHONIOENCODING=utf-8"
+set "PYTHONUNBUFFERED=1"
+"%PYTHON%" master_launcher.py
+echo.
+pause
+goto menu
+
+:stop
+echo.
+echo  Tum Jarvis processleri durduruluyor...
+taskkill /F /IM python.exe /T >nul 2>&1
+taskkill /F /IM electron.exe /T >nul 2>&1
+taskkill /F /IM node.exe /T >nul 2>&1
+echo  Durduruldu.
+timeout /t 2 >nul
+goto menu
+---DOSYA SONU---
+
+================================================================================
+FAZ 2 — KAPATMA BUTONU
+================================================================================
+
+DOSYA: C:\Users\sergen\Desktop\JARVIS_KAPAT.bat
+TAMAMEN SIFIRDAN YAZ:
+
+---DOSYA ICERIGI---
+@echo off
+chcp 65001 >nul 2>&1
+title JARVIS - Kapatiliyor
+echo.
+echo  Jarvis kapatiliyor...
+taskkill /F /IM python.exe /T >nul 2>&1
+taskkill /F /IM electron.exe /T >nul 2>&1
+taskkill /F /IM node.exe /T >nul 2>&1
+echo  Tamamlandi.
+timeout /t 2 >nul
+exit /b 0
+---DOSYA SONU---
+
+================================================================================
+FAZ 3 — 8 SESLI AJAN SİSTEMİ (ASIL HEDEF)
+================================================================================
+
+KULLANICININ ISTEGI:
+Mark-XXXV gibi calisacak ama 8 ajan:
+  - JARVIS CEO (orkestrator, mevcut bridge + hey_jarvis)
+  - SEDA (Developer)
+  - MERT (Researcher)
+  - BUSE (Marketer)
+  - EREN (Analyst)
+  - LUNA (Security)
+  - SABRICAN (Ops)
+  - SABRI (Wildcard)
+
+Her ajan:
+  - Kendi Gemini API key'i (.env'de GEMINI_KEY_[ISIM])
+  - Kendi Piper veya edge_tts sesi
+  - Kendi kisilik promptu (server/agents/clones/[isim]/core/prompt.txt)
+  - Birbirleriyle konusuyor, CEO yonetiyor
+
+MEVCUT DURUM:
+- server/agents/clones/conversation_engine.py MEVCUT — calistigi test edildi
+- server/jarvis_ceo.py MEVCUT — calistigi test edildi
+- Test: python server\jarvis_ceo.py "test" → 3 ajan konustu (seda/mert/buse)
+- SORUN: Sadece 3 ajan calisuyor, 7 olmali
+
+GOREV 3A: conversation_engine.py DUZELTME
+Dosya: server/agents/clones/conversation_engine.py
+
+ONCE OKU. Sonra:
+
+route_keywords() fonksiyonunu bul.
+Simdi her cagirida max 3 ajan donduruyor.
+Degistir: her zaman 7 ajan dondurmeli.
+
+Yeni route_keywords():
+
+def route_keywords(topic: str) -> list[str]:
+    return list(AGENT_PROFILES.keys())  # her zaman 7 ajan
+
+ACIKLAMA: CEO zaten hangi ajanin ne zaman konusacagini biliyor.
+Tum aganlarin katilmasi isteniyor.
+
+GOREV 3B: jarvis_ceo.py DUZELTME
+Dosya: server/jarvis_ceo.py
+
+ONCE OKU. Sonra:
+
+- rounds parametresini 1 yap (7 ajan 1 turda 7 konusma = yeterli)
+- Swarm baslamadan once kisa bir intro mesaji yazsin:
+
+print("=" * 50)
+print("JARVIS MARK-NEXUS SWARM AKTIF")
+print("CEO + 7 Ajan: Seda / Mert / Buse / Eren / Luna / Sabrican / Sabri")
+print("=" * 50)
+
+GOREV 3C: TEST
+Su komutu calistir:
+
+cd C:\Users\sergen\Desktop\jarvis-mission-control\server
+python jarvis_ceo.py "bugunun gorevlerini planla"
+
+Beklenen cikti:
+==================================================
+JARVIS MARK-NEXUS SWARM AKTIF
+CEO + 7 Ajan: Seda / Mert / Buse / Eren / Luna / Sabrican / Sabri
+==================================================
+[CEO] 'bugunun gorevlerini planla' gorevi baslatildi.
+[CEO] Katilimcilar: seda, mert, buse, eren, luna, sabrican, sabri
+pygame 2.6.1 ...
+[CEO] Diyalog tamamlandi.
+--- Diyalog Ozeti ---
+seda: ...
+mert: ...
+buse: ...
+eren: ...
+luna: ...
+sabrican: ...
+sabri: ...
+
+EGER 7 AJAN KONUSUYORSA GOREV TAMAMDIR.
+
+================================================================================
+FAZ 4 — GEMINI KEY KONTROLU
+================================================================================
+
+GOREV 4A: .env dosyasini kontrol et (degerleri YAZMA, sadece var mi yok mu bak)
+Kontrol edilecekler:
+- GEMINI_KEY_SEDA
+- GEMINI_KEY_MERT
+- GEMINI_KEY_BUSE
+- GEMINI_KEY_EREN
+- GEMINI_KEY_LUNA
+- GEMINI_KEY_SABRICAN
+- GEMINI_KEY_SABRI
+
+Hangileri bos, hangileri dolu — rapor et.
+
+GOREV 4B: Bos key varsa mock_response devreye giriyor — bu normaldir.
+Gercek Gemini API yerine mock cevap uretir.
+Key doluysa gercek Gemini API cevabi gelir.
+
+GOREV 4C: server/key_pool.py varsa oku.
+GEMINI_POOL tanimli mi kontrol et.
+Varsa conversation_engine.py icerisinde _call_gemini() fonksiyonunu
+key_pool'dan key alacak sekilde guncelle:
+
+Eski:
+  api_key = os.getenv(profile["api_key_env"], "")
+
+Yeni:
+  from key_pool import GEMINI_POOL
+  api_key = GEMINI_POOL.get() or os.getenv(profile["api_key_env"], "")
+
+================================================================================
+FAZ 5 — SWARM KONUSMALARINI HOLOGRAMDA GOSTER
+================================================================================
+
+MEVCUT DURUM:
+- apps/desktop-hologram/renderer.js swarm-status poll ediyor
+- state/swarm_speaking_state.json yaziliyor (conversation_engine yaziyor)
+- Hologram agent ikonlari var (seda/mert/buse/eren/luna/sabrican/sabri)
+
+GOREV 5A: renderer.js'i kontrol et
+Dosya: apps/desktop-hologram/renderer.js
+
+Simdi speaking ajanin ismini ve metnini gosteriyor mu?
+Gostermiyorsa su kodu bul ve duzenle:
+
+if (speakingAgent && swarmText) {
+    document.getElementById("agentName").textContent = speakerNames[speakingAgent] || speakingAgent;
+    document.getElementById("speechText").textContent = swarmText;
+}
+
+Bu kod yoksa ekle (mevcut updateUI() fonksiyonu icerisine).
+
+GOREV 5B: styles.css'i kontrol et
+Dosya: apps/desktop-hologram/styles.css
+
+.agent-icon.speaking animasyonu var mi?
+Yoksa ekle:
+
+@keyframes speakingPulse {
+  0%   { transform: scale(1);    box-shadow: 0 0 8px currentColor; }
+  50%  { transform: scale(1.3);  box-shadow: 0 0 24px currentColor; }
+  100% { transform: scale(1);    box-shadow: 0 0 8px currentColor; }
+}
+.agent-icon.speaking {
+  animation: speakingPulse 0.8s ease-in-out infinite;
+}
+
+================================================================================
+FAZ 6 — SISTEM_J.BAT DUZELTME
+================================================================================
+
+DOSYA: C:\Users\sergen\Desktop\jarvis-mission-control\SISTEM_J.bat
+ONCE OKU.
+
+Eger dosyada kutu cizgi karakterleri varsa temizle.
+Eger "webonly" argumani yoksa ekle:
+
+if /I "%~1"=="webonly" (
+    set "JARVIS_WEB_ONLY=1"
+    set "JARVIS_ENABLE_HOLOGRAM=0"
+    shift
+    goto parse_args
+)
+
+Eger "swarm" argumani yoksa ekle:
+
+if /I "%~1"=="swarm" (
+    set "JARVIS_SWARM_HOLOGRAM=1"
+    set "JARVIS_ENABLE_HOLOGRAM=1"
+    shift
+    goto parse_args
+)
+
+Banner'dan kutu cizgileri kaldir, ASCII yap:
+echo ============================================================
+echo   JARVIS MARK-NEXUS - Canonical Launcher
+echo ============================================================
+
+================================================================================
+FAZ 7 — TESTLER VE DOGRULAMA
+================================================================================
+
+TEST 1: JARVIS.bat calisiyor mu?
+C:\Users\sergen\Desktop\JARVIS.bat'i cift tikla.
+Menü gorünmeli. Hata olmamali.
+
+TEST 2: Swarm calisiyor mu?
+cd C:\Users\sergen\Desktop\jarvis-mission-control\server
+python jarvis_ceo.py "test toplantisi"
+7 ajan cikti vermeli.
+
+TEST 3: Mock test (API key yoksa da calistir):
+python -c "
+import sys
+sys.path.insert(0, r'C:\Users\sergen\Desktop\jarvis-mission-control\server')
+from agents.clones.conversation_engine import route_keywords, ConversationEngine
+agents = route_keywords('test')
+print('Ajanlar:', agents)
+assert len(agents) == 7, f'7 ajan olmali, {len(agents)} var'
+print('TEST GECTI: 7 ajan OK')
+engine = ConversationEngine()
+results = engine._mock_dialogue('test', agents, rounds=1)
+print(f'Mock diyalog: {len(results)} konusma')
+for r in results:
+    print(f'  {r[\"agent\"]}: {r[\"text\"][:50]}')
+"
+
+TEST 4: Python yolu dogru mu?
+"C:\Program Files\Python311\python.exe" --version
+Cikti: Python 3.11.x olmali.
+
+================================================================================
+TAMAMLANDIGINDA
+================================================================================
+
+1. C:\Users\sergen\Desktop\JARVIS.bat — cift tiklaninca menu aciyor
+2. Menudan [2] Swarm secilince konu sorulur, 7 ajan sesli konusur
+3. Hologramda konusan ajanin ikonu parlıyor
+4. Hicbir secret/API key loga yazilmiyor
+5. Tum islemler tek CMD penceresinden yuruyuyor
+
+COMMIT:
+git commit -m "feat: JARVIS.bat fix + 7 agent swarm calistirildi"
+
+================================================================================
+GUVENLIK KURALLARI
+================================================================================
+- .env icindeki API key degerlerini hicbir yere yazma
+- Log dosyalarina sadece metin, key yok
+- Telegram mesajlarinda token/key yok
+- state/swarm_speaking_state.json icerisinde key yok
+
+================================================================================
+SONUC BEKLENTISI
+================================================================================
+Kullanici masaustunde JARVIS.bat'i actiğinda:
+- Temiz ASCII menü goruyor
+- [2] Swarm secip konu yazinca
+- Terminal'de 7 ajanin sirayla konustugunu goruyor
+- Hologram penceresinde konusan ajanin ikonu parlıyor
+- Ses cikiyor (edge_tts)
+
+BU KADAR. Basit, calisir, tek CMD.
+
+================================================================================
+END OF PROMPT
+================================================================================
