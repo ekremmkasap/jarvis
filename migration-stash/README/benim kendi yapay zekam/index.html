@@ -1,0 +1,105 @@
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Benim Kendi Yapay Zekam</title>
+    <style>
+        /* Modern ve Türkçe Arayüz Tasarımı */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .sohbet-konteynir {
+            width: 90%;
+            max-width: 600px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        .mesajlar {
+            height: 400px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .girdi-alani {
+            display: flex;
+            gap: 10px;
+        }
+        input {
+            flex: 1;
+            padding: 12px;
+            border-radius: 10px;
+            border: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            outline: none;
+        }
+        button {
+            padding: 12px 20px;
+            border-radius: 10px;
+            border: none;
+            background: #e94560;
+            color: white;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        button:hover {
+            background: #ff4d6d;
+        }
+        h1 {
+            color: #e94560;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body>
+    <h1>Benim Yapay Zekam 🤖</h1>
+    <div class="sohbet-konteynir">
+        <div class="mesajlar" id="mesajlar">
+            <p><strong>Zeka:</strong> Merhaba! Ben senin özel yapay zekanım. Bugün sana nasıl yardımcı olabilirim?</p>
+        </div>
+        <div class="girdi-alani">
+            <input type="text" id="kullanici-mesaj" placeholder="Mesajını buraya yaz...">
+            <button onclick="mesajGonder()">Gönder</button>
+        </div>
+    </div>
+
+    <script>
+        function mesajGonder() {
+            const girdi = document.getElementById('kullanici-mesaj');
+            const mesajlar = document.getElementById('mesajlar');
+            
+            if (girdi.value.trim() !== "") {
+                const p = document.createElement('p');
+                p.innerHTML = "<strong>Sen:</strong> " + girdi.value;
+                mesajlar.appendChild(p);
+                
+                // Yapay zeka simülasyonu (İleride Backend'e bağlanacak)
+                setTimeout(() => {
+                    const cevap = document.createElement('p');
+                    cevap.innerHTML = "<strong>Zeka:</strong> Seni anlıyorum. Şu an kendimi geliştirmem için bana biraz zaman verir misin?";
+                    mesajlar.appendChild(cevap);
+                    mesajlar.scrollTop = mesajlar.scrollHeight;
+                }, 1000);
+                
+                girdi.value = "";
+                mesajlar.scrollTop = mesajlar.scrollHeight;
+            }
+        }
+    </script>
+</body>
+</html>

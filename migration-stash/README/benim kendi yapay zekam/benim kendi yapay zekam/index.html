@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grok | Türkçe</title>
+    <style>
+        /* Grok Minimalist Dark Mode CSS */
+        :root {
+            --bg-color: #000000;
+            --text-color: #ffffff;
+            --accent-color: #ffffff;
+            --secondary-bg: #0f0f0f;
+            --border-color: #262626;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 260px;
+            background-color: var(--bg-color);
+            border-right: 1px solid var(--border-color);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+            position: relative;
+        }
+
+        .header {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-container {
+            flex: 1;
+            padding: 40px 20px;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+
+        .message {
+            margin-bottom: 30px;
+            line-height: 1.6;
+            font-size: 16px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .user-message {
+            color: #ccc;
+        }
+
+        .grok-message {
+            color: var(--text-color);
+            border-left: 2px solid var(--accent-color);
+            padding-left: 15px;
+        }
+
+        .input-area {
+            padding: 20px;
+            position: relative;
+        }
+
+        .input-wrapper {
+            background-color: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 10px 15px;
+            display: flex;
+            align-items: flex-end;
+            transition: border-color 0.2s;
+        }
+
+        .input-wrapper:focus-within {
+            border-color: #404040;
+        }
+
+        textarea {
+            background: none;
+            border: none;
+            color: white;
+            flex: 1;
+            resize: none;
+            outline: none;
+            padding: 10px 0;
+            font-size: 16px;
+            max-height: 200px;
+        }
+
+        .send-btn {
+            background: white;
+            color: black;
+            border: none;
+            border-radius: 8px;
+            width: 32px;
+            height: 32px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 5px;
+            transition: opacity 0.2s;
+        }
+
+        .send-btn:hover {
+            opacity: 0.8;
+        }
+
+        .grok-logo {
+            font-weight: 900;
+            font-size: 24px;
+            letter-spacing: -1px;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #262626;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="grok-logo">Grok</div>
+        <div style="margin-top: 20px; color: #666; font-size: 14px;">X tarafından</div>
+    </div>
+    <div class="main-content">
+        <div class="header">
+            <span style="font-weight: 600;">Türkçe Grok Deneyimi</span>
+            <span style="color: #666; font-size: 12px;">Mod: Eğlenceli</span>
+        </div>
+        <div class="chat-container" id="chat">
+            <div class="message grok-message">
+                Merhaba. Ben Grok. xAI tarafından geliştirildim ve artık Türkçe konuşabiliyorum.
+                Biraz isyankarım, bolca esprilim ama her zaman yanındayım. Ne yapıyoruz bugün?
+            </div>
+        </div>
+        <div class="input-area">
+            <div class="input-wrapper">
+                <textarea id="userInput" placeholder="Grok'a sor..." rows="1" oninput="autoResize(this)"></textarea>
+                <button class="send-btn" onclick="sendMessage()">⬆</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function autoResize(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = textarea.scrollHeight + 'px';
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('userInput');
+            const chat = document.getElementById('chat');
+            const text = input.value.trim();
+
+            if (text === "") return;
+
+            // Kullanıcı mesajını ekle
+            const userMsg = document.createElement('div');
+            userMsg.className = 'message user-message';
+            userMsg.innerText = text;
+            chat.appendChild(userMsg);
+
+            input.value = "";
+            input.style.height = 'auto';
+            chat.scrollTop = chat.scrollHeight;
+
+            // Grok cevap veriyor alanı
+            const grokMsg = document.createElement('div');
+            grokMsg.className = 'message grok-message';
+            grokMsg.innerText = "Düşünüyorum...";
+            chat.appendChild(grokMsg);
+            chat.scrollTop = chat.scrollHeight;
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text })
+                });
+
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    typeEffect(grokMsg, data.response);
+                } else {
+                    grokMsg.innerText = "Hata: " + data.message;
+                }
+            } catch (error) {
+                grokMsg.innerText = "Sunucuya bağlanılamadı. Flask çalışıyor mu?";
+                console.error('Error:', error);
+            }
+        }
+
+        function typeEffect(element, text) {
+            element.innerText = "";
+            let i = 0;
+            const speed = 20; // ms
+
+            function type() {
+                if (i < text.length) {
+                    element.innerText += text.charAt(i);
+                    i++;
+                    setTimeout(type, speed);
+                    const chat = document.getElementById('chat');
+                    chat.scrollTop = chat.scrollHeight;
+                }
+            }
+            type();
+        }
+
+        // Enter ile gönder
+        document.getElementById('userInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+
+</html>
